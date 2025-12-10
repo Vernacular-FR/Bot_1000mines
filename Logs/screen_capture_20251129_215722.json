@@ -1,0 +1,26 @@
+{
+  "timestamp": "20251129_215722",
+  "extraction_type": "screen_capture",
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": {
+    "success": true,
+    "method": "screen_capture",
+    "screenshot": "screenshots\\game_area.png",
+    "grid_detected": true
+  },
+  "game_state": {
+    "method": "screen_capture",
+    "screenshot_path": "screenshots\\game_area.png",
+    "image_analysis": {
+      "image_path": "screenshots\\game_area.png",
+      "dimensions": {
+        "width": 2560,
+        "height": 1261
+      },
+      "total_pixels": 3228160,
+      "unique_colors": 188,
+      "top_colors": [
+        {
+          "color": [
+            

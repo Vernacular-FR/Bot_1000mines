@@ -1,0 +1,16 @@
+{
+  "timestamp": "20251201_004244",
+  "action": "move_view",
+  "success": true,
+  "details": {
+    "dx": 300,
+    "dy": 100,
+    "method": "javascript_multi",
+    "target": "canvas",
+    "results": [
+      null,
+      null,
+      null
+    ]
+  }
+}

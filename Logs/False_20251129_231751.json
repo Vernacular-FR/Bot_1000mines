@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251129_231751",
+  "extraction_type": false,
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": "15x15_test_failure",
+  "game_state": {
+    "error": "'GameStateExtractor' object has no attribute 'game_controller'",
+    "test_timestamp": "2025-11-29T23:17:51.457846"
+  }
+}

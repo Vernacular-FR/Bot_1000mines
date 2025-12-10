@@ -1,0 +1,23 @@
+{
+  "report_timestamp": "2025-11-29T23:36:18.119412",
+  "monitoring_period": {
+    "start": "2025-11-29T23:36:06.115483",
+    "end": "2025-11-29T23:36:18.119426",
+    "duration_seconds": 12.003944
+  },
+  "system_performance": {
+    "cpu": {
+      "average": 10.85,
+      "max": 17.5,
+      "min": 4.2
+    },
+    "memory": {
+      "average": 28.950000000000003,
+      "max": 29.1,
+      "min": 28.8
+    }
+  },
+  "custom_metrics_count": 0,
+  "warnings_count": 0,
+  "performance_issues": []
+}

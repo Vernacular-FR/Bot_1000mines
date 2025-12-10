@@ -1,0 +1,16 @@
+{
+  "timestamp": "20251130_125337",
+  "action": "click_cell",
+  "success": true,
+  "details": {
+    "grid_x": 3,
+    "grid_y": -20,
+    "right_click": false,
+    "screen_x": 1368,
+    "screen_y": 169,
+    "canvas_x": 88.0,
+    "canvas_y": -487.0,
+    "visible": true,
+    "method": "javascript"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251203_140852",
+  "action": "click_cell",
+  "success": false,
+  "details": {
+    "grid_x": 2,
+    "grid_y": -3,
+    "right_click": true,
+    "error": "'charmap' codec can't encode character '\\u2192' in position 2: character maps to <undefined>"
+  }
+}

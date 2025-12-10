@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251203_133209",
+  "action": {
+    "actions_total": 21,
+    "actions_executed": 0,
+    "errors": 21,
+    "execution_time": 1.0221400260925293
+  },
+  "success": "action_execution",
+  "details": "Actions exécutées: 0/21"
+}

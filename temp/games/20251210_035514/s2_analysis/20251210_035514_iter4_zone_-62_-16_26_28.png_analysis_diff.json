@@ -1,0 +1,2792 @@
+[
+  {
+    "coordinates": [
+      -31,
+      4
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -30,
+      -2
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -29,
+      -2
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -28,
+      -2
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -27,
+      -2
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -26,
+      -1
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -23,
+      -1
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -6,
+      0
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -6,
+      3
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -5,
+      -2
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -4,
+      -5
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -3,
+      -5
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -2,
+      -5
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      2,
+      -6
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      3,
+      -6
+    ],
+    "previous": "unknown",
+    "current": "unrevealed",
+    "confidence": 1.0
+  },
+  {
+    "coordinates": [
+      -51,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -51,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9946061968803406
+  },
+  {
+    "coordinates": [
+      -51,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9969086050987244
+  },
+  {
+    "coordinates": [
+      -51,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9987037181854248
+  },
+  {
+    "coordinates": [
+      -51,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -50,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -50,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9979715943336487
+  },
+  {
+    "coordinates": [
+      -50,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.999154806137085
+  },
+  {
+    "coordinates": [
+      -50,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9977377653121948
+  },
+  {
+    "coordinates": [
+      -50,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9975646734237671
+  },
+  {
+    "coordinates": [
+      -49,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9984285235404968
+  },
+  {
+    "coordinates": [
+      -49,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9981338381767273
+  },
+  {
+    "coordinates": [
+      -49,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9992498755455017
+  },
+  {
+    "coordinates": [
+      -49,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9994254112243652
+  },
+  {
+    "coordinates": [
+      -49,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9965406060218811
+  },
+  {
+    "coordinates": [
+      -48,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -48,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9978359341621399
+  },
+  {
+    "coordinates": [
+      -48,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9991833567619324
+  },
+  {
+    "coordinates": [
+      -48,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -47,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940044283866882
+  },
+  {
+    "coordinates": [
+      -47,
+      -3
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9978923201560974
+  },
+  {
+    "coordinates": [
+      -47,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -47,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9972001314163208
+  },
+  {
+    "coordinates": [
+      -47,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.999482274055481
+  },
+  {
+    "coordinates": [
+      -47,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9991329312324524
+  },
+  {
+    "coordinates": [
+      -47,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9971401691436768
+  },
+  {
+    "coordinates": [
+      -47,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940044283866882
+  },
+  {
+    "coordinates": [
+      -46,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9976722598075867
+  },
+  {
+    "coordinates": [
+      -46,
+      -3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9992863535881042
+  },
+  {
+    "coordinates": [
+      -46,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9990909099578857
+  },
+  {
+    "coordinates": [
+      -46,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995613694190979
+  },
+  {
+    "coordinates": [
+      -46,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9666876196861267
+  },
+  {
+    "coordinates": [
+      -46,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.996708869934082
+  },
+  {
+    "coordinates": [
+      -46,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9984111785888672
+  },
+  {
+    "coordinates": [
+      -46,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.999083399772644
+  },
+  {
+    "coordinates": [
+      -45,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.8691535592079163
+  },
+  {
+    "coordinates": [
+      -45,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9989204406738281
+  },
+  {
+    "coordinates": [
+      -45,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9534350037574768
+  },
+  {
+    "coordinates": [
+      -45,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.999383807182312
+  },
+  {
+    "coordinates": [
+      -45,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.997506320476532
+  },
+  {
+    "coordinates": [
+      -45,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -44,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981750249862671
+  },
+  {
+    "coordinates": [
+      -44,
+      -3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9986053109169006
+  },
+  {
+    "coordinates": [
+      -44,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9991872906684875
+  },
+  {
+    "coordinates": [
+      -44,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9989880919456482
+  },
+  {
+    "coordinates": [
+      -44,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.999144434928894
+  },
+  {
+    "coordinates": [
+      -44,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9993533492088318
+  },
+  {
+    "coordinates": [
+      -44,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -43,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -43,
+      -3
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9954511523246765
+  },
+  {
+    "coordinates": [
+      -43,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9951730370521545
+  },
+  {
+    "coordinates": [
+      -43,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9996196031570435
+  },
+  {
+    "coordinates": [
+      -43,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9979501366615295
+  },
+  {
+    "coordinates": [
+      -43,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9982511401176453
+  },
+  {
+    "coordinates": [
+      -43,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9978558421134949
+  },
+  {
+    "coordinates": [
+      -43,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9992221593856812
+  },
+  {
+    "coordinates": [
+      -43,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995077848434448
+  },
+  {
+    "coordinates": [
+      -42,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -42,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9993534684181213
+  },
+  {
+    "coordinates": [
+      -42,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9971489310264587
+  },
+  {
+    "coordinates": [
+      -42,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.997441291809082
+  },
+  {
+    "coordinates": [
+      -42,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9966615438461304
+  },
+  {
+    "coordinates": [
+      -42,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9950259327888489
+  },
+  {
+    "coordinates": [
+      -41,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -41,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9996813535690308
+  },
+  {
+    "coordinates": [
+      -41,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9994200468063354
+  },
+  {
+    "coordinates": [
+      -41,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9970470070838928
+  },
+  {
+    "coordinates": [
+      -41,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -40,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9979496598243713
+  },
+  {
+    "coordinates": [
+      -40,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995614886283875
+  },
+  {
+    "coordinates": [
+      -40,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9964028596878052
+  },
+  {
+    "coordinates": [
+      -40,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9983826875686646
+  },
+  {
+    "coordinates": [
+      -40,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.999381422996521
+  },
+  {
+    "coordinates": [
+      -40,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995291233062744
+  },
+  {
+    "coordinates": [
+      -40,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9987900853157043
+  },
+  {
+    "coordinates": [
+      -40,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9980940222740173
+  },
+  {
+    "coordinates": [
+      -40,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9970006346702576
+  },
+  {
+    "coordinates": [
+      -40,
+      10
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -39,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9962199330329895
+  },
+  {
+    "coordinates": [
+      -39,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995611310005188
+  },
+  {
+    "coordinates": [
+      -39,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.998185932636261
+  },
+  {
+    "coordinates": [
+      -39,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9976733326911926
+  },
+  {
+    "coordinates": [
+      -39,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9991624355316162
+  },
+  {
+    "coordinates": [
+      -39,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.998839795589447
+  },
+  {
+    "coordinates": [
+      -39,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.8457298278808594
+  },
+  {
+    "coordinates": [
+      -39,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9994499087333679
+  },
+  {
+    "coordinates": [
+      -39,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9989074468612671
+  },
+  {
+    "coordinates": [
+      -38,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -38,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9906031489372253
+  },
+  {
+    "coordinates": [
+      -38,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -38,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -38,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.996829092502594
+  },
+  {
+    "coordinates": [
+      -38,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9988151788711548
+  },
+  {
+    "coordinates": [
+      -38,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -38,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -38,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9949442744255066
+  },
+  {
+    "coordinates": [
+      -38,
+      10
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -37,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9993428587913513
+  },
+  {
+    "coordinates": [
+      -37,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9979298114776611
+  },
+  {
+    "coordinates": [
+      -37,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.997416615486145
+  },
+  {
+    "coordinates": [
+      -36,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9994805455207825
+  },
+  {
+    "coordinates": [
+      -36,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9976931214332581
+  },
+  {
+    "coordinates": [
+      -36,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9993094205856323
+  },
+  {
+    "coordinates": [
+      -36,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995912909507751
+  },
+  {
+    "coordinates": [
+      -36,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.8815736770629883
+  },
+  {
+    "coordinates": [
+      -35,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9946517944335938
+  },
+  {
+    "coordinates": [
+      -35,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9989867806434631
+  },
+  {
+    "coordinates": [
+      -35,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9946185350418091
+  },
+  {
+    "coordinates": [
+      -35,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9963850975036621
+  },
+  {
+    "coordinates": [
+      -35,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9976494908332825
+  },
+  {
+    "coordinates": [
+      -35,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940044283866882
+  },
+  {
+    "coordinates": [
+      -34,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9991592168807983
+  },
+  {
+    "coordinates": [
+      -34,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9279837012290955
+  },
+  {
+    "coordinates": [
+      -34,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9989025592803955
+  },
+  {
+    "coordinates": [
+      -34,
+      8
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9948557615280151
+  },
+  {
+    "coordinates": [
+      -34,
+      10
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -33,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -33,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9962573051452637
+  },
+  {
+    "coordinates": [
+      -33,
+      5
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9993736147880554
+  },
+  {
+    "coordinates": [
+      -33,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9755650758743286
+  },
+  {
+    "coordinates": [
+      -33,
+      8
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9986532926559448
+  },
+  {
+    "coordinates": [
+      -33,
+      9
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9983993172645569
+  },
+  {
+    "coordinates": [
+      -33,
+      11
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -33,
+      12
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -33,
+      13
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9984039664268494
+  },
+  {
+    "coordinates": [
+      -33,
+      15
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988476037979126
+  },
+  {
+    "coordinates": [
+      -32,
+      4
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -32,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9965581297874451
+  },
+  {
+    "coordinates": [
+      -32,
+      6
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9966598749160767
+  },
+  {
+    "coordinates": [
+      -32,
+      7
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9993046522140503
+  },
+  {
+    "coordinates": [
+      -32,
+      9
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9995841383934021
+  },
+  {
+    "coordinates": [
+      -32,
+      10
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9989051818847656
+  },
+  {
+    "coordinates": [
+      -32,
+      12
+    ],
+    "previous": "unknown",
+    "current": "number_2",
+    "confidence": 0.9979896545410156
+  },
+  {
+    "coordinates": [
+      -32,
+      14
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9994244575500488
+  },
+  {
+    "coordinates": [
+      -31,
+      6
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9991739392280579
+  },
+  {
+    "coordinates": [
+      -31,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.8937649726867676
+  },
+  {
+    "coordinates": [
+      -31,
+      9
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9987037181854248
+  },
+  {
+    "coordinates": [
+      -31,
+      11
+    ],
+    "previous": "unknown",
+    "current": "number_5",
+    "confidence": 0.9600129127502441
+  },
+  {
+    "coordinates": [
+      -31,
+      12
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9984334111213684
+  },
+  {
+    "coordinates": [
+      -31,
+      14
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9993836879730225
+  },
+  {
+    "coordinates": [
+      -31,
+      15
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9946356415748596
+  },
+  {
+    "coordinates": [
+      -30,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -30,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9985532164573669
+  },
+  {
+    "coordinates": [
+      -30,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -30,
+      6
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9986131191253662
+  },
+  {
+    "coordinates": [
+      -30,
+      7
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9989226460456848
+  },
+  {
+    "coordinates": [
+      -30,
+      8
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9994874000549316
+  },
+  {
+    "coordinates": [
+      -30,
+      10
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9996359348297119
+  },
+  {
+    "coordinates": [
+      -30,
+      11
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9988277554512024
+  },
+  {
+    "coordinates": [
+      -30,
+      12
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9982500672340393
+  },
+  {
+    "coordinates": [
+      -30,
+      14
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.999714195728302
+  },
+  {
+    "coordinates": [
+      -29,
+      -1
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9958359003067017
+  },
+  {
+    "coordinates": [
+      -29,
+      0
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9974632263183594
+  },
+  {
+    "coordinates": [
+      -29,
+      2
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9969825148582458
+  },
+  {
+    "coordinates": [
+      -29,
+      3
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9996199607849121
+  },
+  {
+    "coordinates": [
+      -29,
+      5
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9987724423408508
+  },
+  {
+    "coordinates": [
+      -29,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9971897006034851
+  },
+  {
+    "coordinates": [
+      -29,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988095760345459
+  },
+  {
+    "coordinates": [
+      -29,
+      10
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9975389242172241
+  },
+  {
+    "coordinates": [
+      -29,
+      11
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9963700771331787
+  },
+  {
+    "coordinates": [
+      -29,
+      12
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9975904226303101
+  },
+  {
+    "coordinates": [
+      -29,
+      13
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -29,
+      15
+    ],
+    "previous": "unknown",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -28,
+      0
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9988238215446472
+  },
+  {
+    "coordinates": [
+      -28,
+      2
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9994789958000183
+  },
+  {
+    "coordinates": [
+      -28,
+      4
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9996434450149536
+  },
+  {
+    "coordinates": [
+      -28,
+      5
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9994156360626221
+  },
+  {
+    "coordinates": [
+      -28,
+      6
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9985674619674683
+  },
+  {
+    "coordinates": [
+      -28,
+      7
+    ],
+    "previous": "unknown",
+    "current": "number_1",
+    "confidence": 0.9797244071960449
+  },
+  {
+    "coordinates": [
+      -27,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -27,
+      0
+    ],
+    "previous": "unknown",
+    "current": "number_2",
+    "confidence": 0.9986783862113953
+  },
+  {
+    "coordinates": [
+      -27,
+      1
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9945981502532959
+  },
+  {
+    "coordinates": [
+      -27,
+      3
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9994903802871704
+  },
+  {
+    "coordinates": [
+      -27,
+      7
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -26,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -26,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -26,
+      4
+    ],
+    "previous": "unknown",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -24,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -24,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -23,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9995588660240173
+  },
+  {
+    "coordinates": [
+      -23,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -22,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9977983236312866
+  },
+  {
+    "coordinates": [
+      -22,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9994508624076843
+  },
+  {
+    "coordinates": [
+      -21,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -21,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9941474199295044
+  },
+  {
+    "coordinates": [
+      -21,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9746837615966797
+  },
+  {
+    "coordinates": [
+      -21,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -20,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9971016049385071
+  },
+  {
+    "coordinates": [
+      -20,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9952130317687988
+  },
+  {
+    "coordinates": [
+      -20,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9971097111701965
+  },
+  {
+    "coordinates": [
+      -19,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981643557548523
+  },
+  {
+    "coordinates": [
+      -19,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "exploded",
+    "confidence": 0.9989253878593445
+  },
+  {
+    "coordinates": [
+      -19,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9951878786087036
+  },
+  {
+    "coordinates": [
+      -19,
+      11
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -18,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940044283866882
+  },
+  {
+    "coordinates": [
+      -18,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9969764947891235
+  },
+  {
+    "coordinates": [
+      -18,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -6,
+      4
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -5,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -4,
+      -2
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -4,
+      4
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -3,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      -2,
+      -4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      -1,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9988062381744385
+  },
+  {
+    "coordinates": [
+      0,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940044283866882
+  },
+  {
+    "coordinates": [
+      2,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      2,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940044283866882
+  },
+  {
+    "coordinates": [
+      3,
+      -4
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981935620307922
+  },
+  {
+    "coordinates": [
+      3,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      3,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      3,
+      0
+    ],
+    "previous": "unknown",
+    "current": "number_1",
+    "confidence": 0.9952372312545776
+  },
+  {
+    "coordinates": [
+      -50,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9962853193283081
+  },
+  {
+    "coordinates": [
+      -49,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9433295726776123
+  },
+  {
+    "coordinates": [
+      -48,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9850028157234192
+  },
+  {
+    "coordinates": [
+      -48,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.954100489616394
+  },
+  {
+    "coordinates": [
+      -47,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9976562261581421
+  },
+  {
+    "coordinates": [
+      -47,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9985582232475281
+  },
+  {
+    "coordinates": [
+      -47,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9386911988258362
+  },
+  {
+    "coordinates": [
+      -46,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.99293452501297
+  },
+  {
+    "coordinates": [
+      -46,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9856382012367249
+  },
+  {
+    "coordinates": [
+      -46,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9931928515434265
+  },
+  {
+    "coordinates": [
+      -45,
+      -3
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9393853545188904
+  },
+  {
+    "coordinates": [
+      -45,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9797884821891785
+  },
+  {
+    "coordinates": [
+      -45,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9086756110191345
+  },
+  {
+    "coordinates": [
+      -45,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9468809962272644
+  },
+  {
+    "coordinates": [
+      -45,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9963510036468506
+  },
+  {
+    "coordinates": [
+      -44,
+      -2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9940840601921082
+  },
+  {
+    "coordinates": [
+      -44,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9659634232521057
+  },
+  {
+    "coordinates": [
+      -44,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.997479259967804
+  },
+  {
+    "coordinates": [
+      -43,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9917441010475159
+  },
+  {
+    "coordinates": [
+      -43,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9926536083221436
+  },
+  {
+    "coordinates": [
+      -42,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.8653478622436523
+  },
+  {
+    "coordinates": [
+      -42,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9545863270759583
+  },
+  {
+    "coordinates": [
+      -42,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9785093665122986
+  },
+  {
+    "coordinates": [
+      -41,
+      -1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.8961136937141418
+  },
+  {
+    "coordinates": [
+      -41,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.994473397731781
+  },
+  {
+    "coordinates": [
+      -41,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.99774569272995
+  },
+  {
+    "coordinates": [
+      -41,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9876008033752441
+  },
+  {
+    "coordinates": [
+      -41,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9930601119995117
+  },
+  {
+    "coordinates": [
+      -41,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9979881048202515
+  },
+  {
+    "coordinates": [
+      -40,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9978798627853394
+  },
+  {
+    "coordinates": [
+      -40,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9878667593002319
+  },
+  {
+    "coordinates": [
+      -39,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9909622073173523
+  },
+  {
+    "coordinates": [
+      -39,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9564904570579529
+  },
+  {
+    "coordinates": [
+      -39,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.8344789743423462
+  },
+  {
+    "coordinates": [
+      -39,
+      10
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9918122291564941
+  },
+  {
+    "coordinates": [
+      -38,
+      2
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9959213733673096
+  },
+  {
+    "coordinates": [
+      -38,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9893478155136108
+  },
+  {
+    "coordinates": [
+      -38,
+      8
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9955565333366394
+  },
+  {
+    "coordinates": [
+      -37,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9931387305259705
+  },
+  {
+    "coordinates": [
+      -37,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9965211153030396
+  },
+  {
+    "coordinates": [
+      -37,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9793379306793213
+  },
+  {
+    "coordinates": [
+      -36,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9961560368537903
+  },
+  {
+    "coordinates": [
+      -36,
+      5
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9762484431266785
+  },
+  {
+    "coordinates": [
+      -36,
+      6
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9847822785377502
+  },
+  {
+    "coordinates": [
+      -35,
+      6
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.999606192111969
+  },
+  {
+    "coordinates": [
+      -34,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9924980998039246
+  },
+  {
+    "coordinates": [
+      -34,
+      6
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9981191754341125
+  },
+  {
+    "coordinates": [
+      -34,
+      7
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9939129948616028
+  },
+  {
+    "coordinates": [
+      -34,
+      9
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9924505352973938
+  },
+  {
+    "coordinates": [
+      -33,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9967302083969116
+  },
+  {
+    "coordinates": [
+      -33,
+      7
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.984396755695343
+  },
+  {
+    "coordinates": [
+      -33,
+      10
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9675922989845276
+  },
+  {
+    "coordinates": [
+      -33,
+      14
+    ],
+    "previous": "unknown",
+    "current": "number_2",
+    "confidence": 0.9976420402526855
+  },
+  {
+    "coordinates": [
+      -32,
+      8
+    ],
+    "previous": "unknown",
+    "current": "number_5",
+    "confidence": 0.9332465529441833
+  },
+  {
+    "coordinates": [
+      -32,
+      11
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9974769949913025
+  },
+  {
+    "coordinates": [
+      -32,
+      13
+    ],
+    "previous": "unknown",
+    "current": "exploded",
+    "confidence": 0.9994019269943237
+  },
+  {
+    "coordinates": [
+      -32,
+      15
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9945076107978821
+  },
+  {
+    "coordinates": [
+      -31,
+      5
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9912240505218506
+  },
+  {
+    "coordinates": [
+      -31,
+      7
+    ],
+    "previous": "unknown",
+    "current": "number_5",
+    "confidence": 0.9767246842384338
+  },
+  {
+    "coordinates": [
+      -31,
+      10
+    ],
+    "previous": "unknown",
+    "current": "number_5",
+    "confidence": 0.9611721634864807
+  },
+  {
+    "coordinates": [
+      -30,
+      2
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9920107126235962
+  },
+  {
+    "coordinates": [
+      -30,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9979159235954285
+  },
+  {
+    "coordinates": [
+      -30,
+      9
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9953017234802246
+  },
+  {
+    "coordinates": [
+      -30,
+      13
+    ],
+    "previous": "unknown",
+    "current": "number_4",
+    "confidence": 0.9960439205169678
+  },
+  {
+    "coordinates": [
+      -30,
+      15
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9949296712875366
+  },
+  {
+    "coordinates": [
+      -29,
+      4
+    ],
+    "previous": "unknown",
+    "current": "number_4",
+    "confidence": 0.9492523074150085
+  },
+  {
+    "coordinates": [
+      -29,
+      6
+    ],
+    "previous": "unknown",
+    "current": "number_5",
+    "confidence": 0.9478543996810913
+  },
+  {
+    "coordinates": [
+      -29,
+      14
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9740058779716492
+  },
+  {
+    "coordinates": [
+      -28,
+      -1
+    ],
+    "previous": "unknown",
+    "current": "number_4",
+    "confidence": 0.9963920712471008
+  },
+  {
+    "coordinates": [
+      -28,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_5",
+    "confidence": 0.9711177349090576
+  },
+  {
+    "coordinates": [
+      -28,
+      3
+    ],
+    "previous": "unknown",
+    "current": "number_5",
+    "confidence": 0.9611780047416687
+  },
+  {
+    "coordinates": [
+      -27,
+      2
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9864793419837952
+  },
+  {
+    "coordinates": [
+      -27,
+      4
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.8474550843238831
+  },
+  {
+    "coordinates": [
+      -27,
+      5
+    ],
+    "previous": "unknown",
+    "current": "number_4",
+    "confidence": 0.9711498618125916
+  },
+  {
+    "coordinates": [
+      -27,
+      6
+    ],
+    "previous": "unknown",
+    "current": "number_3",
+    "confidence": 0.9944221377372742
+  },
+  {
+    "coordinates": [
+      -26,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9967808723449707
+  },
+  {
+    "coordinates": [
+      -26,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9869502186775208
+  },
+  {
+    "coordinates": [
+      -24,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9968520998954773
+  },
+  {
+    "coordinates": [
+      -23,
+      0
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9961695075035095
+  },
+  {
+    "coordinates": [
+      -23,
+      2
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9416541457176208
+  },
+  {
+    "coordinates": [
+      -23,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_2",
+    "confidence": 0.9826412796974182
+  },
+  {
+    "coordinates": [
+      -22,
+      1
+    ],
+    "previous": "unrevealed",
+    "current": "number_3",
+    "confidence": 0.9485486745834351
+  },
+  {
+    "coordinates": [
+      -22,
+      4
+    ],
+    "previous": "unrevealed",
+    "current": "number_1",
+    "confidence": 0.9423828721046448
+  },
+  {
+    "coordinates": [
+      -21,
+      3
+    ],
+    "previous": "unrevealed",
+    "current": "number_4",
+    "confidence": 0.9889090657234192
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251201_004655",
+  "action": "move_view",
+  "success": false,
+  "details": {
+    "dx": 300,
+    "dy": 100,
+    "method": "internal_api",
+    "error": "Message: javascript error: error reading property\n  (Session info: chrome=142.0.7444.176)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x874103\n\t0x874144\n\t0x67e71d\n\t0x685493\n\t0x687b04\n\t0x70fe34\n\t0x6ec90c\n\t0x70ee17\n\t0x6ec706\n\t0x6bda30\n\t0x6bed54\n\t0xae57b4\n\t0xae098a\n\t0x89c392\n\t0x88c4c8\n\t0x89324d\n\t0x87c478\n\t0x87c63c\n\t0x8667ca\n\t0x76625d49\n\t0x77c0d6db\n\t0x77c0d661\n"
+  }
+}

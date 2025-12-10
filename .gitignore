@@ -53,15 +53,15 @@ Thumbs.db
 *~
 
 # Ignorer tout sauf les points d'entrée essentiels
-*
-!.gitignore
-!main.py
-!README.md
-!requirements.txt
-!src/
-!src/**
-!docs/
-!docs/**
+# !.gitignore
+# !main.py
+# !README.md
+# !requirements.txt
+# !src/
+# !src/**
+# !docs/
+# !docs/**
+
 
 src/**/__pycache__/
 src/**/.venv311/

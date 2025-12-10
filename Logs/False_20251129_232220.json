@@ -1,0 +1,14 @@
+{
+  "timestamp": "20251129_232220",
+  "extraction_type": false,
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": "performance_warning",
+  "game_state": {
+    "timestamp": "2025-11-29T23:22:20.562724",
+    "type": "performance_warning",
+    "message": "Fonction lente: game_mode_selection",
+    "value": 6.075776815414429,
+    "threshold": "high"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "timestamp": "20251129_232751",
+  "extraction_type": true,
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": "15x15_test_success",
+  "game_state": {
+    "total_time": 10.423639059066772,
+    "screenshot_path": "screenshots\\15x15_grid_centered_20251129_232749.png",
+    "annotated_path": "screenshots\\15x15_grid_annotated_20251129_232749.png",
+    "test_timestamp": "2025-11-29T23:27:51.470812",
+    "status": "application_launched_and_screenshot_captured"
+  }
+}

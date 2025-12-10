@@ -1,0 +1,170 @@
+{
+  "timestamp": 1765335378.6061878,
+  "zone_bounds": [
+    -62,
+    -16,
+    26,
+    28
+  ],
+  "actions": [
+    {
+      "action_type": "click_left",
+      "grid_x": 1,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (1, 2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": -3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, -3)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": 0,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, 0)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": 0,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (0, 2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": 2,
+      "grid_y": -4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (2, -4)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": 2,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (2, 2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, -2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, 1)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": 1,
+      "grid_y": -5,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (1, -5)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": -4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, -4)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -3,
+      "grid_y": -4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-3, -4)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -3,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-3, 2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": 2,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Drapeau sur (2, -1)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": -1,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Drapeau sur (-1, 2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": -4,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Drapeau sur (-4, -1)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": -2,
+      "grid_y": -5,
+      "confidence": 1.0,
+      "description": "Drapeau sur (-2, -5)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": -4,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Drapeau sur (-4, 2)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": -2,
+      "grid_y": -4,
+      "confidence": 1.0,
+      "description": "Drapeau sur (-2, -4)",
+      "timestamp": 1765335377.1618035
+    },
+    {
+      "action_type": "click_right",
+      "grid_x": -2,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Drapeau sur (-2, 2)",
+      "timestamp": 1765335377.1618035
+    }
+  ],
+  "execution_result": {
+    "success": true,
+    "executed_count": 19,
+    "errors": 0,
+    "execution_time": 1.4433841705322266,
+    "actions_per_second": 13.163508640249276
+  }
+}

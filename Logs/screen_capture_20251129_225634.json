@@ -1,0 +1,210 @@
+{
+  "timestamp": "20251129_225634",
+  "extraction_type": "screen_capture",
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": {
+    "screenshot_path": "screenshots\\game_area.png",
+    "image_dimensions": {
+      "width": 2560,
+      "height": 1261
+    },
+    "grid_detected": true,
+    "interface_mask_applied": true
+  },
+  "game_state": {
+    "method": "screen_capture",
+    "screenshot_path": "screenshots\\game_area.png",
+    "annotated_screenshot_path": "screenshots/interface_frames_20251129_225634.png",
+    "image_analysis": {
+      "image_path": "screenshots\\game_area.png",
+      "dimensions": {
+        "width": 2560,
+        "height": 1261
+      },
+      "total_pixels": 3228160,
+      "unique_colors": 198,
+      "top_colors": [
+        {
+          "color": [
+            239,
+            239,
+            239
+          ],
+          "count": 3138745,
+          "percentage": 97.23015587827122
+        },
+        {
+          "color": [
+            188,
+            188,
+            188
+          ],
+          "count": 13414,
+          "percentage": 0.4155308287073751
+        },
+        {
+          "color": [
+            238,
+            238,
+            238
+          ],
+          "count": 12261,
+          "percentage": 0.3798138877874703
+        },
+        {
+          "color": [
+            196,
+            196,
+            196
+          ],
+          "count": 7508,
+          "percentage": 0.23257831086439335
+        },
+        {
+          "color": [
+            221,
+            221,
+            221
+          ],
+          "count": 3808,
+          "percentage": 0.11796193497224425
+        },
+        {
+          "color": [
+            220,
+            220,
+            220
+          ],
+          "count": 3165,
+          "percentage": 0.09804346748612212
+        },
+        {
+          "color": [
+            235,
+            235,
+            235
+          ],
+          "count": 2908,
+          "percentage": 0.09008227597145123
+        },
+        {
+          "color": [
+            230,
+            230,
+            230
+          ],
+          "count": 2875,
+          "percentage": 0.08906002180808882
+        },
+        {
+          "color": [
+            237,
+            237,
+            237
+          ],
+          "count": 2751,
+          "percentage": 0.08521882434575734
+        },
+        {
+          "color": [
+            224,
+            224,
+            224
+          ],
+          "count": 2728,
+          "percentage": 0.08450634417129263
+        }
+      ]
+    },
+    "grid_analysis": {
+      "horizontal_lines": 368,
+      "vertical_lines": 2560,
+      "estimated_cell_size": 2,
+      "grid_detected": true,
+      "estimated_rows": 367,
+      "estimated_cols": 2559
+    },
+    "interface_mask_applied": true,
+    "timestamp": "20251129_225634",
+    "interface_config": {
+      "timestamp": "2025-11-29T22:56:27.837270",
+      "viewport_offset": {
+        "x": 0,
+        "y": 54
+      },
+      "elements": [
+        {
+          "name": "escape_link",
+          "selector": "a#escape",
+          "description": "Lien Full screen (vertical 21x95 corrigé)",
+          "viewport_x": 0,
+          "viewport_y": 1167,
+          "screenshot_x": 0,
+          "screenshot_y": 1113,
+          "width": 21,
+          "height": 95,
+          "x2": 21,
+          "y2": 1262,
+          "screenshot_x2": 21,
+          "screenshot_y2": 1208,
+          "area": 1995,
+          "orientation": "vertical"
+        },
+        {
+          "name": "status",
+          "selector": "div#status",
+          "description": "Zone de status",
+          "viewport_x": 2262,
+          "viewport_y": 62,
+          "screenshot_x": 2262,
+          "screenshot_y": 8,
+          "width": 128,
+          "height": 200,
+          "x2": 2390,
+          "y2": 262,
+          "screenshot_x2": 2390,
+          "screenshot_y2": 208,
+          "area": 25600,
+          "orientation": "vertical"
+        },
+        {
+          "name": "game_controls",
+          "selector": "div.game-controls",
+          "description": "Contrôles de jeu",
+          "viewport_x": 170,
+          "viewport_y": 67,
+          "screenshot_x": 170,
+          "screenshot_y": 13,
+          "width": 172,
+          "height": 34,
+          "x2": 342,
+          "y2": 101,
+          "screenshot_x2": 342,
+          "screenshot_y2": 47,
+          "area": 5848,
+          "orientation": "horizontal"
+        },
+        {
+          "name": "info_button",
+          "selector": "button[aria-label='Info']",
+          "description": "Bouton Info",
+          "viewport_x": 32,
+          "viewport_y": 1243,
+          "screenshot_x": 32,
+          "screenshot_y": 1189,
+          "width": 42,
+          "height": 38,
+          "x2": 74,
+          "y2": 1281,
+          "screenshot_x2": 74,
+          "screenshot_y2": 1227,
+          "area": 1596,
+          "orientation": "horizontal"
+        }
+      ],
+      "total_interface_area": 35039,
+      "correction_applied": "integrated_detection"
+    }
+  }
+}

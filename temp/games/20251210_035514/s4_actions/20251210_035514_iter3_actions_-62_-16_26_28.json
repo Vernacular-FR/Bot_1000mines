@@ -1,0 +1,618 @@
+{
+  "timestamp": 1765335348.3193715,
+  "zone_bounds": [
+    -62,
+    -16,
+    26,
+    28
+  ],
+  "actions": [
+    {
+      "action_type": "click_left",
+      "grid_x": -21,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-21, 1)",
+      "timestamp": 1765335343.4355514
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -22,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-22, 1)",
+      "timestamp": 1765335343.4355514
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -23,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-23, 1)",
+      "timestamp": 1765335343.4355514
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -38,
+      "grid_y": 3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-38, 3)",
+      "timestamp": 1765335343.4355514
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -36,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-36, 2)",
+      "timestamp": 1765335343.4355514
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -38,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-38, 2)",
+      "timestamp": 1765335343.4355514
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -36,
+      "grid_y": 3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-36, 3)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 15,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 15)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 15,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 15)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 12,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 12)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 12,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 12)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -25,
+      "grid_y": 6,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-25, 6)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 6,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 6)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 8,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 8)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 5,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 5)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 14,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 14)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 14,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 14)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -25,
+      "grid_y": 8,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-25, 8)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": 8,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, 8)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": -3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, -3)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, -2)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, -1)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -25,
+      "grid_y": -3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-25, -3)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": -3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, -3)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 10,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 10)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 10,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 10)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 7,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 7)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -5,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-5, 4)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -23,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-23, -2)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -21,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-21, -2)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -22,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-22, -2)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -23,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-23, -1)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -21,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-21, -1)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -23,
+      "grid_y": 0,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-23, 0)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -21,
+      "grid_y": 0,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-21, 0)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 9,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 9)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 9,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 9)",
+      "timestamp": 1765335343.4365845
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, -2)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -37,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-37, 4)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -36,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-36, 4)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -38,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-38, 4)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, 4)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, 1)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, 1)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -3,
+      "grid_y": -4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-3, -4)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -25,
+      "grid_y": 5,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-25, 5)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": 3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, 3)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": 3,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, 3)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -25,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-25, -2)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -25,
+      "grid_y": 7,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-25, 7)",
+      "timestamp": 1765335343.4375858
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 16,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 16)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 16,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 16)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -28,
+      "grid_y": 16,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-28, 16)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": 5,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, 5)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -6,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-6, 4)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -4,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-4, 4)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -37,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-37, 1)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -36,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-36, 1)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -38,
+      "grid_y": 1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-38, 1)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": -2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, -2)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, -1)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 11,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 11)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 11,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 11)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": 0,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, 0)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": 0,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, 0)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 4)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 13,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 13)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -29,
+      "grid_y": 13,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-29, 13)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, 2)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": 2,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, 2)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -28,
+      "grid_y": 7,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-28, 7)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -26,
+      "grid_y": -1,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-26, -1)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -24,
+      "grid_y": 4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-24, 4)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -27,
+      "grid_y": 8,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-27, 8)",
+      "timestamp": 1765335343.4380896
+    },
+    {
+      "action_type": "click_left",
+      "grid_x": -2,
+      "grid_y": -4,
+      "confidence": 1.0,
+      "description": "Clic sûr sur (-2, -4)",
+      "timestamp": 1765335343.4380896
+    }
+  ],
+  "execution_result": {
+    "success": true,
+    "executed_count": 75,
+    "errors": 0,
+    "execution_time": 4.881281852722168,
+    "actions_per_second": 15.364816509862955
+  }
+}

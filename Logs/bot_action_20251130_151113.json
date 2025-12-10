@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251130_151113",
+  "action": "click_cell",
+  "success": false,
+  "details": {
+    "grid_x": -10,
+    "grid_y": -7,
+    "right_click": false,
+    "error": "'NoneType' object has no attribute 'grid_to_canvas'"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "timestamp": "20251129_233615",
+  "extraction_type": true,
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": "cleaned_architecture_test_success",
+  "game_state": {
+    "test_timestamp": "2025-11-29T23:36:15.505764",
+    "architecture": "clean",
+    "separation_of_concerns": true
+  }
+}

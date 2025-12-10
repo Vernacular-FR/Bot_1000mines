@@ -1,0 +1,52 @@
+[
+  {
+    "timestamp": "2025-11-29T23:23:55.588352",
+    "metric_name": "function_duration_bot_initialization",
+    "value": 3.6255712509155273,
+    "unit": "seconds",
+    "context": {
+      "function": "bot_initialization",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:01.673479",
+    "metric_name": "function_duration_game_mode_selection",
+    "value": 6.085093975067139,
+    "unit": "seconds",
+    "context": {
+      "function": "game_mode_selection",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:03.906642",
+    "metric_name": "function_duration_grid_analysis",
+    "value": 2.232459306716919,
+    "unit": "seconds",
+    "context": {
+      "function": "grid_analysis",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:03.906665",
+    "metric_name": "function_duration_calculate_15x15_area",
+    "value": 1.2636184692382812e-05,
+    "unit": "seconds",
+    "context": {
+      "function": "calculate_15x15_area",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:05.963134",
+    "metric_name": "function_duration_capture_15x15_screenshot",
+    "value": 2.056462287902832,
+    "unit": "seconds",
+    "context": {
+      "function": "capture_15x15_screenshot",
+      "success": false
+    }
+  }
+]

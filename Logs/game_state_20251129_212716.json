@@ -1,0 +1,29 @@
+{
+  "timestamp": "20251129_212716",
+  "extraction_type": "game_state",
+  "url": "https://www.1000mines.com/",
+  "success": false,
+  "debug_info": {
+    "bodyClasses": "flex flex-col",
+    "canvasInfo": {
+      "colorCount": 0,
+      "estimatedGridSize": 0,
+      "height": 512,
+      "width": 512
+    },
+    "hasAnchor": true,
+    "hasCanvas": true,
+    "hasControl": true,
+    "hasGameElements": true,
+    "possibleData": [
+      "Found 24 canvas(es)"
+    ],
+    "reactRoot": false,
+    "title": "Minesweeper Online: Classic & Infinite Game | 1000 Mines",
+    "url": "https://www.1000mines.com/#infinite",
+    "windowKeys": [
+      "onappinstalled"
+    ]
+  },
+  "game_state": null
+}

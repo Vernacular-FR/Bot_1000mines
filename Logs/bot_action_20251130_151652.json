@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251130_151652",
+  "action": "click_cell",
+  "success": false,
+  "details": {
+    "grid_x": -8,
+    "grid_y": -8,
+    "right_click": false,
+    "error": "name 'is_visible' is not defined"
+  }
+}

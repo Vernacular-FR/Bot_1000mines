@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2025-11-29T23:24:29.486560",
+    "metric_name": "function_duration_bot_initialization",
+    "value": 3.1945314407348633,
+    "unit": "seconds",
+    "context": {
+      "function": "bot_initialization",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:35.592400",
+    "metric_name": "function_duration_game_mode_selection",
+    "value": 6.105807065963745,
+    "unit": "seconds",
+    "context": {
+      "function": "game_mode_selection",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:37.724025",
+    "metric_name": "function_duration_grid_analysis",
+    "value": 2.1310641765594482,
+    "unit": "seconds",
+    "context": {
+      "function": "grid_analysis",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:37.724050",
+    "metric_name": "function_duration_calculate_15x15_area",
+    "value": 1.239776611328125e-05,
+    "unit": "seconds",
+    "context": {
+      "function": "calculate_15x15_area",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:40.006538",
+    "metric_name": "function_duration_capture_15x15_screenshot",
+    "value": 2.2824807167053223,
+    "unit": "seconds",
+    "context": {
+      "function": "capture_15x15_screenshot",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:24:40.006595",
+    "metric_name": "function_duration_performance_analysis",
+    "value": 4.291534423828125e-05,
+    "unit": "seconds",
+    "context": {
+      "function": "performance_analysis",
+      "success": true
+    }
+  }
+]

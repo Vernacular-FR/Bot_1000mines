@@ -1,0 +1,12 @@
+{
+  "timestamp": "20251129_223242",
+  "extraction_type": "screen_capture",
+  "url": "https://www.1000mines.com/",
+  "success": false,
+  "debug_info": {
+    "success": false,
+    "method": "screen_capture",
+    "error": "cannot access local variable 'np' where it is not associated with a value"
+  },
+  "game_state": null
+}

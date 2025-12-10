@@ -1,0 +1,126 @@
+{
+  "timestamp": "20251129_215904",
+  "extraction_type": "screen_capture",
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": {
+    "success": true,
+    "method": "screen_capture",
+    "screenshot": "screenshots\\game_area.png",
+    "grid_detected": true
+  },
+  "game_state": {
+    "method": "screen_capture",
+    "screenshot_path": "screenshots\\game_area.png",
+    "image_analysis": {
+      "image_path": "screenshots\\game_area.png",
+      "dimensions": {
+        "width": 2560,
+        "height": 1261
+      },
+      "total_pixels": 3228160,
+      "unique_colors": 198,
+      "top_colors": [
+        {
+          "color": [
+            239,
+            239,
+            239
+          ],
+          "count": 3129138,
+          "percentage": 96.9325560071372
+        },
+        {
+          "color": [
+            188,
+            188,
+            188
+          ],
+          "count": 17449,
+          "percentage": 0.5405246332275971
+        },
+        {
+          "color": [
+            238,
+            238,
+            238
+          ],
+          "count": 12261,
+          "percentage": 0.3798138877874703
+        },
+        {
+          "color": [
+            196,
+            196,
+            196
+          ],
+          "count": 11540,
+          "percentage": 0.3574791831879461
+        },
+        {
+          "color": [
+            221,
+            221,
+            221
+          ],
+          "count": 3808,
+          "percentage": 0.11796193497224425
+        },
+        {
+          "color": [
+            85,
+            85,
+            85
+          ],
+          "count": 3528,
+          "percentage": 0.10928826328310864
+        },
+        {
+          "color": [
+            220,
+            220,
+            220
+          ],
+          "count": 3165,
+          "percentage": 0.09804346748612212
+        },
+        {
+          "color": [
+            235,
+            235,
+            235
+          ],
+          "count": 2908,
+          "percentage": 0.09008227597145123
+        },
+        {
+          "color": [
+            230,
+            230,
+            230
+          ],
+          "count": 2875,
+          "percentage": 0.08906002180808882
+        },
+        {
+          "color": [
+            237,
+            237,
+            237
+          ],
+          "count": 2751,
+          "percentage": 0.08521882434575734
+        }
+      ]
+    },
+    "grid_analysis": {
+      "horizontal_lines": 464,
+      "vertical_lines": 2560,
+      "estimated_cell_size": 1,
+      "grid_detected": true,
+      "estimated_rows": 463,
+      "estimated_cols": 2559
+    },
+    "timestamp": "20251129_215904"
+  }
+}

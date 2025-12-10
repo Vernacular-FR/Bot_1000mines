@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251204_093816",
+  "action": "move_view",
+  "success": true,
+  "details": {
+    "dx": -640,
+    "dy": -328,
+    "method": "javascript",
+    "target": "canvas"
+  }
+}

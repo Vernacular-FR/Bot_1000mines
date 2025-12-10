@@ -1,0 +1,27 @@
+{
+  "timestamp": "20251129_232440",
+  "extraction_type": true,
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": "15x15_test_success",
+  "game_state": {
+    "total_time": 13.715182781219482,
+    "screenshot_path": "screenshots\\15x15_grid_centered_20251129_232437.png",
+    "annotated_path": "screenshots\\15x15_grid_annotated_20251129_232437.png",
+    "grid_area": {
+      "x": -5,
+      "y": -5,
+      "width": 490,
+      "height": 490,
+      "grid_coords": {
+        "start_col": 0,
+        "start_row": 0,
+        "end_col": 14,
+        "end_row": 14
+      },
+      "cell_size": 32
+    },
+    "cell_size": 32,
+    "test_timestamp": "2025-11-29T23:24:40.006614"
+  }
+}

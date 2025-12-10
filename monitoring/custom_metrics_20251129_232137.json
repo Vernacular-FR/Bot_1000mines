@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": "2025-11-29T23:21:28.381799",
+    "metric_name": "function_duration_bot_initialization",
+    "value": 3.079423189163208,
+    "unit": "seconds",
+    "context": {
+      "function": "bot_initialization",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:21:34.455673",
+    "metric_name": "function_duration_game_mode_selection",
+    "value": 6.073843002319336,
+    "unit": "seconds",
+    "context": {
+      "function": "game_mode_selection",
+      "success": true
+    }
+  },
+  {
+    "timestamp": "2025-11-29T23:21:34.457937",
+    "metric_name": "function_duration_grid_analysis",
+    "value": 0.0015454292297363281,
+    "unit": "seconds",
+    "context": {
+      "function": "grid_analysis",
+      "success": false
+    }
+  }
+]

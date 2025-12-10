@@ -1,0 +1,20 @@
+[
+  {
+    "cpu_percent": 15.6,
+    "memory_percent": 28.8,
+    "memory_used_mb": 37525.4453125,
+    "memory_available_mb": 92686.94921875,
+    "disk_usage_percent": 84.7,
+    "active_threads": 2,
+    "timestamp": "2025-11-29T23:30:35.405581"
+  },
+  {
+    "cpu_percent": 4.4,
+    "memory_percent": 29.1,
+    "memory_used_mb": 37850.08203125,
+    "memory_available_mb": 92362.3125,
+    "disk_usage_percent": 84.7,
+    "active_threads": 2,
+    "timestamp": "2025-11-29T23:30:41.406193"
+  }
+]

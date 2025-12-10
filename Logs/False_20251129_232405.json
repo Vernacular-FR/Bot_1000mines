@@ -1,0 +1,11 @@
+{
+  "timestamp": "20251129_232405",
+  "extraction_type": false,
+  "url": "https://www.1000mines.com/",
+  "success": true,
+  "debug_info": "15x15_test_failure",
+  "game_state": {
+    "error": "ScreenCapture.capture_element_screenshot() takes from 2 to 3 positional arguments but 6 were given",
+    "test_timestamp": "2025-11-29T23:24:05.964029"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "timestamp": "20251201_004949",
+  "action": "move_view",
+  "success": true,
+  "details": {
+    "dx": 1000,
+    "dy": 500,
+    "method": "simple_robust",
+    "target": "game_engine",
+    "results": [
+      {
+        "dx": 1000,
+        "dy": 500,
+        "method": "canvas_drag",
+        "success": true
+      },
+      {
+        "deltaX": 1000,
+        "deltaY": 500,
+        "method": "wheel",
+        "success": true
+      }
+    ]
+  }
+}

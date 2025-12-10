@@ -1,0 +1,14 @@
+{
+  "game_id": "20251210_035604",
+  "difficulty": "impossible",
+  "start_time": "2025-12-10T03:56:04.005461",
+  "initial_iteration": 1,
+  "status": "playing",
+  "end_time": 1765335388.31283,
+  "end_datetime": "2025-12-10 03:56:28",
+  "duration": 17.92369842529297,
+  "iterations": 3,
+  "total_actions": 19,
+  "final_state": "lost",
+  "success": false
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "cpu_percent": 14.4,
+    "memory_percent": 28.7,
+    "memory_used_mb": 37363.3984375,
+    "memory_available_mb": 92848.99609375,
+    "disk_usage_percent": 84.7,
+    "active_threads": 2,
+    "timestamp": "2025-11-29T23:27:42.048292"
+  },
+  {
+    "cpu_percent": 3.4,
+    "memory_percent": 28.8,
+    "memory_used_mb": 37561.63671875,
+    "memory_available_mb": 92650.7578125,
+    "disk_usage_percent": 84.7,
+    "active_threads": 2,
+    "timestamp": "2025-11-29T23:27:48.049390"
+  },
+  {
+    "cpu_percent": 6.5,
+    "memory_percent": 28.8,
+    "memory_used_mb": 37500.55078125,
+    "memory_available_mb": 92711.84375,
+    "disk_usage_percent": 84.7,
+    "active_threads": 2,
+    "timestamp": "2025-11-29T23:27:54.050617"
+  }
+]
