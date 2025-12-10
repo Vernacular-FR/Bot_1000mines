@@ -63,6 +63,7 @@ Thumbs.db
 !docs/
 !docs/**
 
+
 # Important : ne pas réinclure les dossiers de cache ou venv
 src/**/__pycache__/
 src/**/.venv311/
