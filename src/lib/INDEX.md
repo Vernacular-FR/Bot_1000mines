@@ -13,9 +13,9 @@ Documentation complète de tous les opérateurs (méthodes, classes, constantes)
 
 | Étape | Modules lib/ impliqués | Scénarios |
 |-------|------------------------|-----------|
-| Setup navigateur + ancrage | `s0_navigation/browser_manager`, `s0_navigation/game_controller`, `s0_navigation/coordinate_system` | 1, 3, 4 |
-| Déplacement + overlay combiné | `s0_navigation/coordinate_system`, `s1_capture/combined_overlay` | 1, 3, 4 |
-| Capture zone/viewport | `s1_capture/screenshot_manager`, `s1_capture/interface_detector` | 1, 3, 4 |
+| Setup navigateur + ancrage | `s0_interface/s00_browser_manager`, `s0_interface/controller`, `s0_interface/s03_Coordonate_system` | 1, 3, 4 |
+| Déplacement + overlay combiné | `s0_interface/s03_Coordonate_system`, `s1_capture/combined_overlay` (debug uniquement) | 1, 3, 4 |
+| Capture zone/viewport | `s1_capture/s11_canvas_capture` (canvas) + fallback screenshot | 1, 3, 4 |
 | Analyse offline | `s2_recognition/*`, `s3_tensor/grid_state.py` | 2 |
 | Analyse + résolution in-loop | `s1_capture/screenshot_manager`, `s2_recognition/*`, `s3_tensor/*`, `s4_solver/*` | 3, 4 |
 | Exécution d'actions | `s0_navigation/game_controller`, `s0_navigation/coordinate_system` | 3, 4 |
@@ -27,11 +27,12 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
 ## Core Bot Modules
 
 ### Coordinate System
-- **path**: lib/s0_navigation/coordinate_system.py
+- **path**: lib/s0_interface/s03_Coordonate_system.py
 - **type**: Utilitaires mathématiques de conversion de coordonnées (architecture modulaire)
 - **classes**:
-  - `CoordinateConverter` - Convertisseur de coordonnées principal
-  - `GridViewportMapper` - Inspection des limites et viewport
+  - `CoordinateConverter` - Convertisseur de coordonnées principal + expose `canvas_locator`
+  - `CanvasLocator` - Découverte des tuiles canvas 512×512
+  - `ViewportMapper` - Inspection des limites et viewport (partagé avec s1_capture)
 - **methods (CoordinateConverter)**:
   - `__init__(cell_size, cell_border, anchor_element, driver)` - Initialise le convertisseur
   - `get_control_element()` - Récupère l'élément DOM #control
@@ -45,20 +46,30 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
   - `convert_grid_to_canvas(grid_x, grid_y)` - Convertit Grid vers Canvas
   - `convert_grid_to_screen(grid_x, grid_y)` - Convertit Grid vers Screen
   - `grid_to_screen_centered(grid_x, grid_y)` - Centre d'une cellule en écran
-- **methods (GridViewportMapper)**:
+- **methods (ViewportMapper)**:
   - `__init__(converter, driver)` - Initialise avec un convertisseur
-  - `get_viewport_bounds()` - Calcule les bornes du viewport
+  - `get_viewport_bounds()` - Calcule les bornes du viewport selon `VIEWPORT_CONFIG`
   - `get_viewport_corners()` - Calcule les 4 coins du viewport
-- **dependencies**: lib.config, selenium
-- **constants**: CELL_SIZE, CELL_BORDER, VIEWPORT_CONFIG
+- **dependencies**: src.config, selenium
+- **constants**: CELL_SIZE, CELL_BORDER, GRID_REFERENCE_POINT, VIEWPORT_CONFIG
 - **features**: Architecture modulaire, coordonnées CSS fiables (x=980, y=806), debug fenêtre, JavaScript natif
 
-### Game Controller
-- **path**: lib/s0_navigation/game_controller.py
-- **type**: Contrôleur d'interaction avec le jeu (architecture modulaire)
+### Viewport & Game Controllers
+- **path**: lib/s0_interface/controller.py, lib/s0_interface/s03_game_controller.py
+- **type**: Façade viewport + navigation
 - **classes**:
+  - `InterfaceController` - Façade publique s0 (rafraîchit l’ancre, fournit `get_capture_meta`, lit `#status`)
+  - `StatusReader` - Lecture DOM `div#status` (scores, vies, bonus_threshold)
   - `GameSessionController` - Sélection du mode de jeu et initialisation
   - `NavigationController` - Navigation et interaction souris
+- **methods (InterfaceController)**:
+  - `from_browser(browser)` - Compose BrowserManager + CoordinateConverter + NavigationController + StatusReader
+  - `refresh_state()` - Met à jour l’état anchor/viewport
+  - `ensure_visible(grid_bounds)` - Force la visibilité d’une zone grille
+  - `get_capture_meta(canvas_x, canvas_y)` - Données pour `canvas.toDataURL()`
+  - `read_game_status()` - Retourne un `GameStatus`
+- **methods (StatusReader)**:
+  - `read_status()` - Lit `#status` et construit `GameStatus` (lives, bonus_counter, thresholds)
 - **methods (GameSessionController)**:
   - `__init__(driver)` - Initialise le contrôleur avec WebDriver
   - `get_difficulty_from_user()` - Interface CLI pour choisir la difficulté
@@ -71,11 +82,11 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
   - `click_cell(grid_x, grid_y, right_click)` - Clique sur une cellule (JavaScript MouseEvent)
   - `execute_game_action(action, coord_system)` - Exécute une action de jeu
   - `move_viewport(dx, dy, coord_system)` - Déplace le viewport avec coordonnées
-- **dependencies**: selenium, lib.config, coordinate_system
-- **features**: Architecture modulaire, MouseEvent avancés, conversion coordonnées, logging structuré
+- **dependencies**: selenium, src.config, coordinate_system
+- **features**: Façade unique s0, MouseEvent avancés, lecture DOM status intégrée, logging structuré
 
 ### Browser Manager
-- **path**: lib/s0_navigation/browser_manager.py
+- **path**: lib/s0_interface/s00_browser_manager.py
 - **type**: Gestionnaire de session navigateur
 - **methods**:
   - `__init__()` - Initialise le gestionnaire
@@ -86,7 +97,7 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
   - `execute_javascript(script, *args)` - Exécute du JavaScript
   - `get_page_info()` - Récupère les informations de la page
   - `stop_browser()` - Arrête proprement le navigateur
-- **dependencies**: selenium, typing
+- **dependencies**: selenium, src.config, typing
 - **features**: Gestion automatique Chrome, timeouts configurables, cleanup
 
 ---
@@ -124,22 +135,22 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
 
 ## Vision System Modules
 
-### Screenshot Manager
-- **path**: lib/s1_capture/screenshot_manager.py
-- **type**: Capture viewport & découpe de zones (helpers internes)
+### Canvas Capture & Screenshot Fallback
+- **path**: lib/s1_capture/s11_canvas_capture.py
+- **type**: Capture canvas directe + fallback plein écran (helpers internes)
 - **methods**:
   - `__init__(driver, paths)` - Prépare les dossiers et dépendances
-  - `capture_viewport(filename=None, game_id=None, iteration=None)` - Capture le viewport selon les conventions de nommage
-  - `capture_between_cells(cell1, cell2, add_margin=False, coord_system=None, game_id=None, iteration=None)` - Capture une zone en s'appuyant sur CoordinateSystem
+  - `capture_viewport(...)` - Capture plein écran (debug / fallback)
+  - `capture_between_cells(...)` - Capture une zone rectangulaire via CoordinateSystem
 - **helpers**:
   - `_resolve_viewport_filename`, `_resolve_viewport_directory`
   - `_ensure_coord_system`, `_grid_bounds_to_pixels`, `_build_zone_filename`
-- **dependencies**: PIL, selenium, lib.config, lib.s0_navigation.coordinate_system
-- **features**: API publique stable + helpers privés pour clarifier le code, alias `ScreenCapture`
+- **dependencies**: PIL, selenium, src.config, s0_interface.s03_Coordonate_system
+- **features**: API publique stable, fallback screenshot, génération chemins `temp/games/{id}`
 
-### Interface Detector
-- **path**: lib/vision/interface_detector.py
-- **type**: Détecteur d'éléments d'interface
+### Interface Detector (legacy)
+- **path**: lib/s1_capture/interface_detector.py
+- **type**: Détecteur d'éléments d'interface (legacy – sera retiré après migration ScoreReader)
 - **methods**:
   - `__init__(driver)` - Initialise avec WebDriver
   - `detect_interface_positions()` - Détecte les positions des éléments UI
@@ -151,11 +162,10 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
 
 ### Combined Overlay Generator
 - **path**: lib/s1_capture/combined_overlay.py
-- **type**: Générateur d'overlays unifié (interface + grille)
+- **type**: Générateur d'overlays grille (mode debug, interface en cours de retrait)
 - **classes**:
-  - `InterfaceOverlay` - Annote les éléments UI détectés (rectangles rouges)
-  - `GridOverlay` - Génère une grille simple (fallback)
-  - `CombinedOverlay` - Superpose interface + grille à partir d'un screenshot
+  - `GridOverlayLayer` - Génère une grille simple reposant sur CoordinateConverter
+  - `CombinedOverlayAssembler` - Superpose overlay debug + capture
 - **methods clés**:
   - `generate_combined_overlay(base_image, interface_elements, grid_bounds, coord_system)`
   - `generate_combined_overlay_from_screenshot(screenshot_path, interface_elements, grid_bounds, coord_system)`

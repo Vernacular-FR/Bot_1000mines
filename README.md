@@ -69,11 +69,19 @@ Pipeline d'exécution :
 ```
 bot-1000mines/
 ├── src/
-│   ├── lib/              # Modules techniques (interaction, vision, solveur…)
+│   ├── app/              # Points d’entrée (CLI / scripts)
 │   ├── services/         # Orchestrateurs (session, capture, boucle…)
-│   └── apps/             # Points d’entrée (bot_1000mines, scripts CLI)
+│   └── lib/
+│       ├── s0_viewport/  # DOM + coordonnées (réutilise lib/s0_navigation)
+│       ├── s1_capture/   # canvas.toDataURL / CDP
+│       ├── s2_vision/    # PixelSampler + debug overlays
+│       ├── s3_storage/   # Archive + frontière compacte
+│       ├── s4_solver/    # Motifs + solveur local (debug inclus)
+│       ├── s5_pathfinder/# Heatmap + trajets multi-étapes
+│       └── s6_action/    # Exécution multi-clics
 ├── tests/                # Tests unitaires
-├── docs/ / SPECS/        # Documentation fonctionnelle & technique
+├── doc/                  # Synthèses (pipeline, README)
+├── doc/SPECS/            # Référence technique (architecture, roadmap…)
 ├── temp/                 # Artefacts de parties (généré automatiquement)
 ├── main.py               # Stub lançant src.main.run()
 └── README.md             # Ce guide
