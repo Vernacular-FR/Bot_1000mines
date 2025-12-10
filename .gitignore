@@ -53,16 +53,16 @@ Thumbs.db
 *~
 
 # Ignorer tout sauf les points d'entrée essentiels
-# !.gitignore
-# !main.py
-# !README.md
-# !requirements.txt
-# !src/
-# !src/**
-# !docs/
-# !docs/**
+!.gitignore
+!main.py
+!README.md
+!requirements.txt
+!src/
+!src/**
+!docs/
+!docs/**
 
-
+# Important : ne pas réinclure les dossiers de cache ou venv
 src/**/__pycache__/
 src/**/.venv311/
 src/lib/s2_recognition/s22_Neural_engine/cnn/data/
