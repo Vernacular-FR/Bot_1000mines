@@ -1,8 +1,0 @@
-{
-  "timestamp": "20251201_173729",
-  "action": {
-    "error": "name 'config' is not defined"
-  },
-  "success": "setup_anchor",
-  "details": "Échec setup_anchor"
-}

@@ -1,9 +1,0 @@
-{
-  "timestamp": "20251208_235958",
-  "action": {
-    "service": "ActionExecutorService",
-    "status": "initialized"
-  },
-  "success": "action_executor_init",
-  "details": "Service initialisé"
-}

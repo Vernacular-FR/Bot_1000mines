@@ -1,9 +1,0 @@
-{
-  "timestamp": "20251129_212716",
-  "action": "extract_game_state_failure",
-  "success": false,
-  "details": {
-    "difficulty": "impossible",
-    "error": "No valid game data extracted"
-  }
-}

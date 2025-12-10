@@ -1,9 +1,0 @@
-{
-  "timestamp": "20251129_235648",
-  "action": "extract_game_state_start",
-  "success": true,
-  "details": {
-    "difficulty": "impossible",
-    "method": "screen_capture"
-  }
-}
