@@ -53,6 +53,7 @@ Thumbs.db
 *~
 
 # Ignorer tout sauf les points d'entrée essentiels
+*
 !.gitignore
 !main.py
 !README.md
