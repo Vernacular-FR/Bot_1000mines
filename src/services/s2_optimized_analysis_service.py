@@ -6,8 +6,9 @@ Version simplifiée sans fichiers temporaires
 import json
 import os
 import time
+from collections import deque
 from pathlib import Path
-from typing import Dict, Any, Tuple, Optional, List, Iterable
+from typing import Dict, Any, Tuple, Optional, List, Iterable, Set
 
 import numpy as np
 
@@ -25,7 +26,11 @@ from src.lib.s3_tensor.types import CellType
 from src.lib.config import PATHS, CELL_SIZE, CELL_BORDER
 from src.lib.s2_recognition.s22_Neural_engine.cnn.src.api import CNNCellClassifier
 
-CNN_NUMBER_ACCEPT_THRESHOLD = 0.50
+DEFAULT_CNN_ACCEPT_THRESHOLD = 0.70
+DEFAULT_CNN_NUMBER_ACCEPT_THRESHOLD = 0.40
+DEFAULT_DECOR_CONF_THRESHOLD = 0.95
+DEFAULT_DECOR_MIN_CLUSTER = 4
+DEFAULT_DECOR_MIN_NEIGHBORS = 3
 
 
 class OptimizedAnalysisService:
@@ -36,6 +41,8 @@ class OptimizedAnalysisService:
         generate_overlays=True,
         paths: Dict[str, str] = None,
         enable_cnn: bool = True,
+        cnn_accept_threshold: float = DEFAULT_CNN_ACCEPT_THRESHOLD,
+        cnn_number_threshold: float = DEFAULT_CNN_NUMBER_ACCEPT_THRESHOLD,
     ):
         """
         Initialise le service optimisé avec template matching
@@ -48,6 +55,11 @@ class OptimizedAnalysisService:
         self.template_matcher = FixedTemplateMatcher("src/lib/s2_recognition/s21_templates/symbols")
         self.generate_overlays = generate_overlays
         self.paths = paths or PATHS
+        self.cnn_accept_threshold = cnn_accept_threshold
+        self.cnn_number_threshold = cnn_number_threshold
+        self.decor_conf_threshold = DEFAULT_DECOR_CONF_THRESHOLD
+        self.decor_min_cluster = DEFAULT_DECOR_MIN_CLUSTER
+        self.decor_min_neighbors = DEFAULT_DECOR_MIN_NEIGHBORS
         
         # GridDB avec chemin obligatoire
         grid_db_path = self.paths.get('grid_db')
@@ -104,14 +116,31 @@ class OptimizedAnalysisService:
 
     def _predict_with_cnn(
         self, patches: List[np.ndarray]
-    ) -> List[Tuple[str, float]]:
+    ) -> List[Dict[str, Any]]:
         if not patches or not self.cnn_classifier:
             return []
         predictions = self.cnn_classifier.predict_patches(patches)
-        return [
-            (pred["label"], float(pred["confidence"]))
-            for pred in predictions
-        ]
+        enriched: List[Dict[str, Any]] = []
+        for pred in predictions:
+            probs = pred.get("probs", {})
+            if probs:
+                ranked = sorted(probs.items(), key=lambda kv: kv[1], reverse=True)
+                top_label, top_conf = ranked[0]
+                second_label, second_conf = (ranked[1] if len(ranked) > 1 else (None, 0.0))
+            else:
+                top_label = pred["label"]
+                top_conf = float(pred["confidence"])
+                second_label, second_conf = (None, 0.0)
+            enriched.append(
+                {
+                    "label": top_label,
+                    "confidence": float(top_conf),
+                    "alt_label": second_label,
+                    "alt_confidence": float(second_conf),
+                    "probs": probs,
+                }
+            )
+        return enriched
 
     def analyze_from_path(self, image_path: str, zone_bounds: Optional[Tuple[int, int, int, int]] = None) -> Dict[str, Any]:
         """
@@ -322,11 +351,14 @@ class OptimizedAnalysisService:
                         confirmed_mines = {
                             coord for coord, (symbol, _) in pass_results.items() if symbol == "exploded"
                         }
-                        if confirmed_mines:
+                        decor_cells = set(analysis_pass.get("decor_cells", set()))
+                        if confirmed_mines or decor_cells:
+                            filtered_out = confirmed_mines | decor_cells
                             for later_pass in passes[idx + 1 :]:
                                 later_pass["cells"] = [
-                                    cell for cell in later_pass["cells"] if cell not in confirmed_mines
+                                    cell for cell in later_pass["cells"] if cell not in filtered_out
                                 ]
+                        analysis_pass.pop("decor_cells", None)
                 if self.generate_overlays and pass_results:
                     pass_overlay = self._generate_pass_overlay(
                         screenshot_path,
@@ -689,10 +721,6 @@ class OptimizedAnalysisService:
         if candidate_cells:
             passes.append({"order": 2, "name": "empty_refresh", "cells": list(candidate_cells)})
             passes.append({"order": 3, "name": "exploded_check", "cells": list(candidate_cells)})
-            if self.cnn_classifier:
-                passes.append({"order": 4, "name": "cnn_refresh", "cells": list(candidate_cells)})
-            else:
-                passes.append({"order": 4, "name": "numbers_refresh", "cells": list(candidate_cells)})
         return passes
 
     def _run_analysis_pass(
@@ -709,7 +737,11 @@ class OptimizedAnalysisService:
             return self._run_cnn_analysis_pass(analysis_pass, image_np, bounds)
         if analysis_pass["name"] == "exploded_check" and self.cnn_classifier:
             return self._run_cnn_analysis_pass(
-                analysis_pass, image_np, bounds, allowed_labels={"exploded"}
+                analysis_pass,
+                image_np,
+                bounds,
+                allowed_labels=None,
+                enable_decor_clustering=True,
             )
 
         for gx, gy in analysis_pass["cells"]:
@@ -737,6 +769,7 @@ class OptimizedAnalysisService:
         image_np: np.ndarray,
         bounds: Tuple[int, int, int, int],
         allowed_labels: Optional[Set[str]] = None,
+        enable_decor_clustering: bool = False,
     ) -> Dict[Tuple[int, int], Tuple[str, float]]:
         if not self.cnn_classifier:
             return {}
@@ -763,18 +796,95 @@ class OptimizedAnalysisService:
         if not predictions:
             return results
 
-        default_threshold = getattr(self.cnn_classifier, "accept_threshold", 0.8)
-        for (gx, gy), (label, confidence) in zip(coords, predictions):
+        default_threshold = self.cnn_accept_threshold
+        decor_candidates: List[Tuple[int, int]] = []
+        decor_confidence: Dict[Tuple[int, int], float] = {}
+        decor_fallback_numbers: Dict[Tuple[int, int], Tuple[str, float]] = {}
+
+        for (gx, gy), pred in zip(coords, predictions):
+            label = pred["label"]
+            confidence = pred["confidence"]
+            alt_label = pred.get("alt_label")
+            alt_confidence = float(pred.get("alt_confidence", 0.0))
+
             if allowed_labels and label not in allowed_labels:
                 continue
             threshold = default_threshold
             if label.startswith("number_"):
-                threshold = min(default_threshold, CNN_NUMBER_ACCEPT_THRESHOLD)
+                threshold = min(default_threshold, self.cnn_number_threshold)
             if confidence < threshold:
                 continue
-            symbol = "exploded" if label == "exploded" else label
+            if label == "decor":
+                if enable_decor_clustering and confidence >= self.decor_conf_threshold:
+                    decor_candidates.append((gx, gy))
+                    decor_confidence[(gx, gy)] = confidence
+                else:
+                    if alt_label and alt_label.startswith("number_"):
+                        alt_threshold = min(default_threshold, self.cnn_number_threshold)
+                        if alt_confidence >= alt_threshold:
+                            decor_fallback_numbers[(gx, gy)] = (alt_label, alt_confidence)
+                continue
+            elif label == "exploded":
+                symbol = "exploded"
+            else:
+                symbol = label
             results[(gx, gy)] = (symbol, confidence)
+
+        if enable_decor_clustering and decor_candidates:
+            accepted_decor = self._filter_decor_clusters(decor_candidates)
+            if accepted_decor:
+                analysis_pass["decor_cells"] = set(accepted_decor)
+                for coord in accepted_decor:
+                    results[coord] = ("empty", decor_confidence.get(coord, 1.0))
+            for coord, (symbol, conf) in decor_fallback_numbers.items():
+                if coord not in results:
+                    results[coord] = (symbol, conf)
         return results
+
+    @staticmethod
+    def _cardinal_neighbors(coord: Tuple[int, int]) -> List[Tuple[int, int]]:
+        x, y = coord
+        return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+
+    def _filter_decor_clusters(
+        self, decor_candidates: List[Tuple[int, int]]
+    ) -> Set[Tuple[int, int]]:
+        if not decor_candidates:
+            return set()
+
+        candidate_set = set(decor_candidates)
+        visited: Set[Tuple[int, int]] = set()
+        accepted: Set[Tuple[int, int]] = set()
+
+        for coord in decor_candidates:
+            if coord in visited:
+                continue
+            component: List[Tuple[int, int]] = []
+            queue = deque([coord])
+            while queue:
+                current = queue.popleft()
+                if current in visited:
+                    continue
+                visited.add(current)
+                component.append(current)
+                for neighbor in self._cardinal_neighbors(current):
+                    if neighbor in candidate_set and neighbor not in visited:
+                        queue.append(neighbor)
+
+            if len(component) < self.decor_min_cluster:
+                continue
+
+            component_set = set(component)
+            has_core = any(
+                sum(1 for neighbor in self._cardinal_neighbors(cell) if neighbor in component_set)
+                >= self.decor_min_neighbors
+                for cell in component
+            )
+
+            if has_core:
+                accepted.update(component_set)
+
+        return accepted
 
     def _generate_pass_overlay(
         self,

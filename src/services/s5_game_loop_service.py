@@ -353,19 +353,7 @@ class GameLoopService:
         """
         Détecte l'état actuel du jeu via l'analyse.
         """
-        # 1. Vérifier la présence de mines (Défaite)
-        db_path = analysis_result.get('db_path')
-        if db_path and os.path.exists(db_path):
-            from src.lib.s3_tensor.grid_state import GamePersistence, GridDB
-            grid_db = GridDB(db_path)
-            cells = grid_db.get_all_cells()
-            
-            for cell in cells:
-                if cell['type'] == CellSymbol.MINE.value:
-                    print("[GAME] Mine détectée ! Partie perdue.")
-                    return GameState.LOST
-
-        # 2. Vérifier la victoire
+        # 1. Vérifier la victoire (les mines découvertes ne terminent plus la partie)
         game_status = analysis_result.get('game_status', {})
         summary = analysis_result.get('summary', {})
         symbol_distribution = game_status.get('symbol_distribution', summary.get('symbol_distribution', {}))
