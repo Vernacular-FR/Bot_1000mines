@@ -54,37 +54,24 @@ class GridCell:
 
 
 @dataclass
-class FrontierMetrics:
-    size: int
-    flag_density: float
-    bbox: Optional[Bounds]
-    pending_actions: int
-    attractor_score: float
-
-
-@dataclass
 class FrontierSlice:
     coords: Set[Coord]
-    metrics: FrontierMetrics
 
 
 @dataclass
 class StorageUpsert:
     cells: Dict[Coord, GridCell]
     revealed_add: Set[Coord] = field(default_factory=set)
+    unresolved_add: Set[Coord] = field(default_factory=set)
+    unresolved_remove: Set[Coord] = field(default_factory=set)
     frontier_add: Set[Coord] = field(default_factory=set)
     frontier_remove: Set[Coord] = field(default_factory=set)
 
 
 class StorageControllerApi(Protocol):
     def upsert(self, data: StorageUpsert) -> None: ...
-
     def get_frontier(self) -> FrontierSlice: ...
-
     def get_revealed(self) -> Set[Coord]: ...
-
-    def mark_processed(self, positions: Set[Coord]) -> None: ...
-
+    def get_unresolved(self) -> Set[Coord]: ...
     def get_cells(self, bounds: Bounds) -> Dict[Coord, GridCell]: ...
-
     def export_json(self, viewport_bounds: Bounds) -> Dict[str, object]: ...

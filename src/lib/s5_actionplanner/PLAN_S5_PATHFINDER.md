@@ -1,5 +1,5 @@
 ---
-description: Planification viewport et séquencement actions (s5_pathfinder)
+description: Planification viewport et séquencement actions (s5_actionplanner)
 ---
 
 # PLAN S5 PATHFINDER – Analyse & feuille de route
@@ -16,7 +16,7 @@ Document de cadrage qui synthétise les exigences de `PLAN_SIMPLIFICATION radica
 
 ## 2. Architecture cible
 ```
-s5_pathfinder/
+s5_actionplanner/
 ├─ facade.py              # dataclasses & Protocols
 ├─ viewport_planner.py    # calcul positions optimales
 ├─ action_sequencer.py    # ordonnancement mouvements + clics

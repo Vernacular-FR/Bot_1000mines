@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Le bot (`src/apps/bot_1000mines.py`) ne contient plus de logique de collage ni de boucle de capture.
 - **Nettoyage overlay debug** : Suppression définitive de `lib/s1_capture/s12_grid_overlay.py`, de l'API `annotate_grid/export_debug_overlay` et de toute dépendance. Les overlays runtime restent fournis par `lib/s2_vision/s22_vision_overlay.py`.
 
+### Storage – 2025-12-12
+- **Architecture trois sets** : Implémentation complète de revealed/unresolved/frontier sets dans s3_storage
+  - `s32_set_manager.py` : Classe dédiée à la gestion des trois sets avec `apply_set_updates()`
+  - `s31_grid_store.py` : Grille sparse déléguant les opérations de sets à SetManager
+  - `controller.py` : Façade pure vers GridStore + SetManager, API inchangée
+- **Contrat storage passif** : Vision pousse revealed+unresolved, Solver calcule frontier_add/remove
+  - `facade.py` : StorageUpsert avec champs distincts Vision vs Solver
+  - Suppression des métriques de storage (calculées par solver/actionplanner si besoin)
+- **Documentation technique** : `doc/SPECS/s03_STORAGE.md` avec spécification complète
+  - Architecture, API contract, flux de données, invariants, exemples d'intégration
+  - Pièges courants et bonnes pratiques pour Vision/Solver integration
+- **PLAN_S3_STORAGE.md** : Mis à jour avec structure réelle et phases marquées comme complétées
+
 ### Vision – 2025-12-12
 - Validation complète du **CenterTemplateMatcher** : heuristiques uniformes (`unrevealed`, `empty`), discriminant pixel pour `exploded`, ordre de test prioritaire avec early exit, décor testé uniquement en dernier recours.
 - Ajout du symbole `question_mark` dans la chaîne complète (templates, manifest, matcher, overlay). Les overlays affichent désormais `question_mark` en blanc (comme `unrevealed`) et `decor` en gris/noir.

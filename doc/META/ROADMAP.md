@@ -50,14 +50,14 @@ Valider le pipeline **CenterTemplateMatcher** end-to-end, intégrer `question_ma
 Repartir d’une architecture claire en 7 couches (s0→s6), aligner toute la documentation (`doc/`, `SPECS/`), préparer l’itération 0 et acter la future migration vers extension/Native Messaging.
 
 ### ✅ Actions clés
-- Synthèse unique (`development/SYNTHESE_pipeline_refonte.md`) pour figer les décisions capture/vision/solver/pathfinder.
+- Synthèse unique (`development/SYNTHESE_pipeline_refonte.md`) pour figer les décisions capture/vision/solver/actionplanner.
 - Recréer `doc/` avec fichiers numérotés (README + 01/02/03) orientés pilotage rapide.
 - Générer `SPECS/ARCHITECTURE.md` (pipeline + arborescence) et `SPECS/CHANGELOG.md` mis à jour.
 - Initialiser `SPECS/ROADMAP.md` (ce document) avec la nouvelle feuille de route.
 - Archiver les notes historiques dans `backups/` et pointer `doc/`/`SPECS/` depuis `.gitignore`.
 
 ### 📊 Résultats
-- Plan validé (capture canvas direct, storage double, solver local, pathfinder prioritaire).
+- Plan validé (capture canvas direct, storage double, solver local, actionplanner prioritaire).
 - Documentation séparée : résumés dans `doc/`, référence technique dans `SPECS/`.
 - Itérations 0→8 prêtes à être lancées (voir section “Roadmap Simplification” ci-dessous).
 
@@ -354,9 +354,9 @@ Résoudre les erreurs "move target out of bounds" et stabiliser le système de c
 | **1 – s0 Interface** | Refactor `lib/s0_navigation` en `src/s0_viewport/viewport_controller.py`. | Pilotage DOM/coords unifié + interface officielle. |
 | **2 – s1 Capture** | Implémenter `canvas.toDataURL`, fallback CDP, purge buffers. | `src/s1_capture/canvas_capture.py`, tests simples. |
 | **3 – s2 Vision** | LUT + pixel sampler + calibration auto + overlays. | `pixel_sampler.py`, `calibration.py`, dossier debug. |
-| **4 – s3 Storage** | Double base (archive + frontière compacte) + densité pour pathfinder. | `grid_store.py`, `serializers.py`, interface. |
+| **4 – s3 Storage** | Double base (archive + frontière compacte) + densité pour actionplanner. | `grid_store.py`, `serializers.py`, interface. |
 | **5 – s4 Solver** | Motifs déterministes + solveur exact local + debug overlays. | `pattern_engine.py`, `local_solver.py`, exports PNG/JSON. |
-| **6 – s5 Pathfinder** | Heatmap, barycentres, déplacements multi-étapes, prise en compte des zones hors écran. | `pathfinder.py`, interface + heuristique densité. |
+| **6 – s5 Pathfinder** | Heatmap, barycentres, déplacements multi-étapes, prise en compte des zones hors écran. | `actionplanner.py`, interface + heuristique densité. |
 | **7 – s6 Action** | Exécuteur d’actions multi-clics + reporting. | `click_executor.py`, interface, scénarios Selenium. |
 | **8 – Extension-ready** | Interfaces isolées, PoC Native Messaging / WebExtension, endpoints stable. | Spéc proto extension + doc API. |
 
@@ -376,4 +376,4 @@ Résoudre les erreurs "move target out of bounds" et stabiliser le système de c
 
 - `doc/` = synthèses opérationnelles. `SPECS/` = référence technique exhaustive.
 - Tenir `CHANGELOG.md` synchronisé avec chaque entrée du journal.
-- Toujours privilégier capture canvas direct + pathfinder basé sur la frontière compacte.
+- Toujours privilégier capture canvas direct + actionplanner basé sur la frontière compacte.

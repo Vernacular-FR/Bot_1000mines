@@ -7,9 +7,10 @@ description: Feuille de route s4_solver (PatternEngine + LocalSolver)
 Document de travail qui synthétise les exigences du **PLAN DE SIMPLIFICATION RADICALE** et de **SYNTHESE_pipeline_refonte.md** pour la couche s4. Il servira de référence tant que l’implémentation n’est pas finalisée.
 
 ## 1. Mission
-- Transformer la frontière compacte de s3 en **actions sûres** (clics, drapeaux) sans jamais modifier la frontière elle-même.
-- Calculer lui-même les composantes connexes depuis la FrontierSlice (pas de pré-groupage).
-- Retourner **uniquement les actions** à s5_pathfinder, PAS de mise à jour de frontière.
+- Transformer la frontière analytique (frontier_set) de s3 en **actions sûres** (clics, drapeaux) sans jamais modifier la frontière elle-même.
+- Gérer les transitions **UNRESOLVED → TO_PROCESS → RESOLVED** dans `unresolved_set` et propager les mises à jour vers `frontier_set`.
+- Calculer lui-même les composantes connexes depuis `unresolved_set` (pas de pré-groupage).
+- Retourner **uniquement les actions** à s5_actionplanner, PAS de mise à jour de frontière.
 - Garder la frontière en lecture seule : c'est à Vision et Actioner de la maintenir.
 - Utiliser **NumPy** en interne pour efficacité, supporter **export JSON** pour compatibilité WebExtension.
 
@@ -32,16 +33,20 @@ s4_solver/
   - `chiffre == nb_drapeaux` ⇒ ouvrir toutes les autres cases adjacentes.
   - `chiffre == nb_drapeaux + nb_cases_fermées` ⇒ poser des drapeaux.
   - Combinaisons classiques : 1-2-1, 2-1-1, 2-2-1, `edge` patterns, etc.
-- S’exécute en boucle tant que des actions sont trouvées.
+- S'exécute en boucle tant que des actions sont trouvées sur les cellules **TO_PROCESS** de `unresolved_set`.
 
 ### 2.2 LocalSolver
 - Pipeline :
-  1. `frontier_analyzer` extrait les composantes connexes sur la frontière (cases fermées + contraintes autour).
-  2. Si composante ≤ 15 variables → backtracking exact (SAT-like). Appliquer toutes les décisions communes.
-  3. Sinon → heuristique (probabilités locales contrôlées) ou fallback (CNN ponctuel) **optionnel mais non prioritaire**.
+  1. Lit `unresolved_set` depuis storage et filtre les cellules (exclure celles résolues d'elles-mêmes).
+  2. Applique les motifs sur les cellules **TO_PROCESS**.
+  3. **Calcule `frontier_add/remove`** depuis les TO_PROCESS (propagation analytique).
+  4. Extrait les **composantes connexes** sur `frontier_set` (cases fermées + contraintes autour).
+  5. Si composante ≤ 15 variables → backtracking exact (SAT-like). Appliquer toutes les décisions communes.
+  6. Sinon → heuristique (probabilités locales contrôlées) ou fallback (CNN ponctuel) **optionnel mais non prioritaire**.
 - Doit produire pour chaque composante :
   - Actions sûres (open/flag).
-  - Liste résiduelle (ambiguïté) pour pathfinder/heuristique.
+  - Liste résiduelle (ambiguïté) pour actionplanner/heuristique.
+- Met à jour `unresolved_set` (UNRESOLVED→RESOLVED) et `frontier_set` (propagation analytique).
 
 ### 2.3 Debug
 - `overlay_renderer.py` : génération PNG pour visualiser les décisions solver (cases colorées).
@@ -57,16 +62,19 @@ class SolverAction:
     reasoning: str             # 'pattern' | 'sat' | 'backtrack'
 
 class SolverApi(Protocol):
-    def solve(self, frontier: FrontierSlice) -> list[SolverAction]: ...
+    def solve(self, unresolved_coords: set[tuple[int, int]], frontier_coords: set[tuple[int, int]], cells: dict[tuple[int, int], GridCell]) -> list[SolverAction]: ...
     def get_stats(self) -> SolverStats: ...
 ```
 
 ## 4. Flux de données
-1. **Storage (s3)** → `solve(frontier)` : fournit contraintes + cellules fermées adjacentes.
+1. **Storage (s3)** → `solve(unresolved, frontier, cells)` : fournit `unresolved_set`, `frontier_set` et les cellules complètes.
 2. **Solver** :
-   - Calcule les **composantes connexes** lui-même à partir de la FrontierSlice.
-   - Applique motifs déterministes (PatternEngine) sur chaque composante.
+   - Filtre `unresolved_set` (exclure résolues d'elles-mêmes) et marque les cellules pertinentes en **TO_PROCESS**.
+   - Applique motifs déterministes (PatternEngine) sur les TO_PROCESS.
+   - **Calcule `frontier_add/remove`** depuis les TO_PROCESS (propagation analytique).
+   - Extrait les **composantes connexes** depuis `frontier_set`.
    - Résout localement les composantes ≤15 variables (LocalSolver SAT/backtracking).
+   - Met à jour `unresolved_set` (UNRESOLVED→RESOLVED) et `frontier_set` (via `frontier_add/remove`).
 3. **Solver → Pathfinder (s5)** : retourne **uniquement les actions** pour planification viewport.
 4. **Pathfinder** utilise les actions pour calculer attractivité et positions fenêtre optimales.
 5. **Storage (s3)** sera mis à jour après exécution par s6 et confirmation par s2 (pas de double mise à jour).
@@ -80,9 +88,10 @@ class SolverApi(Protocol):
    - Tests unitaires sur grilles 3×3, 5×5.
 3. **Phase 3 – Résolution locale**
    - Implémenter `local_solver.py` : SAT pour composantes ≤8, backtrack ≤15.
-   - Extraction des composantes depuis FrontierSlice (pas de pré-groupage).
+   - Gestion des transitions UNRESOLVED→TO_PROCESS→RESOLVED et **calcul de `frontier_add/remove`** depuis les TO_PROCESS.
+   - Extraction des composantes depuis `frontier_set` (pas de pré-groupage).
 4. **Phase 4 – Intégration complète**
-   - Solver retourne actions à s5_pathfinder.
+   - Solver retourne actions à s5_actionplanner.
    - Tests end-to-end avec grilles réelles.
 5. **Phase 5 – Export JSON & optimisations**
    - `export_state()` pour WebExtension (format JSON standard).
@@ -95,6 +104,7 @@ class SolverApi(Protocol):
 - Tests unitaires : toutes les fonctions de `pattern_engine.py` et `local_solver.py`.
 - Tests réels : grilles de `temp/games/` et frontières générées depuis `tests/set_screeshot/`.
 - Export JSON valide et conforme WebExtension.
+- Validation des transitions UNRESOLVED→TO_PROCESS→RESOLVED et de la propagation analytique.
 
 ## 7. Références
 - `development/PLAN_SIMPLIFICATION radicale.md` – sections s4.
@@ -103,4 +113,4 @@ class SolverApi(Protocol):
 - `doc/PIPELINE.md` – flux global.
 
 ---
-*Ce plan sera mis à jour à mesure que la couche s3_storage expose son API complète.* 
+*Ce plan sera mis à jour à mesure que la couche s3_storage expose son API complète (revealed/unresolved/frontier sets).*

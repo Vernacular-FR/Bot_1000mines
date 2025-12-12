@@ -7,23 +7,23 @@ description: Analyse et plan d’implémentation s3_storage (archive + frontièr
 Document de cadrage qui synthétise les exigences de `PLAN_SIMPLIFICATION radicale.md` et `SYNTHESE_pipeline_refonte.md` pour la couche s3. Il restera la référence tant que l’implémentation n’est pas finalisée.
 
 ## 1. Mission
-- Maintenir **une seule représentation de vérité** : dictionnaire sparse `{(x, y) → GridCell}` non borné + frontière compacte (set de coordonnées), sans double base.
-- Fournir les **métriques** nécessaires à s5 (densité, attracteurs) et les structures nécessaires à s4 (contraintes locales à calculer côté solver).
-- Garantir qu’aucune donnée n’est perdue : la grille globale reste exhaustive ; la frontière stocke uniquement les coordonnées à traiter pour accélérer la résolution.
+- Maintenir **une seule représentation de vérité** : dictionnaire sparse `{(x, y) → GridCell}` non borné + trois sets de coordonnées, sans double base.
+- Fournir les **structures nécessaires** à s4 (revealed_set, unresolved_set, frontier_set) pour le workflow solver.
+- Garantir qu’aucune donnée n’est perdue : la grille globale reste exhaustive ; les sets stockent uniquement les coordonnées pour optimiser le traitement.
 - **Export JSON** pour compatibilité WebExtension (pas de formats binaires propriétaires, focus sur la zone visible + marge).
-- **Mise à jour frontière** : uniquement par Vision (batch) et Actioner (validation Pathfinder), le solver reste en lecture seule.
-- **Set revealed** : pour optimisation Vision, évite de re-scanner les cases déjà connues.
-- **solver_status** : géré par Solver (UNRESOLVED/TO_PROCESS/RESOLVED), storage passif.
+- **Stockage passif** : Vision pousse revealed+unresolved, Solver calcule frontier_add/remove, storage ne fait que stocker.
+- **Set revealed** : coordonnées des cellules déjà connues (optimisation Vision, évite re-scan).
+- **Set unresolved** : cellules révélées mais pas encore traitées par le solver (UNRESOLVED→TO_PROCESS→RESOLVED géré par solver).
+- **Set frontier** : cellules fermées adjacentes aux révélées (frontière analytique sur laquelle le solver travaille).
 
 ## 2. Architecture cible
 ```
 s3_storage/
-├─ facade.py           # dataclasses (GridCell, FrontierSlice, StorageRequest…)
-├─ controller.py       # archive + frontière + synchronisation
-├─ frontier.py         # helpers calcul densité, extraction composantes
-├─ serializers.py      # JSONL / SQLite (optionnel, phase 2)
-└─ debug/
-    └─ inspectors.py   # impression / overlays / logs
+├─ facade.py           # dataclasses (GridCell, FrontierSlice, StorageUpsert)
+├─ controller.py       # façade vers GridStore + SetManager
+├─ s31_grid_store.py    # grille sparse dict
+├─ s32_set_manager.py   # gestion des trois sets (revealed/unresolved/frontier)
+└─ __init__.py
 ```
 
 ### 2.1 Structures principales
@@ -36,10 +36,10 @@ s3_storage/
   - Permet d’extraire à la volée des “patchs” denses (ex : 200×200) si besoin pour du NumPy local.
 - **Set revealed**
   - `revealed_coords: set[tuple[int, int]]` pour optimisation Vision (évite re-scan cases connues).
-- **Frontière**
-  - `frontier_coords: set[tuple[int, int]]` contenant uniquement les coordonnées des cellules TO_PROCESS.
-  - Métadonnées calculées à la demande via `frontier_metrics` (densité de drapeaux, actions en attente, attracteur).
-  - Les données complètes restent dans `cells`; la frontière manipule des tuples à ajouter/retirer (vision & solver).
+- **Set unresolved**
+  - `unresolved_coords: set[tuple[int, int]]` des cellules révélées en attente de traitement solver.
+- **Set frontier**
+  - `frontier_coords: set[tuple[int, int]]` des cellules fermées adjacentes aux révélées (frontière analytique).
 
 ## 3. API (facade)
 ```python
@@ -47,60 +47,61 @@ s3_storage/
 class StorageUpsert:
     cells: dict[tuple[int, int], GridCell]
     revealed_add: set[tuple[int, int]] = field(default_factory=set)
+    unresolved_add: set[tuple[int, int]] = field(default_factory=set)
+    unresolved_remove: set[tuple[int, int]] = field(default_factory=set)
     frontier_add: set[tuple[int, int]] = field(default_factory=set)
     frontier_remove: set[tuple[int, int]] = field(default_factory=set)
 
 @dataclass
 class FrontierSlice:
-    coords: set[tuple[int, int]]          # coordonnées TO_PROCESS actuelles
-    metrics: FrontierMetrics              # densité, attracteur, bbox
+    coords: set[tuple[int, int]]          # coordonnées frontière actuelles
 
 class StorageControllerApi(Protocol):
     def upsert(self, data: StorageUpsert) -> None: ...
     def get_frontier(self) -> FrontierSlice: ...
     def get_revealed(self) -> set[tuple[int, int]]: ...
-    def mark_processed(self, positions: set[tuple[int, int]]) -> None: ...
+    def get_unresolved(self) -> set[tuple[int, int]]: ...
     def get_cells(self, bounds: tuple[int, int, int, int]) -> dict[tuple[int, int], GridCell]: ...
     def export_json(self, viewport_bounds: tuple[int, int, int, int]) -> dict: ...
 ```
 
-### 3.1 Gestion incrémentale de la frontière
-- La frontière est un simple set de coordonnées manipulé via `frontier_add/frontier_remove`.
-- Vision ajoute toutes les cellules nouvellement visibles + leurs voisins fermés dans un **batch unique**.
-- Actioner peut retirer des coordonnées une fois les actions appliquées (validation des mises à jour anticipées par Pathfinder).
+### 3.1 Gestion incrémentale des sets
+- Les trois sets (`revealed`, `unresolved`, `frontier`) sont gérés incrémentalement via `*_add`/`*_remove`.
+- Vision ajoute les nouvelles cellules révélées dans `revealed_add` et `unresolved_add` (pas de `frontier_add`).
+- Solver met à jour `unresolved_remove` (cellules traitées) et `frontier_add/remove` (propagation analytique).
+- **Note** : `frontier_add/remove` sont utilisés uniquement par Solver, jamais par Vision.
 - Pas de recalcul complet à chaque itération : seules les zones impactées par le batch sont touchées.
 
 ## 4. Flux de données (séquentiel)
-1. **Vision (s2)** → `StorageController.upsert(batch)` : applique toutes les révélations en une passe, met à jour `cells` et injecte `frontier_add/remove`.
-2. **Solver (s4)** → `get_frontier()` : récupère le set actuel + métriques, reconstruit ses composantes en interne, retourne **uniquement les actions**.
-3. **Solver → s5_pathfinder** : retourne actions brutes (clics/drapeaux) pour planification.
-4. **Pathfinder (s5)** :
-   - Calcule les mises à jour anticipées de la frontière en fonction des actions planifiées.
-   - Ordonne les actions + frontière_anticipée puis délègue à s6.
+1. **Vision (s2)** → `StorageController.upsert(batch)` : applique toutes les révélations en une passe, met à jour `cells`, `revealed_add` et `unresolved_add` (pas de `frontier_add`).
+2. **Solver (s4)** → `get_unresolved()` : récupère les cellules UNRESOLVED, applique filtre (exclure résolues d’elles-mêmes), puis motifs sur les TO_PROCESS.
+3. **Solver → Storage** : met à jour `unresolved_remove` (cellules traitées) et `frontier_add/remove` (propagation analytique calculée depuis les TO_PROCESS).
+4. **Solver → s5_actionplanner** : retourne actions brutes (clics/drapeaux) pour planification.
 5. **Action (s6)** : exécute séquentiellement, valide les mises à jour de frontière, puis déclenche nouvelle capture → retour à l'étape 1.
 
 ## 5. Plan d’implémentation
-1. **Phase 1 – Infrastructure**
-   - Définir `facade.py` (GridCell, StorageUpsert, FrontierSlice, FrontierMetrics).
-   - Implémenter `controller.py` minimal : dict sparse + set frontier (ajout/retrait incrémental).
-2. **Phase 2 – Intégration vision/solver**
-   - Vision pousse des batches (révélations + frontier_add/remove).
-   - Solver consomme `FrontierSlice`, puis renvoie les coordonnées à retirer une fois les actions terminées.
-3. **Phase 3 – Pathfinder coordination**
-   - Calculer attractivité uniquement sur les coordonnées touchées (delta metrics).
-   - Alimenter s5 avec la frontière attendue pour ses séquences viewport.
-4. **Phase 4 – Export JSON & debug**
-   - `export_json(viewport_bounds)` : série limitée à la zone visible + marge pour l’extension.
-   - Overlays/debug sur les zones locales (pas besoin d’exporter toute la grille).
-5. **Phase 5 – Extensions optionnelles**
+1. **Phase 1 – Infrastructure** 
+   - Définir `facade.py` (GridCell, StorageUpsert, FrontierSlice).
+   - Implémenter `s31_grid_store.py` (dict sparse) + `s32_set_manager.py` (trois sets).
+   - Implémenter `controller.py` comme façade pure vers GridStore + SetManager.
+2. **Phase 2 – Intégration vision/solver** 
+   - Vision pousse des batches (révélations + revealed_add + unresolved_add, **sans frontier_add**).
+   - Solver consomme `get_unresolved()`, puis renvoie les mises à jour (unresolved_remove, frontier_add/remove calculés).
+3. **Phase 3 – Solver coordination** 
+   - Solver gère UNRESOLVED→TO_PROCESS→RESOLVED et met à jour la frontière analytique.
+   - Alimenter s5 avec les actions sûres pour ses séquences viewport.
+4. **Phase 4 – Export JSON & debug** 
+   - `export_json(viewport_bounds)` : série limitée à la zone visible + marge.
+   - Pas de métriques dans storage (calculées par solver/actionplanner si besoin).
+5. **Phase 5 – Extensions optionnelles** 
    - Snapshots persistants (`.npy`, HDF5, SQLite logs) si nécessaire, mais hors boucle solver.
    - Outils d’inspection/frontier pour vérifier les batches vision/solver.
 
 ## 6. Validation & KPIs
-- Cohérence grille/frontière (toutes les cases fermées de la frontière existent dans la grille).
+- Cohérence grille/sets (toutes les cases révélées sont dans revealed_set, toutes les UNRESOLVED dans unresolved_set, toutes les fermées adjacentes dans frontier_set).
 - Temps de mise à jour après vision : objectif < 2 ms par capture.
-- Taille frontière : typiquement quelques milliers de cases (<10% de grille 100k cases).
-- Tests unitaires : insertion d’une grille 3×3, propagation d’updates, vérification frontier.
+- Taille sets : typiquement quelques milliers de cases (<10% de grille 100k cases).
+- Tests unitaires : insertion d’une grille 3×3, propagation d’updates, vérification des trois sets.
 - Tests réels : grilles de `temp/games/` et captures de `tests/set_screeshot/`.
 
 ## 7. Références
@@ -110,4 +111,4 @@ class StorageControllerApi(Protocol):
 
 ---
 
-*Ce plan sera complété après stabilisation des API s2 (vision) et des besoins solver/pathfinder.*
+*Plan implémenté et aligné avec l'architecture à trois sets (revealed/unresolved/frontier). Storage est désormais passif, la logique analytique est déléguée au solver.*

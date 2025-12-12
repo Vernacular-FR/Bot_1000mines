@@ -77,7 +77,7 @@ bot-1000mines/
 │       ├── s2_vision/    # PixelSampler + debug overlays
 │       ├── s3_storage/   # Archive + frontière compacte
 │       ├── s4_solver/    # Motifs + solveur local (debug inclus)
-│       ├── s5_pathfinder/# Heatmap + trajets multi-étapes
+│       ├── s5_actionplanner/# Heatmap + trajets multi-étapes
 │       └── s6_action/    # Exécution multi-clics
 ├── tests/                # Tests unitaires
 ├── doc/                  # Synthèses (pipeline, README)
