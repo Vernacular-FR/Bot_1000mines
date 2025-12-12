@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import CELL_SIZE, CELL_BORDER  # noqa  # pylint: disable=wrong-import-position
-from src.lib.s2_vision.api import (  # noqa  # pylint: disable=wrong-import-position
+from src.lib.s2_vision.facade import (  # noqa  # pylint: disable=wrong-import-position
     VisionAPI,
     VisionControllerConfig,
 )

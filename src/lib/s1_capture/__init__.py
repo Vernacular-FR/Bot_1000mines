@@ -1,4 +1,4 @@
-from .api import CaptureRequest, CaptureResult, CaptureControllerApi
+from .facade import CaptureRequest, CaptureResult, CaptureControllerApi
 from .controller import CaptureController
 
 __all__ = [

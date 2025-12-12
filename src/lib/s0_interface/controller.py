@@ -15,7 +15,7 @@ from .s03_Coordonate_system import CoordinateConverter, CanvasLocator
 from .s03_game_controller import NavigationController
 from .s04_viewport_mapper import ViewportMapper
 from .s05_status_reader import StatusReader
-from .api import GameStatus
+from .facade import GameStatus
 
 
 @dataclass

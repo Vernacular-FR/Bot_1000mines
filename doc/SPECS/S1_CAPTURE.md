@@ -28,7 +28,7 @@ Ces deux méthodes déléguent à `_get_capture_controller()`, qui instancie par
 - `canvas_backend=CanvasCaptureBackend(driver)`
 - `viewport_mapper=self.navigator.viewport_mapper`
 
-### Côté s1_capture.api
+### Côté s1_capture.facade
 - `CaptureRequest`: point canvas + taille + options (save, annotate, metadata…)
 - `CaptureResult`: image PIL + bytes + infos de sauvegarde
 - `CaptureControllerApi`: protocol pour `capture_zone`, `capture_grid_window`, `export_debug_overlay`

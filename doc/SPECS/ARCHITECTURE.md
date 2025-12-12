@@ -75,25 +75,24 @@ src/
 ├─ services/                 # orchestrateurs (session, boucle…)
 └─ lib/
     ├─ s0_viewport/
-    │  ├─ viewport_controller.py      # DOM + coords + déplacements
-    │  ├─ interface.py
+    │  ├─ facade.py / controller.py           # portes d’entrée
+    │  ├─ s01_*, s02_* …                      # toute la logique
     │  └─ __init__.py
     ├─ s1_capture/
-    │  ├─ canvas_capture.py           # toDataURL / CDP / extension
-    │  ├─ interface.py
+    │  ├─ facade.py / controller.py
+    │  ├─ s11_*, s12_* …
     │  └─ __init__.py
     ├─ s2_vision/
-    │  ├─ pixel_sampler.py
-    │  ├─ calibration.py
-    │  ├─ interface.py
+    │  ├─ facade.py / controller.py
+    │  ├─ s21_*, s22_* …
     │  ├─ __init__.py
     │  └─ debug/
     │       ├─ overlay_renderer.py
     │       └─ json_exporter.py
     ├─ s3_storage/
-    │  ├─ grid_store.py
+    │  ├─ facade.py / controller.py (aucune logique)
+    │  ├─ s31_grid_store.py, s32_frontier_metrics.py, …
     │  ├─ serializers.py
-    │  ├─ interface.py
     │  └─ __init__.py
     ├─ s4_solver/
     │  ├─ pattern_engine.py

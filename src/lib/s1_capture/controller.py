@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-from .api import CaptureControllerApi, CaptureRequest, CaptureResult
+from .facade import CaptureControllerApi, CaptureRequest, CaptureResult
 from .s11_canvas_capture import CanvasCaptureBackend
-from src.lib.s0_interface.api import InterfaceControllerApi
+from src.lib.s0_interface.facade import InterfaceControllerApi
 
 
 @dataclass

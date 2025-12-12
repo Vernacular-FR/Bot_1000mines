@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Protocol, Tuple
 
 from PIL import Image
 
-from src.lib.s0_interface.api import InterfaceControllerApi
+from src.lib.s0_interface.facade import InterfaceControllerApi
 
 
 @dataclass

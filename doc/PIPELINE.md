@@ -2,6 +2,31 @@
 
 Ce document fusionne les anciennes sections capture/vision, storage/solver et pathfinder/action pour offrir une vue unique du pipeline s0 → s6.
 
+## 🔍 CLARIFICATIONS ARCHITECTURALES
+
+Décisions clés validées pour éviter toute ambiguïté :
+
+### Stockage (s3)
+- **Représentation unique** : grille NumPy infinie en RAM + frontière compacte (set), sans double base archive/frontière.
+- **Export JSON** obligatoire pour compatibilité WebExtension (pas de formats binaires propriétaires).
+- **NumPy interne** pour performance, JSON uniquement pour export/import.
+- **Mise à jour frontière** : uniquement par Vision (batch) et Actioner (validation Pathfinder), pas par Solver.
+- **Set revealed** : pour optimisation Vision, évite de re-scanner les cases déjà connues.
+- **solver_status** : géré par Solver (UNRESOLVED/TO_PROCESS/RESOLVED), storage passif.
+
+### Solver (s4)  
+- **Auto-calcul des composantes** : le solver extrait lui-même les composantes connexes depuis la FrontierSlice (pas de pré-groupage).
+- **Actions uniquement** : s4 retourne seulement les actions (clics/drapeaux) à s5, PAS de mise à jour de frontière.
+- **Lecture seule** : le solver accède en lecture à la frontière mais ne la modifie jamais.
+- **Centralise solver_status** : gère UNRESOLVED→TO_PROCESS→RESOLVED, frontière = TO_PROCESS uniquement.
+
+### Flux de données principal
+```
+s3(revealed + UNRESOLVED) → s4(TO_PROCESS + actions) → s5(actions + frontière_anticipée) → s6(exécution + validation) → s2(confirmations) → s3(mise_à_jour_finale)
+```
+
+**Note** : Échec S6 = arrêt boucle de jeu (pas de retry complexe).
+
 ## 1. Diagramme global
 
 ```
@@ -48,12 +73,12 @@ PNG bytes ─▶ CenterTemplateMatcher (zone 10×10, ordre prioritaire) ─▶ G
                                                     └──────▶ overlays_debug/ (vision overlay)
 ```
 
-## 5. s3 Storage – Archive + Frontière compacte
-- Archive globale : conserve toutes les cellules jamais vues (grid infinie) avec provenance et timestamps.
-- Frontière compacte : bande de 2 cases révélées + 1 couche fermée (inclut les 8 voisins). Suffit pour résoudre toutes les contraintes locales.
-- Maintient des métriques de densité/attracteur par cellule (nb d’actions, distance viewport) utilisées par s5.
-- Pruning strict : uniquement sur la frontière (recalculable), jamais sur l’archive.
-- Sérialisation interchangeable (JSONL ou SQLite) via `serializers.py`.
+## 5. s3 Storage – Grille NumPy unique + Frontière compacte
+- Grille NumPy infinie en RAM : représentation unique de vérité pour toutes les cellules jamais vues.
+- Frontière compacte : ensemble des cellules fermées adjacentes aux ouvertes (set), suffisant pour résoudre les contraintes locales.
+- Maintient des métriques de densité/attracteur par cellule (nb d'actions, distance viewport) utilisées par s5.
+- Export JSON pour compatibilité WebExtension (pas de formats binaires propriétaires).
+- Mise à jour : s3 reçoit les confirmations de s2 après exécution par s6, pas de double mise à jour depuis s4.
 
 ## 6. s4 Solver – Motifs déterministes + solveur exact local
 - Bibliothèque de motifs 3×3/5×5 (rotations/reflets) encodés en base 16 → lookup O(1).
