@@ -135,18 +135,15 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
 
 ## Vision System Modules
 
-### Canvas Capture & Screenshot Fallback
-- **path**: lib/s1_capture/s11_canvas_capture.py
-- **type**: Capture canvas directe + fallback plein écran (helpers internes)
-- **methods**:
-  - `__init__(driver, paths)` - Prépare les dossiers et dépendances
-  - `capture_viewport(...)` - Capture plein écran (debug / fallback)
-  - `capture_between_cells(...)` - Capture une zone rectangulaire via CoordinateSystem
-- **helpers**:
-  - `_resolve_viewport_filename`, `_resolve_viewport_directory`
-  - `_ensure_coord_system`, `_grid_bounds_to_pixels`, `_build_zone_filename`
-- **dependencies**: PIL, selenium, src.config, s0_interface.s03_Coordonate_system
-- **features**: API publique stable, fallback screenshot, génération chemins `temp/games/{id}`
+### Canvas Capture & Composite
+- **paths**: 
+  - `lib/s1_capture/s11_canvas_capture.py`
+  - `lib/s1_capture/s12_canvas_compositor.py`
+- **type**: Capture canvas directe, fallback fenêtre complète et composition alignée.
+- **responsabilités**:
+  - `s11_canvas_capture` : conversion `canvas.toDataURL`, captures partielles/viewport, helpers `_grid_bounds_to_pixels`, fallback screenshot.
+  - `s12_canvas_compositor` : assemblage multi-canvases, alignement strict sur les cellules (`cell_ref`, `ceil/floor`), recadrage, recalcul `grid_bounds`, sauvegarde `full_grid_*.png`.
+- **features**: API stable, génération `temp/games/{id}/s1_raw_canvases`, validations stride (asserts), dérivé par `ZoneCaptureService.compose_from_canvas_tiles`.
 
 ### Interface Detector (legacy)
 - **path**: lib/s1_capture/interface_detector.py
@@ -159,19 +156,6 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
   - `create_annotated_screenshot(screenshot_path)` - Ajoute des annotations
 - **dependencies**: PIL, selenium, typing
 - **features**: Détection automatique escape_link, status, controls
-
-### Combined Overlay Generator
-- **path**: lib/s1_capture/combined_overlay.py
-- **type**: Générateur d'overlays grille (mode debug, interface en cours de retrait)
-- **classes**:
-  - `GridOverlayLayer` - Génère une grille simple reposant sur CoordinateConverter
-  - `CombinedOverlayAssembler` - Superpose overlay debug + capture
-- **methods clés**:
-  - `generate_combined_overlay(base_image, interface_elements, grid_bounds, coord_system)`
-  - `generate_combined_overlay_from_screenshot(screenshot_path, interface_elements, grid_bounds, coord_system)`
-  - `_draw_fallback_grid(draw, image, grid_bounds)`
-- **dependencies**: PIL, datetime, os, lib.s0_navigation.coordinate_system
-- **features**: Utilise `CoordinateSystem.localize_grid()` quand disponible, fusionne les anciennes classes `interface_overlay` et `grid_overlay`, applique temporairement un décalage global (-1px, -1px) documenté pour compenser un offset résiduel.
 
 ---
 

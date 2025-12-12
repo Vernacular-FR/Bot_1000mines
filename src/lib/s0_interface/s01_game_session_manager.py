@@ -101,15 +101,11 @@ class SessionStorage:
     def build_game_paths(self, game_id: str) -> Dict[str, str]:
         base = self.get_game_base_path(game_id)
         return {
-            'full_pages': os.path.join(base, "s0_full_pages"),
-            'interface': os.path.join(base, "s0_interface"),
-            'zone': os.path.join(base, "s1_zone"),
-            'grid': os.path.join(base, "s1_grid"),
-            'analysis': os.path.join(base, "s2_analysis"),
-            'solver': os.path.join(base, "s3_solver"),
-            'actions': os.path.join(base, "s4_actions"),
+            'raw_canvases': os.path.join(base, "s1_raw_canvases"),
+            'vision': os.path.join(base, "s2_vision"),
+            'solver': os.path.join(base, "s4_solver"),
             'metadata': os.path.join(base, "metadata.json"),
-            'grid_db': os.path.join(base, "grid_state_db.json")
+            'grid_state_db': os.path.join(base, "grid_state_db.json")
         }
 
     def ensure_storage_ready(self, state: SessionState, create_metadata: bool = True) -> Dict[str, Dict[str, str]]:
@@ -121,7 +117,7 @@ class SessionStorage:
         os.makedirs(base_path, exist_ok=True)
 
         for key, path in paths.items():
-            target_dir = path if key not in {"metadata", "grid_db"} else os.path.dirname(path)
+            target_dir = path if key not in {"metadata", "grid_state_db"} else os.path.dirname(path)
             os.makedirs(target_dir, exist_ok=True)
 
         if create_metadata and 'metadata' in paths:

@@ -21,8 +21,10 @@ Ce document fusionne les anciennes sections capture/vision, storage/solver et pa
 - Expose `ViewportState` (offset, zoom, résolution) et accepte `ViewportPlan` (liste d’ordres).
 - Interfaces prêtes pour Selenium aujourd’hui / extension Native Messaging demain.
 
-## 3. s1 Capture – Canvas → image
+## 3. s1 Capture – Canvas → image (multi-canvases alignés)
 - Méthode prioritaire : `canvas.toDataURL('image/png')` (1–2 ms) via JS injecté.
+- `ZoneCaptureService.capture_canvas_tiles` orchestre la découverte (`CanvasLocator`) + capture de toutes les tuiles visibles (512×512) et les sauvegarde dans `temp/games/{id}/s1_raw_canvases/`.
+- `compose_from_canvas_tiles` délègue l’assemblage à `lib/s1_capture/s12_canvas_compositor.py` : alignement cell_ref, recadrage ceil/floor, assertions stride, recalcul `grid_bounds`, export `full_grid_*.png`.
 - Fallback : Chrome DevTools Protocol (`Page.captureScreenshot` + clip) ou Playwright headless.
 - Selenium screenshot conservé uniquement en secours (20–40 ms).
 - Nettoyage automatique des buffers temporaires pour éviter la saturation disque.

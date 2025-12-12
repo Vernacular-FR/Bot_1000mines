@@ -36,6 +36,7 @@ description: Diagnostic et plan de purge s2_vision
 3. **Service vision** → ✅ Vision API intégré au bot via `s21_template_matcher`.
 4. **Intégration pipeline** → ✅ Le pipeline runtime n’utilise plus aucun sampler legacy, overlay mis à jour.
 5. **Tests & validation** → ✅ Bench + overlays validés, seuil `empty` resserré pour les décors.
+6. **Pipeline capture aligné** → ✅ Les captures multi-canvases sont composées via `lib/s1_capture/s12_canvas_compositor.py`, garantissant un alignement parfait pour la vision (cell_ref, ceil/floor, recalcul `grid_bounds`). Le debug overlay legacy a été supprimé.
 
 ### Options étudiées pour distinguer `exploded` vs `unrevealed` avec marge 9 px
 

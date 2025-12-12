@@ -25,6 +25,12 @@ Valider le pipeline **CenterTemplateMatcher** end-to-end, intégrer `question_ma
 - Tests `tests/test_s2_vision_performance.py` rejoués en boucle jusqu’à obtenir 100 % de reconnaissance stable (question marks inclus).
 - Documentation mise à jour (`s02_VISION_SAMPLING.md`, `s21_templates_analyzer/READ_ME.md`, `PLAN_S2_VISION_PURGE.md`) + entrée dédiée dans `doc/META/CHANGELOG.md`.
 
+### 🔧 Extension Capture Alignée (même session)
+- Délégation complète des captures multi-canvases à `ZoneCaptureService.capture_canvas_tiles`.
+- Création du module `lib/s1_capture/s12_canvas_compositor.py` (alignement cell_ref, ceil/floor, recalcul `grid_bounds`).
+- Suppression de la logique de collage dans `bot_1000mines.py` + suppression des overlays debug (`s12_grid_overlay.py`, `annotate_grid`).
+- Documentation mise à jour (CHANGELOG, INDEX lib/) pour refléter cette architecture.
+
 ### 📊 Résultats
 - Vision API validée : plus aucun `question_mark` classé décor, empty uniquement quand bord blanc confirmé.
 - Overlays lisibles en production (couleurs cohérentes, pourcentage aligné).

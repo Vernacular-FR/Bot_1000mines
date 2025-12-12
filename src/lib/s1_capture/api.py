@@ -17,8 +17,6 @@ class CaptureRequest:
     save: bool = False
     filename: Optional[str] = None
     bucket: Optional[str] = None
-    annotate_grid: bool = False
-    grid_bounds: Optional[Tuple[int, int, int, int]] = None
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -42,15 +40,8 @@ class CaptureControllerApi(Protocol):
         grid_bounds: Tuple[int, int, int, int],
         *,
         save: bool = False,
-        annotate: bool = False,
         filename: Optional[str] = None,
         bucket: Optional[str] = None,
-    ) -> CaptureResult: ...
-
-    def export_debug_overlay(
-        self,
-        result: CaptureResult,
-        grid_bounds: Tuple[int, int, int, int],
     ) -> CaptureResult: ...
 
 

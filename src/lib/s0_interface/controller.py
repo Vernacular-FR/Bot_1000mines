@@ -11,9 +11,10 @@ from src.lib.s1_capture import (
 from src.lib.s1_capture.s11_canvas_capture import CanvasCaptureBackend
 
 from .s00_browser_manager import BrowserManager
-from .s01_Coordonate_system import CoordinateConverter, CanvasLocator
+from .s03_Coordonate_system import CoordinateConverter, CanvasLocator
 from .s03_game_controller import NavigationController
-from .s04_status_reader import StatusReader
+from .s04_viewport_mapper import ViewportMapper
+from .s05_status_reader import StatusReader
 from .api import GameStatus
 
 
@@ -69,7 +70,8 @@ class InterfaceController:
         locator = converter.canvas_locator
         locator.set_driver(driver)
 
-        navigator = NavigationController(driver, converter=converter)
+        viewport_mapper = ViewportMapper(converter, driver)
+        navigator = NavigationController(driver, converter=converter, viewport_mapper=viewport_mapper)
         status_reader = StatusReader(driver)
 
         controller = cls(

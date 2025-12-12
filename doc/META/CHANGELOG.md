@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Capture Canvas** : Refactor complet de la composition / capture brute.
+  - `ZoneCaptureService` orchestre désormais les captures multi-canvases (`capture_canvas_tiles`) et délègue l'assemblage aligné aux modules `lib/s1_capture`.
+  - Nouveau module `lib/s1_capture/s12_canvas_compositor.py` responsable de l'alignement pixel-parfait (cell_ref, ceil/floor, recalc `grid_bounds`).
+  - Le bot (`src/apps/bot_1000mines.py`) ne contient plus de logique de collage ni de boucle de capture.
+- **Nettoyage overlay debug** : Suppression définitive de `lib/s1_capture/s12_grid_overlay.py`, de l'API `annotate_grid/export_debug_overlay` et de toute dépendance. Les overlays runtime restent fournis par `lib/s2_vision/s22_vision_overlay.py`.
+
 ### Vision – 2025-12-12
 - Validation complète du **CenterTemplateMatcher** : heuristiques uniformes (`unrevealed`, `empty`), discriminant pixel pour `exploded`, ordre de test prioritaire avec early exit, décor testé uniquement en dernier recours.
+- Ajout du symbole `question_mark` dans la chaîne complète (templates, manifest, matcher, overlay). Les overlays affichent désormais `question_mark` en blanc (comme `unrevealed`) et `decor` en gris/noir.
+- Resserrement du seuil runtime `empty` (`UNIFORM_THRESHOLDS["empty"]=25`) pour éviter les faux positifs décor.
 - Ajout du symbole `question_mark` dans la chaîne complète (templates, manifest, matcher, overlay). Les overlays affichent désormais `question_mark` en blanc (comme `unrevealed`) et `decor` en gris/noir.
 - Resserrement du seuil runtime `empty` (`UNIFORM_THRESHOLDS["empty"]=25`) pour éviter les faux positifs décor.
 - Vision API + test `tests/test_s2_vision_performance.py` servent de validation continue (<0,6 s/screenshot sur machine de ref).

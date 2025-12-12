@@ -5,7 +5,7 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 ## 1. Vue d’ensemble des couches
 
 1. **s0_viewport** – Pilote le navigateur/canvas (DOM, coordonnées). Réutilise `lib/s0_navigation` comme base. Fournit offsets, zoom et callbacks DOM. Doit rester interchangeable (Selenium aujourd’hui, extension demain).
-2. **s1_capture** – Récupère l’image la plus rapidement possible (`canvas.toDataURL`, CDP, Playwright). Gère la purge des buffers et expose `CaptureMeta` (timestamp, offset, cell_size).
+2. **s1_capture** – Récupère l’image la plus rapidement possible (`canvas.toDataURL`, CDP, Playwright). `ZoneCaptureService` orchestre la capture multi-canvases (512×512) et assemble un composite aligné via `lib/s1_capture/s12_canvas_compositor.py` (alignement cell_ref, ceil/floor, recalcul `grid_bounds`). Gère la purge des buffers et expose `CaptureMeta` (timestamp, offset, cell_size).
 3. **s2_vision** – Convertit l’image en grille brute via sampling déterministe (LUT couleurs, offsets fixes). Exporte `GridRaw` + overlays PNG/JSON. Peut intégrer un mini-CNN pour les cas bruités localisés.
 4. **s3_storage** – Conserve l’archive globale (toutes les cellules vues) + une frontière compacte (épaisseur 2 cases révélées + 1 couche fermée). Expose densité/attracteurs pour pathfinder. Pruning uniquement sur la frontière.
 5. **s4_solver** – Enchaîne motifs déterministes (lookup 3×3/5×5) puis solveur exact local (backtracking SAT-like sur composantes ≤15 variables). Au-delà, heuristique/Monte-Carlo. Sort `ActionBatch` sûrs.

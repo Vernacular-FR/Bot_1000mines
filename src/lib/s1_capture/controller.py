@@ -3,11 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-from PIL import ImageDraw
-
 from .api import CaptureControllerApi, CaptureRequest, CaptureResult
 from .s11_canvas_capture import CanvasCaptureBackend
-from .s12_grid_overlay import GridOverlayLayer
 from src.lib.s0_interface.api import InterfaceControllerApi
 
 
@@ -36,9 +33,6 @@ class CaptureController(CaptureControllerApi):
             metadata=request.metadata,
         )
 
-        if request.annotate_grid and request.grid_bounds:
-            capture = self._annotate(capture, request.grid_bounds)
-
         return CaptureResult(
             image=capture.image,
             raw_bytes=capture.raw_bytes,
@@ -53,7 +47,6 @@ class CaptureController(CaptureControllerApi):
         grid_bounds: Tuple[int, int, int, int],
         *,
         save: bool = False,
-        annotate: bool = False,
         filename: Optional[str] = None,
         bucket: Optional[str] = None,
     ) -> CaptureResult:
@@ -67,35 +60,8 @@ class CaptureController(CaptureControllerApi):
             save=save,
             filename=filename,
             bucket=bucket,
-            annotate_grid=annotate,
-            grid_bounds=grid_bounds,
         )
         return self.capture_zone(request)
-
-    def export_debug_overlay(
-        self,
-        result: CaptureResult,
-        grid_bounds: Tuple[int, int, int, int],
-    ) -> CaptureResult:
-        return self._annotate(result, grid_bounds)
-
-    def _annotate(self, result: CaptureResult, grid_bounds: Tuple[int, int, int, int]) -> CaptureResult:
-        annotated = result.image.copy()
-        GridOverlayLayer.draw(
-            ImageDraw.Draw(annotated),
-            image_size=(annotated.width, annotated.height),
-            grid_bounds=grid_bounds,
-            coord_system=self.interface.converter,
-            viewport_mapper=self.viewport_mapper,
-        )
-        return CaptureResult(
-            image=annotated,
-            raw_bytes=result.raw_bytes,
-            width=annotated.width,
-            height=annotated.height,
-            saved_path=result.saved_path,
-            metadata=result.metadata,
-        )
 
     @staticmethod
     def _compute_relative_origin(

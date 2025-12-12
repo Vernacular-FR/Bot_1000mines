@@ -11,6 +11,7 @@ from src.config import DIFFICULTY_CONFIG, GAME_CONFIG, DEFAULT_DIFFICULTY
 from src.lib.s0_interface.controller import InterfaceController
 from src.lib.s0_interface.s00_browser_manager import BrowserManager
 from src.lib.s0_interface.s03_game_controller import GameSessionController
+from src.lib.s0_interface.s01_game_session_manager import SessionState, SessionStorage
 
 
 class SessionSetupService:
@@ -25,6 +26,8 @@ class SessionSetupService:
         self.session_controller: Optional[GameSessionController] = None
         self.auto_close_browser = auto_close_browser
         self.is_initialized = False
+        self.session_state = SessionState()
+        self.session_storage = SessionStorage()
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -58,7 +61,12 @@ class SessionSetupService:
             self.session_controller = GameSessionController(driver)
             chosen_difficulty = difficulty or self.session_controller.get_difficulty_from_user()
 
+            # Créer une nouvelle session de jeu avec ID unique
+            game_id = self.session_state.spawn_new_game(chosen_difficulty)
+            storage_info = self.session_storage.ensure_storage_ready(self.session_state)
+
             print(f"[SESSION] Configuration du jeu en mode {chosen_difficulty}…")
+            print(f"[SESSION] Game ID: {game_id}")
             if not self.session_controller.select_game_mode(chosen_difficulty):
                 return {
                     "success": False,
@@ -75,6 +83,8 @@ class SessionSetupService:
                 "difficulty": chosen_difficulty,
                 "config": config,
                 "interface": self.interface_controller,
+                "game_id": game_id,
+                "paths": storage_info["paths"],
             }
         except Exception as exc:
             return {

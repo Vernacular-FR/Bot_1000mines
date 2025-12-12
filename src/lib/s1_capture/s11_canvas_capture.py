@@ -159,7 +159,18 @@ class CanvasCaptureBackend:
             raise ValueError("DataURL inattendu (PNG attendu).")
         base64_data = data_url.split(",", 1)[1]
         raw_bytes = base64.b64decode(base64_data)
-        return Image.open(io.BytesIO(raw_bytes)).copy()
+        image = Image.open(io.BytesIO(raw_bytes)).convert("RGBA")
+
+        # Les canvases 1000mines possèdent un fond transparent -> forcer un fond blanc.
+        if "A" in image.getbands():
+            alpha = image.split()[-1]
+            background = Image.new("RGBA", image.size, (255, 255, 255, 255))
+            background.paste(image, mask=alpha)
+            image = background.convert("RGB")
+        else:
+            image = image.convert("RGB")
+
+        return image
 
     @staticmethod
     def _image_to_bytes(image: Image.Image) -> bytes:
@@ -174,7 +185,12 @@ class CanvasCaptureBackend:
         filename: Optional[str],
         bucket: Optional[str],
     ) -> str:
-        target_dir = self.paths.get(bucket or self.default_bucket, "temp/s1_capture")
+        # Si bucket est un chemin complet (contient des séparateurs), l'utiliser directement
+        if bucket and ("/" in bucket or "\\" in bucket):
+            target_dir = bucket
+        else:
+            target_dir = self.paths.get(bucket or self.default_bucket, "temp/s1_capture")
+        
         os.makedirs(target_dir, exist_ok=True)
         resolved_filename = filename or self._build_filename()
         path = os.path.join(target_dir, resolved_filename)

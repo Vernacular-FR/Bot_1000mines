@@ -7,7 +7,8 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 from src.config import CELL_SIZE, CELL_BORDER, WAIT_TIMES
-from .viewport_geometry import CoordinateConverter, ViewportMapper
+from .s03_Coordonate_system import CoordinateConverter
+from .s04_viewport_mapper import ViewportMapper
 
 class GameSessionController:
     """Responsable de la sélection du mode de jeu et de l'initialisation du plateau."""
@@ -16,7 +17,7 @@ class GameSessionController:
         self.driver = driver
         self.game_board = None
         self.converter: Optional[CoordinateConverter] = None
-        self.viewport_mapper: Optional[GridViewportMapper] = None
+        self.viewport_mapper: Optional[ViewportMapper] = None
         self.anchor = None
 
     @staticmethod
@@ -106,12 +107,12 @@ class GameSessionController:
         print("   - Élément anchor détecté")
         self.converter = CoordinateConverter(cell_size=CELL_SIZE, cell_border=CELL_BORDER,
                                          anchor_element=self.anchor, driver=self.driver)
-        self.viewport_mapper = GridViewportMapper(self.converter, self.driver)
+        self.viewport_mapper = ViewportMapper(self.converter, self.driver)
 
 class NavigationController:
     """Gère la navigation et l'interaction souris sur le plateau."""
 
-    def __init__(self, driver, converter: Optional[CoordinateConverter] = None, viewport_mapper: Optional[GridViewportMapper] = None):
+    def __init__(self, driver, converter: Optional[CoordinateConverter] = None, viewport_mapper: Optional[ViewportMapper] = None):
         self.driver = driver
         self.converter = converter
         self.viewport_mapper = viewport_mapper
@@ -120,7 +121,7 @@ class NavigationController:
         """Retourne le convertisseur de coordonnées."""
         return self.converter
 
-    def get_viewport_mapper(self) -> Optional[GridViewportMapper]:
+    def get_viewport_mapper(self) -> Optional[ViewportMapper]:
         """Retourne le mapper de viewport."""
         return self.viewport_mapper
 

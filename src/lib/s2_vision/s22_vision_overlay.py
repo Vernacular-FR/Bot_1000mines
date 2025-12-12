@@ -20,7 +20,7 @@ from src.lib.s2_vision.s21_template_matcher import MatchResult
 @dataclass
 class OverlayConfig:
     font_path: Path | None = None
-    font_size: int = 11
+    font_size: int = 10
     opacity: int = 140  # 0-255
     margin: int = 2
 

@@ -46,7 +46,7 @@ class VisionAnalysisService:
 
         matches = self.controller.classify_grid(
             screenshot_path=screenshot_path,
-            grid_top_left=(left, top),
+            grid_top_left=(0, 0),  # Image is already cropped to grid boundaries
             grid_size=(grid_width, grid_height),
             stride=capture.cell_stride,
             allowed_symbols=allowed_symbols,

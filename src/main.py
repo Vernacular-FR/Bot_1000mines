@@ -28,3 +28,7 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\nArrêt demandé par l'utilisateur.")
+    except Exception as e:
+        print(f"[ERREUR] Exception non capturée: {e}")
+        import traceback
+        traceback.print_exc()
