@@ -1,18 +1,20 @@
 # 01 · Pipeline Capture → Solver → Pathfinder
 
-Ce document fusionne les anciennes sections capture/vision, storage/solver et pathfinder/action pour offrir une vue unique du pipeline s0 → s6.
+Ce document fusionne les anciennes sections capture/vision, storage/solver et actionplanner/action pour offrir une vue unique du pipeline s0 → s6.
 
 ## 🔍 CLARIFICATIONS ARCHITECTURALES
 
 Décisions clés validées pour éviter toute ambiguïté :
 
 ### Stockage (s3)
-- **Représentation unique** : grille NumPy infinie en RAM + frontière compacte (set), sans double base archive/frontière.
+- **Représentation unique** : grille sparse dict `{(x,y) → GridCell}` + trois sets (revealed/unresolved/frontier), sans double base.
+- **Stratification des cellules** :
+  - `raw_state` (vision brute : UNREVEALED, NUMBER_1..8, FLAG, QUESTION, EMPTY, DECOR, EXPLODED),
+  - `logical_state` (OPEN_NUMBER / CONFIRMED_MINE / EMPTY / UNREVEALED),
+  - `number_value` (1‑8 ou `None`).
+- **solver_status** normalisé (`JUST_REVEALED`, `ACTIVE`, `FRONTIER`, `SOLVED`, `NONE`, `OUT_OF_SCOPE`) + `action_status` (SAFE/FLAG/LOOKUP) pour synchroniser pathfinder/action.
+- **Stockage passif** : Vision pousse revealed+`JUST_REVEALED`, Solver reclasse ACTIVE/FRONTIER/SOLVED et calcule frontier_add/remove.
 - **Export JSON** obligatoire pour compatibilité WebExtension (pas de formats binaires propriétaires).
-- **NumPy interne** pour performance, JSON uniquement pour export/import.
-- **Mise à jour frontière** : uniquement par Vision (batch) et Actioner (validation Pathfinder), pas par Solver.
-- **Set revealed** : pour optimisation Vision, évite de re-scanner les cases déjà connues.
-- **solver_status** : géré par Solver (UNRESOLVED/TO_PROCESS/RESOLVED), storage passif.
 
 ### Solver (s4)  
 - **Auto-calcul des composantes** : le solver extrait lui-même les composantes connexes depuis la FrontierSlice (pas de pré-groupage).
@@ -22,7 +24,7 @@ Décisions clés validées pour éviter toute ambiguïté :
 
 ### Flux de données principal
 ```
-s3(revealed + UNRESOLVED) → s4(TO_PROCESS + actions) → s5(actions + frontière_anticipée) → s6(exécution + validation) → s2(confirmations) → s3(mise_à_jour_finale)
+s3(revealed + unresolved) ← s2(Vision) → s4(TO_PROCESS + actions) → s5(actions + frontière_anticipée) → s6(exécution + validation) → s2(confirmations) → s3(mise_à_jour_finale)
 ```
 
 **Note** : Échec S6 = arrêt boucle de jeu (pas de retry complexe).
@@ -73,29 +75,30 @@ PNG bytes ─▶ CenterTemplateMatcher (zone 10×10, ordre prioritaire) ─▶ G
                                                     └──────▶ overlays_debug/ (vision overlay)
 ```
 
-## 5. s3 Storage – Grille NumPy unique + Frontière compacte
-- Grille NumPy infinie en RAM : représentation unique de vérité pour toutes les cellules jamais vues.
-- Frontière compacte : ensemble des cellules fermées adjacentes aux ouvertes (set), suffisant pour résoudre les contraintes locales.
-- Maintient des métriques de densité/attracteur par cellule (nb d'actions, distance viewport) utilisées par s5.
+## 5. s3 Storage – Grille sparse unique + Trois sets
+- Grille sparse dict : représentation unique de vérité pour toutes les cellules jamais vues.
+- Trois sets : revealed (optimisation Vision), unresolved (UNRESOLVED→TO_PROCESS→RESOLVED), frontier (frontière analytique).
+- Stockage passif : Vision pousse revealed+unresolved, Solver calcule frontier_add/remove.
 - Export JSON pour compatibilité WebExtension (pas de formats binaires propriétaires).
 - Mise à jour : s3 reçoit les confirmations de s2 après exécution par s6, pas de double mise à jour depuis s4.
+- *Implémentation complète : voir `doc/SPECS/s03_STORAGE.md`*
 
 ## 6. s4 Solver – Motifs déterministes + solveur exact local
 - Bibliothèque de motifs 3×3/5×5 (rotations/reflets) encodés en base 16 → lookup O(1).
 - Propagation classique : si chiffre == nb de drapeaux, ouvre toutes les autres cases adjacentes.
 - Extraction de composantes frontier (groupe contraintes/variables) → backtracking SAT-like sur ≤15 variables (pruning min/max).
 - Au-delà : heuristique (Monte-Carlo contraint ou mini-CNN probabiliste local).
-- Sortie : `ActionBatch` (flags, open sûrs) + zones d’intérêt pour pathfinder.
+- Sortie : `ActionBatch` (flags, open sûrs) + zones d’intérêt pour actionplanner.
 
 ## 7. s5 Pathfinder – Heatmap & trajets multi-étapes
-- Entrées : frontière compacte (densité/actions en attente), archive pour zones hors écran, état viewport, batch d’actions solver.
-- Calcule des attracteurs (barycentre pondéré par distance/densité) pour garder un maximum de frontier visible.
+- Entrées : coordonnées frontière (set), archive pour zones hors écran, état viewport, batch d’actions solver.
+- Calcule des attracteurs (barycentre pondéré par distance/densité locale) pour garder un maximum de frontier visible.
 - Planifie les déplacements multi-étapes (scrolls successifs, zoom éventuel) et s’assure que les cases révélées hors écran repassent devant la caméra.
 - Émet un `ViewportPlan` (liste ordonnée d’ordres) + priorisation des actions solver.
 
 ### Schéma heatmap
 ```
-FrontierSlice + Densité ─▶ fonction attracteur(distance, actions) ─▶ heatmap
+FrontierSlice (coords) ─▶ fonction attracteur(distance, densité calculée) ─▶ heatmap
                                                       │
                                                       └─▶ ordres viewport (dx/dy, zoom)
 ```
@@ -109,7 +112,7 @@ FrontierSlice + Densité ─▶ fonction attracteur(distance, actions) ─▶ he
 - Architecture recommandée :
   1. Extension (content script) capture le canvas + affiche overlays.
   2. Communication via Native Messaging (JSON) ou WebSocket local avec le backend Python (s2→s6).
-  3. Backend exécute capture/vision/solver/pathfinder/action et renvoie instructions.
+  3. Backend exécute capture/vision/solver/actionplanner/action et renvoie instructions.
 - Alternative long terme : traduire s3–s6 en Rust/C++ → WebAssembly pour tout embarquer côté extension.
 - L’extension réutilisera les overlays PNG/JSON pour visualiser les décisions.
 
@@ -120,7 +123,8 @@ FrontierSlice + Densité ─▶ fonction attracteur(distance, actions) ─▶ he
 | `ViewportState` | s0 | s1/s5 | offset, zoom, viewport bounds |
 | `CaptureMeta` | s1 | s2/s3 | timestamp, cell size, alignement |
 | `GridRaw` | s2 | s3 | grille brute (int codes) |
-| `FrontierSlice` | s3 | s4/s5 | projection compacte avec densité |
+| `StorageUpsert` | s2/s4 | s3 | revealed/unresolved/frontier updates |
+| `FrontierSlice` | s3 | s4/s5 | coordonnées frontière (sans métriques) |
 | `ActionBatch` | s4 | s5/s6 | actions sûres (flags/open) |
 | `ViewportPlan` | s5 | s0/s6 | déplacement multi-étapes |
 

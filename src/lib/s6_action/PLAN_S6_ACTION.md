@@ -7,9 +7,9 @@ description: Exécution actions brutes et coordination avec viewport (s6_action)
 Document de cadrage qui synthétise les exigences de `PLAN_SIMPLIFICATION radicale.md` et `SYNTHESE_pipeline_refonte.md` pour la couche s6. Il restera la référence tant que l'implémentation n'est pas finalisée.
 
 ## 1. Mission
-- Recevoir les **plans d'actions séquencés** de s5_pathfinder (déplacements viewport + clics/drapeaux + frontière_anticipée).
+- Recevoir les **plans d'actions séquencés** de s5_actionplanner (déplacements viewport + clics/drapeaux + frontière_anticipée).
 - **Exécuter les actions brutes** sur l'interface utilisateur via Selenium ou extension navigateur.
-- **Valider les mises à jour de frontière** envoyées par pathfinder et les appliquer si l'exécution réussit.
+- **Valider les mises à jour de frontière** envoyées par actionplanner et les appliquer si l'exécution réussit.
 - Gérer les **timings**, **erreurs** et **confirmations** d'exécution pour les couches supérieures.
 - Maintenir une **interface unique** remplaçable (Selenium aujourd'hui, WebExtension demain).
 
@@ -86,7 +86,7 @@ class ActionControllerApi(Protocol):
    - Implémenter `timing_manager.py` : cadences optimales, délais adaptatifs.
    - Implémenter `error_handler.py` : détection blocages, retries automatiques.
 4. **Phase 4 – Coordination complète**
-   - Intégration avec s5_pathfinder pour exécution séquentielle.
+   - Intégration avec s5_actionplanner pour exécution séquentielle.
    - Retours d'exécution vers s5 pour ajustement plans.
 5. **Phase 5 – Extension-ready + debug**
    - Préparer interface pour remplacement Selenium → WebExtension.
@@ -108,4 +108,4 @@ class ActionControllerApi(Protocol):
 
 ---
 
-*Ce plan sera mis à jour à mesure que la couche s5_pathfinder expose son API complète.*
+*Ce plan sera mis à jour à mesure que la couche s5_actionplanner expose son API complète.*

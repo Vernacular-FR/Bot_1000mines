@@ -103,7 +103,7 @@ class SessionStorage:
         return {
             'raw_canvases': os.path.join(base, "s1_raw_canvases"),
             'vision': os.path.join(base, "s2_vision"),
-            'solver': os.path.join(base, "s4_solver"),
+            'solver': os.path.join(base, "solver),
             'metadata': os.path.join(base, "metadata.json"),
             'grid_state_db': os.path.join(base, "grid_state_db.json")
         }

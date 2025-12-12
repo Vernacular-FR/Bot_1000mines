@@ -92,7 +92,7 @@ def get_game_paths(game_id: str) -> dict:
         'analysis': f"{base}/s2_analysis",               # Rapports et overlays d'analyse
         
         # Solver et résolution
-        'solver': f"{base}/s3_solver",                   # Overlays du solver
+        'solver': f"{base}/s4_solver",                   # Overlays du solver
         
         # Actions et exécution
         'actions': f"{base}/s4_actions",                 # Données d'actions

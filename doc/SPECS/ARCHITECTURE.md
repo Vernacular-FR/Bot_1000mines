@@ -7,9 +7,9 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 1. **s0_viewport** – Pilote le navigateur/canvas (DOM, coordonnées). Réutilise `lib/s0_navigation` comme base. Fournit offsets, zoom et callbacks DOM. Doit rester interchangeable (Selenium aujourd’hui, extension demain).
 2. **s1_capture** – Récupère l’image la plus rapidement possible (`canvas.toDataURL`, CDP, Playwright). `ZoneCaptureService` orchestre la capture multi-canvases (512×512) et assemble un composite aligné via `lib/s1_capture/s12_canvas_compositor.py` (alignement cell_ref, ceil/floor, recalcul `grid_bounds`). Gère la purge des buffers et expose `CaptureMeta` (timestamp, offset, cell_size).
 3. **s2_vision** – Convertit l’image en grille brute via sampling déterministe (LUT couleurs, offsets fixes). Exporte `GridRaw` + overlays PNG/JSON. Peut intégrer un mini-CNN pour les cas bruités localisés.
-4. **s3_storage** – Conserve l’archive globale (toutes les cellules vues) + une frontière compacte (épaisseur 2 cases révélées + 1 couche fermée). Expose densité/attracteurs pour pathfinder. Pruning uniquement sur la frontière.
+4. **s3_storage** – Conserve l’archive globale (toutes les cellules vues) + une frontière compacte (épaisseur 2 cases révélées + 1 couche fermée). Expose densité/attracteurs pour actionplanner. Pruning uniquement sur la frontière.
 5. **s4_solver** – Enchaîne motifs déterministes (lookup 3×3/5×5) puis solveur exact local (backtracking SAT-like sur composantes ≤15 variables). Au-delà, heuristique/Monte-Carlo. Sort `ActionBatch` sûrs.
-6. **s5_pathfinder** – Calcule la heatmap/barycentres pour décider des déplacements viewport et prioriser les zones. Gère les cases révélées hors écran en ordonnant les déplacements nécessaires.
+6. **s5_actionplanner** – Calcule la heatmap/barycentres pour décider des déplacements viewport et prioriser les zones. Gère les cases révélées hors écran en ordonnant les déplacements nécessaires.
 7. **s6_action** – Applique les clics/drapeaux (macro-actions) et remonte l’état par action. Interface unique pour remplacer Selenium par une WebExtension.
 
 ### Schéma pipeline
@@ -28,7 +28,7 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 ├─────────────────┤
 │ s5 Pathfinder   │ ← calcule heatmap + trajets (lit storage, pilote s6)
 ├─────────────────┤
-│ s6 Action       │ ← exécute clics/scroll envoyés par solver/pathfinder
+│ s6 Action       │ ← exécute clics/scroll envoyés par solver/actionplanner
 └─────────────────┘
 ```
 
@@ -63,7 +63,7 @@ Itération 2 : s1_capture (canvas toDataURL).
 Itération 3 : s2_vision (sampler + calibration + debug).
 Itération 4 : s3_storage (double structure + pruning).
 Itération 5 : s4_solver.
-Itération 6 : s5_pathfinder.
+Itération 6 : s5_actionplanner.
 Itération 7 : s6_action.
 Itération 8 : Extension-ready (interfaces isolées, proto Native Messaging).
 
@@ -95,20 +95,19 @@ src/
     │  ├─ serializers.py
     │  └─ __init__.py
     ├─ s4_solver/
-    │  ├─ pattern_engine.py
-    │  ├─ local_solver.py
-    │  ├─ interface.py
+    │  ├─ facade.py / controller.py
+    │  ├─ s41_pattern_engine.py, s42_local_solver.py, s43_frontier_analyzer.py, …
     │  ├─ __init__.py
     │  └─ debug/
     │       ├─ overlay_renderer.py
     │       └─ json_exporter.py
-    ├─ s5_pathfinder/
-    │  ├─ pathfinder.py
-    │  ├─ interface.py
+    ├─ s5_actionplanner/
+    │  ├─ facade.py / controller.py
+    │  ├─ s51_viewport_planner.py, s52_action_sequencer.py, …
     │  └─ __init__.py
     ├─ s6_action/
-    │  ├─ click_executor.py
-    │  ├─ interface.py
+    │  ├─ facade.py / controller.py
+    │  ├─ s61_click_executor.py, s62_timing_manager.py, …
     │  └─ __init__.py
     └─ main_simple.py                 # boucle while simple (entry prototype)
 ```
@@ -119,3 +118,9 @@ src/
 - Tests unitaires par couche, référencés dans `tests/` avec README spécifique.
 - Journaliser les décisions majeures dans `SPECS/DEVELOPMENT_JOURNAL.md` après chaque itération.
 - Aucune duplication documentaire : `doc/` = résumés, `SPECS/` = référence technique.
+
+### 6.1 Conventions de nommage
+- `facade.py` et `controller.py` sont uniquement des points d’entrée : aucune logique métier.
+- Toute logique d’une couche vit dans des fichiers préfixés `sXY_` (ex. `s31_grid_store.py`, `s42_local_solver.py`).
+- Les modules de debug/debugging portent des noms explicites (`debug/overlay_renderer.py`, etc.).
+- Les tests suivent la convention `tests/test_<couche>_*.py`.
