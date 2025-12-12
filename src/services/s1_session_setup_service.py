@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""
+Service de configuration de session – version minimale alignée sur le pipeline s0→s2.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+from src.config import DIFFICULTY_CONFIG, GAME_CONFIG, DEFAULT_DIFFICULTY
+from src.lib.s0_interface.controller import InterfaceController
+from src.lib.s0_interface.s00_browser_manager import BrowserManager
+from src.lib.s0_interface.s03_game_controller import GameSessionController
+
+
+class SessionSetupService:
+    """
+    Façade métier pour gérer l’ouverture du navigateur, la navigation vers 1000mines
+    et l’initialisation d’un InterfaceController prêt à l’emploi.
+    """
+
+    def __init__(self, auto_close_browser: bool = False):
+        self.browser_manager = BrowserManager()
+        self.interface_controller: Optional[InterfaceController] = None
+        self.session_controller: Optional[GameSessionController] = None
+        self.auto_close_browser = auto_close_browser
+        self.is_initialized = False
+
+    # ------------------------------------------------------------------
+    # Session lifecycle
+    # ------------------------------------------------------------------
+
+    def setup_session(self, difficulty: Optional[str] = None) -> Dict[str, Any]:
+        try:
+            if not self.browser_manager.start_browser():
+                return {
+                    "success": False,
+                    "error": "browser_start_failed",
+                    "message": "Impossible de démarrer le navigateur",
+                }
+
+            driver = self.browser_manager.get_driver()
+            if driver is None:
+                return {
+                    "success": False,
+                    "error": "driver_unavailable",
+                    "message": "Driver Selenium indisponible",
+                }
+
+            target_url = GAME_CONFIG.get("url")
+            if target_url and not self.browser_manager.navigate_to(target_url):
+                return {
+                    "success": False,
+                    "error": "navigation_failed",
+                    "message": f"Impossible de naviguer vers {target_url}",
+                }
+
+            self.session_controller = GameSessionController(driver)
+            chosen_difficulty = difficulty or self.session_controller.get_difficulty_from_user()
+
+            print(f"[SESSION] Configuration du jeu en mode {chosen_difficulty}…")
+            if not self.session_controller.select_game_mode(chosen_difficulty):
+                return {
+                    "success": False,
+                    "error": "game_setup_failed",
+                    "message": "Échec de la sélection de la difficulté",
+                }
+
+            self.interface_controller = InterfaceController.from_browser(self.browser_manager)
+            self.is_initialized = True
+
+            config = DIFFICULTY_CONFIG.get(chosen_difficulty, DIFFICULTY_CONFIG[DEFAULT_DIFFICULTY])
+            return {
+                "success": True,
+                "difficulty": chosen_difficulty,
+                "config": config,
+                "interface": self.interface_controller,
+            }
+        except Exception as exc:
+            return {
+                "success": False,
+                "error": str(exc),
+                "message": f"Erreur lors de la configuration de la session: {exc}",
+            }
+
+    def cleanup_session(self) -> bool:
+        try:
+            if self.browser_manager and not self.auto_close_browser:
+                print("[SESSION] Appuyez sur Entrée pour fermer le navigateur…")
+                input()
+
+            if self.browser_manager:
+                self.browser_manager.stop_browser()
+
+            self.interface_controller = None
+            self.session_controller = None
+            self.is_initialized = False
+            return True
+        except Exception as exc:
+            print(f"[CLEANUP] Erreur: {exc}")
+            return False
+
+    # ------------------------------------------------------------------
+    # Accessors
+    # ------------------------------------------------------------------
+
+    def get_interface(self) -> InterfaceController:
+        if not self.is_initialized or not self.interface_controller:
+            raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
+        return self.interface_controller
+
+    def get_browser_manager(self) -> BrowserManager:
+        if not self.is_initialized:
+            raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
+        return self.browser_manager
+
+    def is_session_active(self) -> bool:
+        return self.is_initialized

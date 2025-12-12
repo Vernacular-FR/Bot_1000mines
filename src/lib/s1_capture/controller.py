@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+from PIL import ImageDraw
+
+from .api import CaptureControllerApi, CaptureRequest, CaptureResult
+from .s11_canvas_capture import CanvasCaptureBackend
+from .s12_grid_overlay import GridOverlayLayer
+from src.lib.s0_interface.api import InterfaceControllerApi
+
+
+@dataclass
+class CaptureController(CaptureControllerApi):
+    interface: InterfaceControllerApi
+    canvas_backend: CanvasCaptureBackend
+    viewport_mapper: Optional[object] = None
+
+    def capture_zone(self, request: CaptureRequest) -> CaptureResult:
+        capture_meta = self.interface.get_capture_meta(
+            request.canvas_point[0],
+            request.canvas_point[1],
+        )
+        if not capture_meta:
+            raise RuntimeError("Impossible d'obtenir les métadonnées de capture.")
+
+        relative_origin = self._compute_relative_origin(request, capture_meta)
+        capture = self.canvas_backend.capture_tile(
+            canvas_id=capture_meta["canvas_id"],
+            relative_origin=relative_origin,
+            size=request.size,
+            save=request.save,
+            filename=request.filename,
+            bucket=request.bucket,
+            metadata=request.metadata,
+        )
+
+        if request.annotate_grid and request.grid_bounds:
+            capture = self._annotate(capture, request.grid_bounds)
+
+        return CaptureResult(
+            image=capture.image,
+            raw_bytes=capture.raw_bytes,
+            width=capture.width,
+            height=capture.height,
+            saved_path=capture.saved_path,
+            metadata=capture.metadata,
+        )
+
+    def capture_grid_window(
+        self,
+        grid_bounds: Tuple[int, int, int, int],
+        *,
+        save: bool = False,
+        annotate: bool = False,
+        filename: Optional[str] = None,
+        bucket: Optional[str] = None,
+    ) -> CaptureResult:
+        self.interface.ensure_visible(grid_bounds)
+        left, top, right, bottom = grid_bounds
+        width = (right - left + 1) * self.interface.converter.cell_total
+        height = (bottom - top + 1) * self.interface.converter.cell_total
+        request = CaptureRequest(
+            canvas_point=(left * self.interface.converter.cell_total, top * self.interface.converter.cell_total),
+            size=(width, height),
+            save=save,
+            filename=filename,
+            bucket=bucket,
+            annotate_grid=annotate,
+            grid_bounds=grid_bounds,
+        )
+        return self.capture_zone(request)
+
+    def export_debug_overlay(
+        self,
+        result: CaptureResult,
+        grid_bounds: Tuple[int, int, int, int],
+    ) -> CaptureResult:
+        return self._annotate(result, grid_bounds)
+
+    def _annotate(self, result: CaptureResult, grid_bounds: Tuple[int, int, int, int]) -> CaptureResult:
+        annotated = result.image.copy()
+        GridOverlayLayer.draw(
+            ImageDraw.Draw(annotated),
+            image_size=(annotated.width, annotated.height),
+            grid_bounds=grid_bounds,
+            coord_system=self.interface.converter,
+            viewport_mapper=self.viewport_mapper,
+        )
+        return CaptureResult(
+            image=annotated,
+            raw_bytes=result.raw_bytes,
+            width=annotated.width,
+            height=annotated.height,
+            saved_path=result.saved_path,
+            metadata=result.metadata,
+        )
+
+    @staticmethod
+    def _compute_relative_origin(
+        request: CaptureRequest,
+        capture_meta: Dict[str, Tuple[int, int]],
+    ) -> Tuple[int, int]:
+        tile_origin_x, tile_origin_y = capture_meta["relative_origin"]
+        offset_x = int(request.canvas_point[0] - tile_origin_x)
+        offset_y = int(request.canvas_point[1] - tile_origin_y)
+
+        if offset_x < 0 or offset_y < 0:
+            raise ValueError("La zone demandée déborde du canvas sélectionné.")
+
+        tile_width, tile_height = capture_meta["size"]
+        if offset_x + request.size[0] > tile_width or offset_y + request.size[1] > tile_height:
+            raise ValueError("La zone demandée dépasse les limites de la tuile canvas.")
+
+        return offset_x, offset_y

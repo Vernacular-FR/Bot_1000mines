@@ -12,6 +12,32 @@
 
 ---
 
+## 📅 Session du 12 Décembre 2025 (Validation Vision S2)
+
+### 🎯 Objectif principal
+Valider le pipeline **CenterTemplateMatcher** end-to-end, intégrer `question_mark`, verrouiller les seuils (empty=25) et finaliser les overlays pour audit visuel.
+
+### ✅ Actions clés
+- Implémentation de l’ordre de priorité + early exit dans `s21_template_matcher.py`.
+- Heuristique discriminante `exploded` via pixel périphérique, ajout `question_mark` aux seuils uniformes.
+- Resserrement du seuil `empty` (25) pour couper les décors gris clairs repérés dans les captures réelles.
+- Overlays : couleurs explicites (question_mark = blanc, decor = gris/noir) et label + pourcentage compactés (font 11, spacing maîtrisé).
+- Tests `tests/test_s2_vision_performance.py` rejoués en boucle jusqu’à obtenir 100 % de reconnaissance stable (question marks inclus).
+- Documentation mise à jour (`s02_VISION_SAMPLING.md`, `s21_templates_analyzer/READ_ME.md`, `PLAN_S2_VISION_PURGE.md`) + entrée dédiée dans `doc/META/CHANGELOG.md`.
+
+### 📊 Résultats
+- Vision API validée : plus aucun `question_mark` classé décor, empty uniquement quand bord blanc confirmé.
+- Overlays lisibles en production (couleurs cohérentes, pourcentage aligné).
+- Temps moyen par screenshot <0,6 s (machine de référence) après la purge des logs de debug.
+- Dossier `debug_question_mark/` nettoyé (plus de dumps nécessaires).
+
+### 🚨 Points d’attention
+- Maintenir la discipline : chaque ajustement de seuil (ex. empty) doit être documenté + benché.
+- Conserver le dataset question_mark aligné ; en cas d’ajout, regénérer `template_aggregator.py` + manifest.
+- Le test perf échoue quand on laisse des prints lourd → vérifier qu’aucun debug ne traîne avant commit.
+
+---
+
 ## 📅 Session du 10 Décembre 2025 (Plan de simplification radicale)
 
 ### 🎯 Objectif principal

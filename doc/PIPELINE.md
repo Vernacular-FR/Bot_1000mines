@@ -32,17 +32,18 @@ Ce document fusionne les anciennes sections capture/vision, storage/solver et pa
 ViewportState ─▶ execute_script("return canvas.toDataURL()") ─▶ base64 PNG ─▶ decode → bytes
 ```
 
-## 4. s2 Vision – PixelSampler déterministe
-- LUT couleurs + offsets internes (centre ± 4 px) → classification OPEN/CLOSED/FLAG/NUM.
-- Calibration automatique au démarrage (scan d’une grille de référence) + recalibrage à la demande.
-- Filtre de stabilité : vote sur 2 captures successives pour éviter le bruit.
-- Fallback optionnel : mini-CNN 3×3/4×4 appliqué uniquement sur la bordure bruitée.
-- Sorties : `GridRaw` (dict[(x,y)] = code), overlays PNG/JSON pour debug.
+## 4. s2 Vision – CenterTemplateMatcher déterministe
+- Templates centraux 10×10 générés par `s21_templates_analyzer/template_aggregator.py` (marge 7 px).
+- Heuristiques uniformes (`UNIFORM_THRESHOLDS`) : `unrevealed=200`, `empty=25`, `question_mark=200`.
+- Discriminant pixel : si une case uniforme n’a pas son anneau blanc, elle bascule `exploded`.
+- Priorité & early exit : `unrevealed → exploded → flag → number_1..8 → empty → question_mark`, puis décor en dernier recours.
+- Overlays Vision : question_mark affichés en blanc (comme unrevealed), decor en gris/noir, label + pourcentage compactés (font 11).
+- Tests `tests/test_s2_vision_performance.py` garantissent <0,6 s/screenshot sur machine de référence.
 
 ### Diagramme vision
 ```
-PNG bytes ─▶ sampler(sample_offsets, LUT) ─▶ GridRaw + Confidence map
-                                 └──────▶ overlays_debug/
+PNG bytes ─▶ CenterTemplateMatcher (zone 10×10, ordre prioritaire) ─▶ GridRaw + MatchResult
+                                                    └──────▶ overlays_debug/ (vision overlay)
 ```
 
 ## 5. s3 Storage – Archive + Frontière compacte

@@ -1,18 +1,12 @@
 import math
-import os
 import re
-import sys
 from typing import Dict, List, Optional
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from src.lib.config import CELL_SIZE, CELL_BORDER, GRID_REFERENCE_POINT
-
-# Import du système de logging centralisé
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Logs.logger import save_bot_log
+from src.config import CELL_SIZE, CELL_BORDER, GRID_REFERENCE_POINT
 
 """Utilities for viewport geometry: canvas localisation, coordinate conversions, viewport mapping."""
 
@@ -58,7 +52,6 @@ class CoordinateConverter:
         try:
             # Récupérer l'élément anchor (#anchor)
             self.anchor = self.driver.find_element("css selector", "#anchor")
-            print(f"[INFO] Anchor configuré avec succès: {self.anchor}")
         except Exception as e:
             raise RuntimeError(f"Impossible de trouver l'élément anchor: {e}")
 
@@ -95,7 +88,6 @@ class CoordinateConverter:
         """
         if self.anchor:
             self.setup_anchor()
-            print("[DEBUG] Anchor rafraîchi")
         
     def canvas_to_screen(self, canvas_x, canvas_y):
         """

@@ -120,7 +120,7 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
 - **features**: Monitoring CPU/RAM, détection anomalies, rapports automatiques
 
 ### Configuration Manager
-- **path**: lib/config.py
+- **path**: config.py
 - **type**: Configuration centralisée (constantes uniquement)
 - **constants**:
   - `CELL_SIZE` - Taille des cellules en pixels
@@ -175,9 +175,42 @@ Cette table sert de guide rapide pour savoir quelle partie de `lib/` vérifier e
 
 ---
 
-## Vision Recognition Modules (s2_recognition)
+## Vision Recognition Modules (s2_vision / s2_recognition)
 
-### Fixed Template Matcher
+### Center Template Matcher (s2_vision)
+- **path**: lib/s2_vision/s21_template_matcher.py
+- **type**: Matching déterministe zone 10×10 (marge 7 px) basé sur les artefacts `s21_templates_analyzer`.
+- **classes**:
+  - `CenterTemplateMatcher` – charge `central_templates_manifest.json` et expose `classify_cell` / `classify_grid`.
+  - `MatchResult` – contient `symbol`, `distance`, `threshold`, `confidence`, `distances`, `margin`.
+- **caractéristiques**:
+  - Heuristiques uniformes (`UNIFORM_THRESHOLDS["unrevealed"]=200`, `["empty"]=25`, `["question_mark"]=200`).
+  - Discriminant pixel pour distinguer `exploded` / `unrevealed` avec marge 9 px.
+  - Ordre de priorité fixe (`unrevealed → exploded → flag → number_1..8 → empty → question_mark`) avec early exit, décor testé en dernier recours.
+  - Génère des overlays de debug quand nécessaire (voir `s22_vision_overlay`).
+  - Tests de référence : `python tests/test_s2_vision_performance.py` (<0,6 s/screenshot sur machine de ref).
+
+### Vision Overlay
+- **path**: lib/s2_vision/s22_vision_overlay.py
+- **type**: Générateur d’overlay runtime pour visualiser `MatchResult`.
+- **caractéristiques**:
+  - Couleurs explicites (question_mark = blanc comme unrevealed, decor = gris/noir).
+  - Label + pourcentage affichés en 2 lignes compactes (font 11, espacement minimal).
+  - Utilisé dans les tests et pour l’audit manuel des captures.
+
+### Templates Analyzer
+- **path**: lib/s2_vision/s21_templates_analyzer/*
+- **type**: Outils de génération d’artefacts (variance + templates centraux).
+- **scripts**:
+  - `variance_analyzer.py` – heatmaps & validation marge 7 px.
+  - `template_aggregator.py` – extraction zone 10×10, calcul mean/std, génération `central_templates_manifest.json`.
+- **artefacts**:
+  - `template_artifact/<symbol>/mean_template.npy`, `std_template.npy`, `preview.png`.
+  - `central_templates_manifest.json` – index officiel chargé par le matcher.
+
+> Les anciens modules `lib/s2_recognition/*` (FixedTemplateMatcher, mapper, legacy color recognizers) restent documentés ci-dessous pour référence historique. Le pipeline actif repose sur `lib/s2_vision`.
+
+### Fixed Template Matcher (legacy)
 - **path**: lib/s2_recognition/template_matching_fixed.py
 - **type**: Reconnaissance hybride par corrélation/différence
 - **responsabilités**:

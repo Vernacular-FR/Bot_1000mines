@@ -7,7 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Vision – 2025-12-12
+- Validation complète du **CenterTemplateMatcher** : heuristiques uniformes (`unrevealed`, `empty`), discriminant pixel pour `exploded`, ordre de test prioritaire avec early exit, décor testé uniquement en dernier recours.
+- Ajout du symbole `question_mark` dans la chaîne complète (templates, manifest, matcher, overlay). Les overlays affichent désormais `question_mark` en blanc (comme `unrevealed`) et `decor` en gris/noir.
+- Resserrement du seuil runtime `empty` (`UNIFORM_THRESHOLDS["empty"]=25`) pour éviter les faux positifs décor.
+- Vision API + test `tests/test_s2_vision_performance.py` servent de validation continue (<0,6 s/screenshot sur machine de ref).
+
 ### Added
+- **Analyse de Variance s210_variance** : Module complet d'analyse de variance par pixel pour validation des marges de sécurité
+  - `variance_analyzer.py` : Génération de heatmaps de variance individuelles par symbole
+  - Superposition mathématique des heatmaps (moyenne élément par élément) pour isoler uniquement les variations d'éclats de mines
+  - Analyse automatique de marge optimale par distance depuis le bord (variance par distance)
+  - Génération de heatmap annotée avec rectangles de distance (5px, 7px, 8px, 9px)
+  - Validation quantitative : marge optimale déterminée à **7px** pour les chiffres et cases vides
+  - Dataset analysé : 1546 images (number_1 à number_8 + empty)
+  - Conclusion : Utiliser 7px de marge pour éviter les éclats de mines sur 9 types de symboles
+
+### Failed Approaches (Documented for Learning)
+- **4 Pixels Globaux (s212_pixel_rancker)** : Échec complet de l'approche discriminante
+  - Séparation = 0.000 (aucun score négatif trouvé sur tous les pixels)
+  - Incapacité à rejeter les centaines de motifs décoratifs inconnus
+  - Trop rigide pour gérer la variabilité des couleurs et motifs
+  - **Leçon apprise** : L'approche globale fixe ne peut pas gérer la complexité des variations réelles
+- **Smart Fingerprint System** : Trop complexe et lourd pour une utilisation pratique
+  - Processus d'optimisation trop lourd
+  - Manque de robustesse face aux masquages partiels
+  - **Leçon apprise** : Nécessité d'une approche plus déterministe et lightweight
+
+### Changed
 - **Plan simplification radicale** : consolidation complète de la roadmap s0→s6, documentation `doc/` (README + 01/02/03) et spécifications officielles (`SPECS/ARCHITECTURE.md`, `SPECS/DEVELOPMENT_JOURNAL.md`).
 
 ### Changed
@@ -30,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OptimizedOverlayGenerator** : Génération d'overlays avec alpha_composite unique
 - **Templates assets** : 10 symboles disponibles dans `assets/symbols/`
 - **Architecture fichiers centralisée** : Documentation complète dans `docs/specs/architecture_fichiers.md`
-- **Chemins granulaires** : Séparation précise des types de fichiers dans `lib/config.PATHS`
+- **Chemins granulaires** : Séparation précise des types de fichiers dans `config.PATHS`
 - **Structure temp/ unifiée** : Tous les fichiers de traitement dans `temp/` avec sous-dossiers spécialisés
 - **Base de données persistante** : `grid_state_db.json` pour toutes les cellules analysées
 - **Overlays spécialisés** : Distinction claire entre overlays bruts et overlays de reconnaissance

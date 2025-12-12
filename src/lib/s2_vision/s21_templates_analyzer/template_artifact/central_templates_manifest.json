@@ -1,0 +1,243 @@
+{
+  "margin": 9,
+  "templates": {
+    "decor": {
+      "symbol": "decor",
+      "image_count": 404,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 810.181,
+      "std_distance": 214.9737,
+      "max_distance": 1359.1788,
+      "suggested_threshold": 1240.1285,
+      "mean_template_file": "decor\\mean_template.npy",
+      "std_template_file": "decor\\std_template.npy",
+      "preview_file": "decor\\preview.png"
+    },
+    "empty": {
+      "symbol": "empty",
+      "image_count": 144,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 0.0,
+      "std_distance": 0.0,
+      "max_distance": 0.0,
+      "suggested_threshold": 0.0,
+      "mean_template_file": "empty\\mean_template.npy",
+      "std_template_file": "empty\\std_template.npy",
+      "preview_file": "empty\\preview.png"
+    },
+    "exploded": {
+      "symbol": "exploded",
+      "image_count": 487,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 6.8586,
+      "std_distance": 7.8642,
+      "max_distance": 132.192,
+      "suggested_threshold": 22.5871,
+      "mean_template_file": "exploded\\mean_template.npy",
+      "std_template_file": "exploded\\std_template.npy",
+      "preview_file": "exploded\\preview.png"
+    },
+    "flag": {
+      "symbol": "flag",
+      "image_count": 528,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 58.6047,
+      "std_distance": 41.2687,
+      "max_distance": 138.1397,
+      "suggested_threshold": 138.1397,
+      "mean_template_file": "flag\\mean_template.npy",
+      "std_template_file": "flag\\std_template.npy",
+      "preview_file": "flag\\preview.png"
+    },
+    "number_1": {
+      "symbol": "number_1",
+      "image_count": 138,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 20.9589,
+      "std_distance": 22.0388,
+      "max_distance": 76.114,
+      "suggested_threshold": 65.0366,
+      "mean_template_file": "number_1\\mean_template.npy",
+      "std_template_file": "number_1\\std_template.npy",
+      "preview_file": "number_1\\preview.png"
+    },
+    "number_2": {
+      "symbol": "number_2",
+      "image_count": 504,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 66.1612,
+      "std_distance": 23.9693,
+      "max_distance": 158.0988,
+      "suggested_threshold": 114.0997,
+      "mean_template_file": "number_2\\mean_template.npy",
+      "std_template_file": "number_2\\std_template.npy",
+      "preview_file": "number_2\\preview.png"
+    },
+    "number_3": {
+      "symbol": "number_3",
+      "image_count": 396,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 62.1348,
+      "std_distance": 61.0227,
+      "max_distance": 1081.7302,
+      "suggested_threshold": 184.1802,
+      "mean_template_file": "number_3\\mean_template.npy",
+      "std_template_file": "number_3\\std_template.npy",
+      "preview_file": "number_3\\preview.png"
+    },
+    "number_4": {
+      "symbol": "number_4",
+      "image_count": 224,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 60.3343,
+      "std_distance": 37.3296,
+      "max_distance": 127.1481,
+      "suggested_threshold": 127.1481,
+      "mean_template_file": "number_4\\mean_template.npy",
+      "std_template_file": "number_4\\std_template.npy",
+      "preview_file": "number_4\\preview.png"
+    },
+    "number_5": {
+      "symbol": "number_5",
+      "image_count": 106,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 40.3155,
+      "std_distance": 20.4757,
+      "max_distance": 73.6801,
+      "suggested_threshold": 73.6801,
+      "mean_template_file": "number_5\\mean_template.npy",
+      "std_template_file": "number_5\\std_template.npy",
+      "preview_file": "number_5\\preview.png"
+    },
+    "number_6": {
+      "symbol": "number_6",
+      "image_count": 18,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 90.0483,
+      "std_distance": 44.6765,
+      "max_distance": 162.087,
+      "suggested_threshold": 162.087,
+      "mean_template_file": "number_6\\mean_template.npy",
+      "std_template_file": "number_6\\std_template.npy",
+      "preview_file": "number_6\\preview.png"
+    },
+    "number_7": {
+      "symbol": "number_7",
+      "image_count": 9,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 84.0711,
+      "std_distance": 9.3994,
+      "max_distance": 94.58,
+      "suggested_threshold": 94.58,
+      "mean_template_file": "number_7\\mean_template.npy",
+      "std_template_file": "number_7\\std_template.npy",
+      "preview_file": "number_7\\preview.png"
+    },
+    "number_8": {
+      "symbol": "number_8",
+      "image_count": 7,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 0.0,
+      "std_distance": 0.0,
+      "max_distance": 0.0,
+      "suggested_threshold": 0.0,
+      "mean_template_file": "number_8\\mean_template.npy",
+      "std_template_file": "number_8\\std_template.npy",
+      "preview_file": "number_8\\preview.png"
+    },
+    "question_mark": {
+      "symbol": "question_mark",
+      "image_count": 97,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 0.0,
+      "std_distance": 0.0,
+      "max_distance": 0.0,
+      "suggested_threshold": 0.0,
+      "mean_template_file": "question_mark\\mean_template.npy",
+      "std_template_file": "question_mark\\std_template.npy",
+      "preview_file": "question_mark\\preview.png"
+    },
+    "unrevealed": {
+      "symbol": "unrevealed",
+      "image_count": 199,
+      "template_shape": [
+        6,
+        6,
+        3
+      ],
+      "margin": 9,
+      "mean_distance": 0.0,
+      "std_distance": 0.0,
+      "max_distance": 0.0,
+      "suggested_threshold": 0.0,
+      "mean_template_file": "unrevealed\\mean_template.npy",
+      "std_template_file": "unrevealed\\std_template.npy",
+      "preview_file": "unrevealed\\preview.png"
+    }
+  }
+}

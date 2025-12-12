@@ -3,6 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
+from src.lib.s1_capture import (
+    CaptureController,
+    CaptureRequest,
+    CaptureResult,
+)
+from src.lib.s1_capture.s11_canvas_capture import CanvasCaptureBackend
+
 from .s00_browser_manager import BrowserManager
 from .s01_Coordonate_system import CoordinateConverter, CanvasLocator
 from .s03_game_controller import NavigationController
@@ -41,6 +48,7 @@ class InterfaceController:
         locator: CanvasLocator,
         navigator: NavigationController,
         status_reader: Optional[StatusReader] = None,
+        capture_controller: Optional[CaptureController] = None,
     ):
         self.browser = browser
         self.converter = converter
@@ -48,6 +56,7 @@ class InterfaceController:
         self.navigator = navigator
         self.status_reader = status_reader
         self._state: Optional[ViewportState] = None
+        self._capture_controller = capture_controller
 
     @classmethod
     def from_browser(cls, browser: BrowserManager) -> "InterfaceController":
@@ -63,7 +72,18 @@ class InterfaceController:
         navigator = NavigationController(driver, converter=converter)
         status_reader = StatusReader(driver)
 
-        controller = cls(browser, converter, locator, navigator, status_reader=status_reader)
+        controller = cls(
+            browser,
+            converter,
+            locator,
+            navigator,
+            status_reader=status_reader,
+        )
+        controller._capture_controller = CaptureController(
+            interface=controller,
+            canvas_backend=CanvasCaptureBackend(driver),
+            viewport_mapper=navigator.viewport_mapper,
+        )
         controller.refresh_state()
         return controller
 
@@ -156,6 +176,30 @@ class InterfaceController:
         self.navigator.click_screen(center_x, center_y)
 
     # ------------------------------------------------------------------
+    # Capture helpers (façade s1_capture)
+    # ------------------------------------------------------------------
+
+    def capture_zone(self, request: CaptureRequest) -> CaptureResult:
+        return self._get_capture_controller().capture_zone(request)
+
+    def capture_grid_window(
+        self,
+        grid_bounds: Tuple[int, int, int, int],
+        *,
+        save: bool = False,
+        annotate: bool = False,
+        filename: Optional[str] = None,
+        bucket: Optional[str] = None,
+    ) -> CaptureResult:
+        return self._get_capture_controller().capture_grid_window(
+            grid_bounds,
+            save=save,
+            annotate=annotate,
+            filename=filename,
+            bucket=bucket,
+        )
+
+    # ------------------------------------------------------------------
     # Status helpers
     # ------------------------------------------------------------------
 
@@ -169,3 +213,22 @@ class InterfaceController:
                 raise RuntimeError("Aucun driver disponible pour lire le status.")
             self.status_reader = StatusReader(driver)
         return self.status_reader.read_status()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _get_capture_controller(self) -> CaptureController:
+        if self._capture_controller is not None:
+            return self._capture_controller
+
+        driver = self.browser.get_driver()
+        if driver is None:
+            raise RuntimeError("Aucun driver disponible pour initialiser CaptureController.")
+
+        self._capture_controller = CaptureController(
+            interface=self,
+            canvas_backend=CanvasCaptureBackend(driver),
+            viewport_mapper=self.navigator.viewport_mapper,
+        )
+        return self._capture_controller

@@ -1,6 +1,4 @@
 import time
-import sys
-import os
 from typing import Optional
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -8,12 +6,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
-from src.lib.config import CELL_SIZE, CELL_BORDER, WAIT_TIMES
+from src.config import CELL_SIZE, CELL_BORDER, WAIT_TIMES
 from .viewport_geometry import CoordinateConverter, ViewportMapper
-
-# Import du système de logging centralisé
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Logs.logger import save_bot_log
 
 class GameSessionController:
     """Responsable de la sélection du mode de jeu et de l'initialisation du plateau."""
@@ -27,7 +21,7 @@ class GameSessionController:
 
     @staticmethod
     def get_difficulty_from_user():
-        from src.lib.config import DIFFICULTY_CONFIG, DEFAULT_DIFFICULTY
+        from src.config import DIFFICULTY_CONFIG, DEFAULT_DIFFICULTY
 
         print("\nChoisissez la difficulté :")
         difficulty_list = list(DIFFICULTY_CONFIG.keys())
@@ -80,7 +74,7 @@ class GameSessionController:
         time.sleep(1)
 
     def _resolve_difficulty_config(self, difficulty_name: str):
-        from src.lib.config import DIFFICULTY_CONFIG
+        from src.config import DIFFICULTY_CONFIG
 
         config = DIFFICULTY_CONFIG.get(difficulty_name.lower())
         if not config:
@@ -167,12 +161,10 @@ class NavigationController:
             result = self.driver.execute_script(script, el, dx, dy)
             print(f"Déplacement JS de {dx}px horizontalement et {dy}px verticalement")
             print(f"DEBUG JS Result: {result}")
-            self._log_move_view(dx, dy, success=True)
             return True
         except Exception as e:
             print("Erreur move_view_js:", e)
             import traceback; traceback.print_exc()
-            self._log_move_view(dx, dy, success=False, error=str(e))
             return False
 
     def move_viewport(self, dx, dy, coord_system=None, wait_after=1.0, log=True, scale_factor=2.0):
@@ -283,24 +275,12 @@ class NavigationController:
             return true;
             """
             self.driver.execute_script(js, target, center_x, center_y, click_event)
-            self._log_click_action(grid_x, grid_y, right_click, {
-                'screen_x': center_x,
-                'screen_y': center_y,
-                'canvas_x': center_x,
-                'canvas_y': center_y,
-            })
             return True
 
         except Exception as e:
             print(f"\nERREUR: ERREUR lors du clic sur ({grid_x}, {grid_y}): {str(e)}")
             import traceback
             traceback.print_exc()
-            save_bot_log("click_cell", {
-                "grid_x": grid_x,
-                "grid_y": grid_y,
-                "right_click": right_click,
-                "error": str(e)
-            }, False)
             return False
 
     def _double_click_at(self, screen_x: float, screen_y: float, delay: float = 0.1) -> bool:
@@ -314,27 +294,3 @@ class NavigationController:
             print(f"[ERREUR] Double-clic échoué ({screen_x:.0f}, {screen_y:.0f}): {e}")
             return False
 
-    # Logging & diagnostics helpers -----------------------------------------------------------
-
-    def _log_move_view(self, dx, dy, success: bool, error: str = None):
-        payload = {
-            "dx": dx,
-            "dy": dy,
-            "method": "javascript",
-            "target": "canvas",
-        }
-        if error:
-            payload["error"] = error
-        save_bot_log("move_view", payload, success)
-
-    def _log_click_action(self, grid_x, grid_y, right_click, conversion):
-        save_bot_log("click_cell", {
-            "grid_x": grid_x,
-            "grid_y": grid_y,
-            "right_click": right_click,
-            "screen_x": conversion['screen_x'],
-            "screen_y": conversion['screen_y'],
-            "canvas_x": conversion['canvas_x'],
-            "canvas_y": conversion['canvas_y'],
-            "method": "javascript"
-        }, True)
