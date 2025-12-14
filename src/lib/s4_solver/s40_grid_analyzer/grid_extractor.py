@@ -9,8 +9,8 @@ from src.lib.s3_storage.facade import (
     RawCellState,
 )
 
-from src.lib.s4_solver.s43_csp_solver.csp_solver import GridAnalyzerProtocol
-from src.lib.s4_solver.s43_csp_solver.segmentation import FrontierViewProtocol
+from src.lib.s4_solver.s42_csp_solver.csp_solver import GridAnalyzerProtocol
+from src.lib.s4_solver.s42_csp_solver.segmentation import FrontierViewProtocol
 
 Neighbor = Tuple[int, int]
 

@@ -18,6 +18,7 @@ class PropagatorPipelineResult:
     iterative: PropagationResult
     subset: PropagationResult
     advanced: PropagationResult
+    iterative_refresh: PropagationResult
 
     @property
     def has_actions(self) -> bool:
@@ -66,10 +67,18 @@ class PropagatorPipeline:
         safe.update(advanced_result.safe_cells)
         flag.update(advanced_result.flag_cells)
 
+        # Phase 4 – re-run local rules to absorb leftovers unlocked by advanced deductions
+        iterative_refresh = IterativePropagator(self.cells)
+        iterative_refresh.apply_known_actions(safe_cells=safe, flag_cells=flag)
+        iterative_refresh_result = iterative_refresh.solve_with_zones()
+        safe.update(iterative_refresh_result.safe_cells)
+        flag.update(iterative_refresh_result.flag_cells)
+
         return PropagatorPipelineResult(
             safe_cells=safe,
             flag_cells=flag,
             iterative=iterative_result,
             subset=subset_result,
             advanced=advanced_result,
+            iterative_refresh=iterative_refresh_result,
         )

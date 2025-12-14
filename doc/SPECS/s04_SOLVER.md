@@ -7,17 +7,15 @@ description: Spécification technique de la couche s4_solver (Grid Analyzer + Pa
 Le solver transforme la frontière issue de s3_storage en actions sûres (clics/drapeaux) en trois étapes successives :
 
 1. **s40_grid_analyzer** – prépare un snapshot exploitable (statuts + vues).
-2. **s41_propagator_solver** – applique les motifs déterministes (First Pass).
+2. **s41_propagator_solver** – applique les motifs déterministes (First Pass) avec une passe itérative de clôture.
 3. **s42_csp_solver** – segmente la frontière et effectue la résolution exacte locale (Second Pass).
 
 ## 1. Architecture
 
 ### 1.1 Vue d'ensemble
-```
 Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solver ─▶ s42 CSP Solver ─▶ Actions (s5/s6)
                    ↑               (statuts + vues)     (motifs O(1))          (CSP exact)        (flags/open)
                    └────────────── StorageUpsert (frontier_add/remove, unresolved_remove)
-```
 
 ### 1.2 Sous-modules
 - **s40_grid_analyzer/**
@@ -26,6 +24,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
   - Re-exporte les types essentiels (`Segmentation`, `CSPSolver`, `SolverFrontierView`) pour compatibilité ascendante.
 - **s41_propagator_solver/**
   - `pattern_engine.py` : moteur de motifs 3×3/5×5, lookup base 16, propagation tant que des actions sont trouvées.
+  - `s410_propagator_pipeline.py` : chaîne "Iterative → Subset → Advanced → Iterative refresh". La reprise finale d’Iterative s’assure d’absorber les cellules triviales débloquées par la phase 3 (cas typique : pairwise révèle toutes les mines sauf une cellule encore marquée FRONTIER).
   - Consomme `self.cells` + flags déterminés par s40 (just revealed, inferred flags).
 - **s42_csp_solver/**
   - `segmentation.py` : partition de la frontière en zones/composantes.
@@ -43,7 +42,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
 1. **Storage** fournit `frontier_slice`, `cells` (bounds) et `unresolved_set`.
 2. **s40 Grid Analyzer** reclasse les `GridCell` (JUST_REVEALED→ACTIVE/FRONTIER/SOLVED) et construit `SolverFrontierView`.
 3. **ConstraintReducer** (s42) détecte immédiatement les safe/flag via contraintes locales.
-4. **PatternEngine** (s41) applique les motifs sur les cellules TO_PROCESS (Active/Frontier).
+4. **PatternEngine** (s41) applique les motifs sur les cellules TO_PROCESS (Active/Frontier) et relance Iterative après la phase Advanced pour absorber les cellules révélées indirectement.
 5. **Segmentation + CSP** (s42) résolvent les composantes restantes, calculent les probabilités de mines par zone.
 6. **HybridSolver** agrège constraint_safe + pattern_safe + csp_safe, produit également:
    - `pattern_flag_cells`, `constraint_flag_cells`, `csp` flags.

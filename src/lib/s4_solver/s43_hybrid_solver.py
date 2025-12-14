@@ -16,7 +16,7 @@ from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (
     PropagatorPipeline,
     PropagatorPipelineResult,
 )
-from src.lib.s4_solver.s43_csp_solver.csp_manager import CspManager
+from src.lib.s4_solver.s42_csp_solver.csp_manager import CspManager
 from src.lib.s4_solver.s42_csp_solver.segmentation import Segmentation
 
 

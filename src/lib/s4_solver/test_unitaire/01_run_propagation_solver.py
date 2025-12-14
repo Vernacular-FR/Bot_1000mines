@@ -166,6 +166,18 @@ def process_screenshot(screenshot: Path) -> None:
     )
     advanced_result = advanced_engine.solve_with_zones()
     
+    # Phase 3.5 : relance itérative pour absorber les triviales débloquées
+    iterative_refresh = IterativePropagator(cells)
+    iterative_refresh.apply_known_actions(
+        safe_cells=iterative_result.safe_cells
+        .union(subset_result.safe_cells)
+        .union(advanced_result.safe_cells),
+        flag_cells=iterative_result.flag_cells
+        .union(subset_result.flag_cells)
+        .union(advanced_result.flag_cells),
+    )
+    iterative_refresh_result = iterative_refresh.solve_with_zones()
+    
     # Extraire les zones depuis le résultat pour l'overlay des zones
     from src.lib.s4_solver.s40_grid_analyzer.grid_classifier import FrontierClassifier
     classifier = FrontierClassifier(cells)
@@ -222,6 +234,12 @@ def process_screenshot(screenshot: Path) -> None:
     advanced_baseline_flags = iterative_result.flag_cells.union(subset_result.flag_cells)
     advanced_new_safe = advanced_result.safe_cells - advanced_baseline_safe
     advanced_new_flags = advanced_result.flag_cells - advanced_baseline_flags
+    
+    # Actions supplémentaires issues du refresh final
+    refresh_baseline_safe = advanced_baseline_safe.union(advanced_result.safe_cells)
+    refresh_baseline_flags = advanced_baseline_flags.union(advanced_result.flag_cells)
+    refresh_new_safe = iterative_refresh_result.safe_cells - refresh_baseline_safe
+    refresh_new_flags = iterative_refresh_result.flag_cells - refresh_baseline_flags
     if subset_new_safe:
         actions.extend(
             _build_actions(
@@ -260,9 +278,38 @@ def process_screenshot(screenshot: Path) -> None:
             )
         )
         print(f"    ↳ Advanced flags: {sorted(advanced_new_flags)}")
+    
+    if refresh_new_safe:
+        actions.extend(
+            _build_actions(
+                refresh_new_safe,
+                SolverActionType.CLICK,
+                f"iterative-refresh-{iterative_refresh_result.iterations}iters",
+            )
+        )
+        print(f"    ↳ Iterative refresh safe: {sorted(refresh_new_safe)}")
+    if refresh_new_flags:
+        actions.extend(
+            _build_actions(
+                refresh_new_flags,
+                SolverActionType.FLAG,
+                f"iterative-refresh-{iterative_refresh_result.iterations}iters",
+            )
+        )
+        print(f"    ↳ Iterative refresh flags: {sorted(refresh_new_flags)}")
 
-    combined_safe = iterative_result.safe_cells | subset_result.safe_cells | advanced_result.safe_cells
-    combined_flags = iterative_result.flag_cells | subset_result.flag_cells | advanced_result.flag_cells
+    combined_safe = (
+        iterative_result.safe_cells
+        | subset_result.safe_cells
+        | advanced_result.safe_cells
+        | iterative_refresh_result.safe_cells
+    )
+    combined_flags = (
+        iterative_result.flag_cells
+        | subset_result.flag_cells
+        | advanced_result.flag_cells
+        | iterative_refresh_result.flag_cells
+    )
 
     if actions:
         output_dir = PATTERN_OVERLAYS_DIR
@@ -282,11 +329,13 @@ def process_screenshot(screenshot: Path) -> None:
             f"iter_safe={len(iterative_result.safe_cells)} iter_flags={len(iterative_result.flag_cells)} "
             f"subset_safe={len(subset_new_safe)} subset_flags={len(subset_new_flags)} "
             f"adv_safe={len(advanced_new_safe)} adv_flags={len(advanced_new_flags)} "
+            f"refresh_safe={len(refresh_new_safe)} refresh_flags={len(refresh_new_flags)} "
             f"(overlay: {output_dir.name})"
         )
         print(f"  Iterative reasoning: {iterative_result.reasoning}")
         print(f"  Subset reasoning: {subset_result.reasoning}")
         print(f"  Advanced reasoning: {advanced_result.reasoning}")
+        print(f"  Iterative refresh reasoning: {iterative_refresh_result.reasoning}")
         
         # Générer l'overlay combiné (zones + actions)
         combined_path = render_combined_overlay(

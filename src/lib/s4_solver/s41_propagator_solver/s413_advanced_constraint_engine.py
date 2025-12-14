@@ -7,7 +7,7 @@ from typing import Dict, Iterable, List, Set, Tuple
 from src.lib.s3_storage.facade import GridCell, LogicalCellState
 from ..s40_grid_analyzer.grid_classifier import FrontierClassifier
 from .s411_frontiere_reducer import PropagationResult
-from .subset_constraint_propagator import Constraint, SubsetConstraintPropagator
+from .s412_subset_constraint_propagator import Constraint, SubsetConstraintPropagator
 
 
 Coord = Tuple[int, int]
