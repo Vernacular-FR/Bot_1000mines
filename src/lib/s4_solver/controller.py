@@ -8,7 +8,7 @@ from src.lib.s3_storage.facade import (
 )
 from src.lib.s4_solver.s40_grid_analyzer.grid_extractor import SolverFrontierView
 from src.lib.s4_solver.facade import SolverAction, SolverActionType, SolverStats
-from src.lib.s4_solver.s43_hybrid_solver import (
+from src.lib.s4_solver.s49_hybrid_solver import (
     HybridSolver,
     build_metadata_updates,
     compute_bounds,

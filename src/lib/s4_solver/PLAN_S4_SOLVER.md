@@ -52,13 +52,14 @@ s4_solver/
   4. Nettoyage des actifs résolus et réexécution jusqu'à stabilité.
 - **Objectif** : absorber automatiquement les motifs 121/212/coins sans duplication de logique avec la phase 1.
 
-### 2.4 Propagator Pipeline (Phases 1→3) - ✅ IMPLEMENTÉ
-- **s410_propagator_pipeline.py** : agrège `s411_frontiere_reducer`, `s412_subset_constraint_propagator`, `s413_advanced_constraint_engine` et renvoie `PropagatorPipelineResult`.
+### 2.4 Propagator Pipeline (Phases 1→3 + refresh) - ✅ IMPLEMENTÉ
+- **s410_propagator_pipeline.py** : agrège `s411_frontiere_reducer`, `s412_subset_constraint_propagator`, `s413_advanced_constraint_engine` puis relance Iterative pour absorber les triviales libérées en phase 3.
 - **Flux** :
   1. Phase 1 – règles locales (IterativePropagator).
   2. Phase 2 – subset inclusion (SubsetConstraintPropagator).
   3. Phase 3 – pairwise/advanced (AdvancedConstraintEngine).
-- **Sorties** : `safe_cells`, `flag_cells`, `progress_cells()` pour informer la couche CSP.
+  4. Phase 3.5 – Iterative refresh (rejoue les règles locales avec toutes les SAFE/FLAG accumulées).
+- **Sorties** : `safe_cells`, `flag_cells`, `progress_cells()` et `iterative_refresh` pour informer la couche CSP (nécessaire pour la stabilité composante).
 
 ### 2.5 Advanced Constraint Propagator (Phase 3 – unions partielles & pairwise elimination) - ✅ IMPLEMENTÉ
 - **s413_advanced_constraint_engine.py** : exploite les intersections partielles entre contraintes pour pousser la propagation avant CSP.
@@ -87,7 +88,7 @@ s4_solver/
 ### 2.5 CSP Manager (segmentation + stabilité + CSP) – Second Pass (s43)
 - **csp_manager.py** :
   1. **Segmentation** (via `SolverFrontierView`).
-  2. **StabilityEvaluator** (`s43_stability_evaluator.py`) pour compter les cycles `no_progress`.
+  2. **StabilityEvaluator** (`s423_stability_evaluator.py`) pour compter les cycles `no_progress`.
   3. **CSPSolver** sur les composantes stables (≤ `LIMIT_ENUM`).
   4. **Probabilités par zone** (mise à jour `zone_probabilities`, `safe_cells`, `flag_cells`).
 - **Intégration** : HybridSolver appelle d’abord `PropagatorPipeline`, puis `CspManager` seulement si aucune action locale n’est trouvée.

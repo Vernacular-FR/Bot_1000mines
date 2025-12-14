@@ -21,7 +21,7 @@ from src.lib.s3_tensor.tensor_grid import TensorGrid
 from src.lib.s3_tensor.types import CellType
 from src.lib.s4_solver.cell_analyzer import CellAnalyzer
 from src.lib.s4_solver.s40_frontiere_helper.grid_analyzer import GridAnalyzer
-from src.lib.s4_solver.s43_hybrid_solver import HybridSolver
+from src.lib.s4_solver.s49_hybrid_solver import HybridSolver
 from src.lib.s4_solver.overlays.solver_overlay_generator import SolverOverlayGenerator
 from src.lib.s4_solver.overlays.segmentation_visualizer import SegmentationVisualizer
 

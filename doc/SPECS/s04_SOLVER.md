@@ -27,7 +27,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
   - `s410_propagator_pipeline.py` : chaîne "Iterative → Subset → Advanced → Iterative refresh". La reprise finale d’Iterative s’assure d’absorber les cellules triviales débloquées par la phase 3 (cas typique : pairwise révèle toutes les mines sauf une cellule encore marquée FRONTIER).
   - Consomme `self.cells` + flags déterminés par s40 (just revealed, inferred flags).
 - **s42_csp_solver/**
-  - `segmentation.py` : partition de la frontière en zones/composantes.
+  - `s420_segmentation.py` : partition de la frontière en zones/composantes.
   - `csp_solver.py` : backtracking exact (≤15 variables) + calcul de probabilités pondérées (best guess sinon).
   - `frontier_reducer.py` : réduction déterministe (unit constraints) avant motifs/CSP.
 

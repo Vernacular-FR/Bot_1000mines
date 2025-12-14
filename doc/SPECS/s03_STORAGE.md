@@ -18,10 +18,10 @@ Couche de stockage passive pour le bot Minesweeper, basée sur une grille sparse
 └─────────────────┘     └─────────────────┘    └─────────────────┘
 ```
 
-### 1.1.1 Interaction avec s4 (s40/s41/s42)
+### 1.1.1 Interaction avec s4 (s40/s42)
 - Vision pousse uniquement `revealed_add` + `unresolved_add` (statuts JUST_REVEALED).
 - `s40_grid_analyzer` relit `get_frontier()` + `get_cells()` pour calculer en mémoire les statuts ACTIVE/FRONTIER/SOLVED et construire `SolverFrontierView`.
-- `s41_propagator_solver` et `s42_csp_solver` consomment ces vues et renvoient un `StorageUpsert` avec `unresolved_remove`, `frontier_add/remove` et les `cells` mis à jour (solver_status/action_status).
+- **`s42_csp_solver` (OptimizedSolver)** consomme ces vues via le pipeline CSP complet et renvoie un `StorageUpsert` avec `unresolved_remove`, `frontier_add/remove`.
 - Storage reste passif : aucune logique de classification ni de propagation n’est implémentée ici.
 
 ### 1.2 Composants

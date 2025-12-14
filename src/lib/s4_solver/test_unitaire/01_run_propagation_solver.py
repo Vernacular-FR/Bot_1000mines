@@ -44,7 +44,7 @@ RAW_GRIDS_DIR = Path(__file__).parent / "00_raw_grids"
 VISION_OVERLAYS_DIR = Path(__file__).parent / "s3_vision_overlays"
 ZONE_OVERLAYS_DIR = Path(__file__).parent / "s40_zones_overlays"
 PATTERN_OVERLAYS_DIR = Path(__file__).parent / "s41_propagator_solver_overlay"
-COMBINED_OVERLAYS_DIR = Path(__file__).parent / "s42_final_combined_overlay"
+COMBINED_OVERLAYS_DIR = Path(__file__).parent / "s423_propagation_combined_overlay"
 BOUNDS_PATTERN = re.compile(r"zone_(?P<sx>-?\d+)_(?P<sy>-?\d+)_(?P<ex>-?\d+)_(?P<ey>-?\d+)")
 
 ACTIVE_COLOR = (0, 120, 255, 180)
@@ -195,7 +195,8 @@ def process_screenshot(screenshot: Path) -> None:
     )
     
     # Créer les actions à partir du résultat de la propagation
-    actions: List[SolverAction] = []
+    phase1_actions: List[SolverAction] = []
+    later_actions: List[SolverAction] = []
     def _build_actions(coords: Iterable[Coord], action_type: SolverActionType, reasoning: str) -> List[SolverAction]:
         return [
             SolverAction(
@@ -209,7 +210,7 @@ def process_screenshot(screenshot: Path) -> None:
 
     # Actions issues de la phase itérative
     if iterative_result.safe_cells:
-        actions.extend(
+        phase1_actions.extend(
             _build_actions(
                 iterative_result.safe_cells,
                 SolverActionType.CLICK,
@@ -217,7 +218,7 @@ def process_screenshot(screenshot: Path) -> None:
             )
         )
     if iterative_result.flag_cells:
-        actions.extend(
+        phase1_actions.extend(
             _build_actions(
                 iterative_result.flag_cells,
                 SolverActionType.FLAG,
@@ -241,7 +242,7 @@ def process_screenshot(screenshot: Path) -> None:
     refresh_new_safe = iterative_refresh_result.safe_cells - refresh_baseline_safe
     refresh_new_flags = iterative_refresh_result.flag_cells - refresh_baseline_flags
     if subset_new_safe:
-        actions.extend(
+        later_actions.extend(
             _build_actions(
                 subset_new_safe,
                 SolverActionType.CLICK,
@@ -249,7 +250,7 @@ def process_screenshot(screenshot: Path) -> None:
             )
         )
     if subset_new_flags:
-        actions.extend(
+        later_actions.extend(
             _build_actions(
                 subset_new_flags,
                 SolverActionType.FLAG,
@@ -261,7 +262,7 @@ def process_screenshot(screenshot: Path) -> None:
         print(f"    ↳ Subset safe: {sorted(subset_new_safe)}")
     
     if advanced_new_safe:
-        actions.extend(
+        later_actions.extend(
             _build_actions(
                 advanced_new_safe,
                 SolverActionType.CLICK,
@@ -270,7 +271,7 @@ def process_screenshot(screenshot: Path) -> None:
         )
         print(f"    ↳ Advanced safe: {sorted(advanced_new_safe)}")
     if advanced_new_flags:
-        actions.extend(
+        later_actions.extend(
             _build_actions(
                 advanced_new_flags,
                 SolverActionType.FLAG,
@@ -280,7 +281,7 @@ def process_screenshot(screenshot: Path) -> None:
         print(f"    ↳ Advanced flags: {sorted(advanced_new_flags)}")
     
     if refresh_new_safe:
-        actions.extend(
+        later_actions.extend(
             _build_actions(
                 refresh_new_safe,
                 SolverActionType.CLICK,
@@ -289,7 +290,7 @@ def process_screenshot(screenshot: Path) -> None:
         )
         print(f"    ↳ Iterative refresh safe: {sorted(refresh_new_safe)}")
     if refresh_new_flags:
-        actions.extend(
+        later_actions.extend(
             _build_actions(
                 refresh_new_flags,
                 SolverActionType.FLAG,
@@ -311,17 +312,19 @@ def process_screenshot(screenshot: Path) -> None:
         | iterative_refresh_result.flag_cells
     )
 
-    if actions:
-        output_dir = PATTERN_OVERLAYS_DIR
-        output_dir.mkdir(exist_ok=True, parents=True)
-        render_actions_overlay(
-            screenshot,
-            bounds,
-            actions=actions,
-            stride=STRIDE,
-            cell_size=CELL_SIZE,
-            output_dir=output_dir,
-        )
+    output_dir = PATTERN_OVERLAYS_DIR
+    output_dir.mkdir(exist_ok=True, parents=True)
+    render_actions_overlay(
+        screenshot,
+        bounds,
+        phase1_actions=phase1_actions,
+        later_actions=later_actions,
+        stride=STRIDE,
+        cell_size=CELL_SIZE,
+        output_dir=output_dir,
+    )
+
+    if phase1_actions or later_actions:
         safe_count = len(combined_safe)
         flag_count = len(combined_flags)
         print(
@@ -337,18 +340,18 @@ def process_screenshot(screenshot: Path) -> None:
         print(f"  Advanced reasoning: {advanced_result.reasoning}")
         print(f"  Iterative refresh reasoning: {iterative_refresh_result.reasoning}")
         
-        # Générer l'overlay combiné (zones + actions)
-        combined_path = render_combined_overlay(
-            screenshot,
-            bounds,
-            actions=actions,
-            zones=(zones.active, zones.frontier, zones.solved),
-            cells=cells,  # ✅ Ajouter les cellules pour calculer effective values
-            stride=STRIDE,
-            cell_size=CELL_SIZE,
-            output_dir=COMBINED_OVERLAYS_DIR,
-        )
-        print(f"[COMBINED] {screenshot.name}: zones + solver → {combined_path.name}")
+    # Générer l'overlay combiné (zones + actions) même sans actions
+    combined_path = render_combined_overlay(
+        screenshot,
+        bounds,
+        actions=phase1_actions + later_actions,
+        zones=(zones.active, zones.frontier, zones.solved),
+        cells=cells,  # Ajouter les cellules pour calculer effective values
+        stride=STRIDE,
+        cell_size=CELL_SIZE,
+        output_dir=COMBINED_OVERLAYS_DIR,
+    )
+    print(f"[COMBINED] {screenshot.name}: zones + solver → {combined_path.name}")
 
     print(
         f"[ZONES] {screenshot.name}: "

@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tests unitaire** : `00_run_zone_overlay.py` consomme le `FrontierClassifier` du Grid Analyzer pour produire les overlays ACTIVE/FRONTIER/SOLVED, garantissant que toute la logique de statut est centralisée.
 - **Docs synchronisées** : `PLAN_S4_SOLVER.md`, `doc/PIPELINE.md`, `PLAN_SIMPLIFICATION radicale.md`, `SYNTHESE_pipeline_refonte.md`, `PLAN_S3_STORAGE.md` reflètent cette architecture (étape 0 → motifs → CSP).
 
+### Solver – 2025-12-14
+- **Migration vers OptimizedSolver (CSP only)** : Remplacement complet du solver hybride par un solver CSP optimisé
+- **Configuration dynamique CSP** : Ajout des paramètres `stability_config` et `use_stability` dans `CspManager` pour contrôler le filtrage des composantes
+- **Renommage module** : `s423_stability_evaluator.py` → `s423_component_range_filter.py` pour refléter la notion de range/amplitude
+- **Benchmarking avancé** : Script `03_compare_solver_pipelines.py` enrichi avec rapports Markdown détaillés (différences absolues/proportionnelles, moyennes)
+- **Planification Pattern Solver** : Création du plan d'implémentation dans `s43_pattern_solver/IMPLEMENTATION_PLAN.md`
+
 ### Changed
 - **Capture Canvas** : Refactor complet de la composition / capture brute.
   - `ZoneCaptureService` orchestre désormais les captures multi-canvases (`capture_canvas_tiles`) et délègue l'assemblage aligné aux modules `lib/s1_capture`.
@@ -229,82 +236,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fichier monolithique `cell_recognition_architecture.py` (577 lignes → 3 fichiers spécialisés)
 - Imports obsolètes vers modules supprimés ou restructurés
 - Code de fondation dans `services/` (maintien exclusif du métier)
-
----
-
-## [Unreleased]
-
-### Added
-- Documentation structuration complète selon les couches métier, applicative et technique
-- Normalisation de `docs/specs/` avec séparation claire des responsabilités
-- Flux d'exécution arborescents détaillés dans `workflows.md`
-- Fiche technique des composants dans `composants_techniques.md`
-
-### Changed
-- **Restructuration majeure docs/specs/** :
-  - `logique_metier.md` : Concepts, règles, invariants, acteurs (couche métier pure)
-  - `architecture_logicielle.md` : Modules, services, interfaces (couche applicative)
-  - `stack_technique.md` → `composants_techniques.md` : Librairies, frameworks, utilitaires
-  - `workflows.md` : Flux arborescents explicites et gestion des erreurs
-- **Synthétisation du contenu** : Réduction de la redondance, clarification des couches
-
-### Fixed
-- Séparation claire des responsabilités entre couches
-- Élimination des doublons de documentation
-- Cohérence terminologique entre tous les fichiers de specs
-
-## [1.2.0] - 2025-11-29
-
-### Added
-- Détection automatique des positions d'interface
-- Masquage intelligent des éléments d'interface
-- Génération de screenshots avec cadres de vérification
-- Configuration JSON des positions d'interface
-- Tests unitaires complets pour l'interface
-- Documentation technique complète dans SPECS/
-
-### Changed
-- Refonte complète de l'architecture basée sur capture d'écran
-- Migration de l'injection JavaScript vers analyse d'image
-- Amélioration de la précision de détection de grille
-- Optimisation de la gestion des ressources
-
-### Fixed
-- Correction du décalage window (54px)
-- Correction des dimensions de l'escape_link (21x95 vertical)
-- Stabilisation de la capture d'écran
-- Amélioration de la gestion des erreurs
-
-## [1.1.0] - 2025-11-29
-
-### Added
-- Système de logging centralisé en JSON
-- Tests unitaires pour la capture d'écran
-- Documentation du développement
-- Structure de dossiers optimisée
-
-### Changed
-- Refactoring du code pour meilleure maintenabilité
-- Amélioration des messages d'erreur
-- Standardisation des conventions de nommage
-
-### Fixed
-- Correction des problèmes de mémoire
-- Stabilisation des tests
-- Amélioration de la documentation
-
-## [1.0.0] - 2025-11-29
-
-### Added
-- Version initiale du bot démineur
-- Automatisation Selenium pour 1000mines.com
-- Capture d'écran basique
-- Analyse simple de grille
-- Interface utilisateur en ligne de commande
-
-### Changed
-- Création du projet initial
-- Mise en place de l'architecture de base
 
 ---
 

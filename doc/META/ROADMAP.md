@@ -12,6 +12,31 @@
 
 ---
 
+## 📅 Session du 14 Décembre 2025 (CSP Optimized Solver & Benchmarks)
+
+### 🎯 Objectif principal
+Remplacer l’ancien hybrid solver par un pipeline CSP optimisé autonome, instrumenter des scripts de comparaison et préparer la future phase Pattern Solver.
+
+### ✅ Actions clés
+- Renommage/portage de `s49_hybrid_solver.py` → `s49_optimized_solver.py` exécutant uniquement `CspManager.run_with_frontier_reducer()`.
+- Ajout d’options `use_stability` + `ComponentRangeConfig` dans `CspManager` pour lever les garde-fous ou ajuster la taille max (50 cases par défaut).
+- Scripts de bench :
+  - `01_run_propagation_solver.py` & `02_run_csp_solver_only.py` utilisent les overlays bi-opacité (phase 1 vs phases avancées / reducer vs CSP).
+  - `03_compare_solver_pipelines.py` compare Propagator vs CSP (safe/flags, temps absolu, ratio, rapport JSON + Markdown avec moyennes).
+- Création de `s43_pattern_solver/IMPLEMENTATION_PLAN.md` (plan futur tests, overlays, intégration dans `03_compare...`).
+
+### 📊 Résultats
+- CSP isolé atteint les mêmes actions que le propagator sur les patterns testés, tout en étant ~3x plus rapide (cf. `solver_comparison_YYYYMMDD_HHMMSS.md`).
+- Les overlays CSP affichent désormais les actions du reducer (translucides) et du CSP (opaques), ce qui facilite la relecture.
+- La roadmap Pattern Solver dispose d’un plan dédié (tests `04_run_pattern_solver_only.py`, extension du comparateur, intégration future dans `OptimizedSolver`).
+
+### 🚨 Points d’attention
+- Garder `use_stability=False` pour les campagnes de bench afin de ne pas filtrer les composantes intéressantes.
+- Prévoir l’intégration du Pattern Solver dans `OptimizedSolver` une fois les scripts 04/03 étendus.
+- Mettre à jour les documents de référence (CHANGELOG, PIPELINE, SPECS) dès que de nouvelles phases sont implémentées.
+
+---
+
 ## 📅 Session du 12 Décembre 2025 (Validation Vision S2)
 
 ### 🎯 Objectif principal
