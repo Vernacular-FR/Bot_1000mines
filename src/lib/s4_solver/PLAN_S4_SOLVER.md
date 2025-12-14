@@ -8,7 +8,6 @@ Document de travail qui synthétise les exigences du **PLAN DE SIMPLIFICATION RA
 
 ## 1. Mission
 - Transformer la frontière analytique (frontier_set) de s3 en **actions sûres** (clics, drapeaux) sans jamais modifier la frontière elle-même.
-<<<<<<< HEAD
 - Consommer les cellules enrichies (`raw_state`, `logical_state`, `number_value`, `solver_status`, `action_status`) et maintenir les transitions **JUST_REVEALED → ACTIVE/FRONTIER → SOLVED**.
 - Calculer lui-même les composantes connexes depuis `unresolved_set` (pas de pré-groupage) et marquer les cellules FRONTIER/ACTIVE concernées en `to_process` / `processed`.
 - Retourner **uniquement les actions** à s5_actionplanner, PAS de mise à jour directe de storage (les updates frontier/unresolved passent par StorageUpsert).
@@ -43,28 +42,6 @@ s4_solver/
   - `effective_value == nb_fermées` ⇒ toutes les voisines fermées sont des mines.
 - **Propagation itérative** : boucle jusqu'à stabilisation avec TO_PROCESS adaptatif + simulation d'états.
 - **Sorties** : actions sûres immédiates, mise à jour des zones (ACTIVE → SOLVED) et overlays `s41_propagator_solver_overlay/`.
-=======
-### 2.1 PatternEngine
-- Dictionnaire de motifs **3×3 / 5×5** (rotations/reflets compris).
-- Encodage en clé (base 16 / bitmask) pour lookup O(1).
-- Règles incontournables :
-  - `chiffre == nb_drapeaux` ⇒ ouvrir toutes les autres cases adjacentes.
-  - `chiffre == nb_drapeaux + nb_cases_fermées` ⇒ poser des drapeaux.
-  - Combinaisons classiques : 1-2-1, 2-1-1, 2-2-1, `edge` patterns, etc.
-- S'exécute en boucle tant que des actions sont trouvées sur les cellules **TO_PROCESS** de `unresolved_set`.
-
-### 2.2 LocalSolver
-- Pipeline :
-  1. Lit `unresolved_set` depuis storage et filtre les cellules (exclure celles résolues d'elles-mêmes).
-  2. Applique les motifs sur les cellules **TO_PROCESS**.
-  3. **Calcule `frontier_add/remove`** depuis les TO_PROCESS (propagation analytique).
-  4. Extrait les **composantes connexes** sur `frontier_set` (cases fermées + contraintes autour).
-  5. Si composante ≤ 15 variables → backtracking exact (SAT-like). Appliquer toutes les décisions communes.
-  6. Sinon → heuristique (probabilités locales contrôlées) ou fallback (CNN ponctuel) **optionnel mais non prioritaire**.
-- Doit produire pour chaque composante :
-  - Actions sûres (open/flag).
-  - Liste résiduelle (ambiguïté) pour actionplanner/heuristique.
-- Met à jour `unresolved_set` (UNRESOLVED→RESOLVED) et `frontier_set` (propagation analytique).
 
 ### 2.3 Subset Constraint Propagator (Phase 2 – raisonnement relationnel) - ✅ IMPLEMENTÉ
 - **s412_subset_constraint_propagator.py** : applique les règles d'inclusion stricte entre contraintes pour dépasser la monocellule sans lancer de CSP.
@@ -221,15 +198,13 @@ class SolverApi(Protocol):
 - Tests réels : grilles de `temp/games/` et frontières générées depuis `tests/set_screeshot/`.
 - Export JSON valide et conforme WebExtension.
 - Validation des transitions UNRESOLVED→TO_PROCESS→RESOLVED et de la propagation analytique.
-<<<<<<< HEAD
+
 - Profils limites CSP (observé) :
   - `<50` cases contiguës : CSP quasi instantané
   - `50–200` : toujours faisable
   - `200–500` : risque composante lourde, prévoir fallback / découpe
   - `>500` : abandonner CSP → probabilités ou heuristiques globales
 
-=======
->>>>>>> 6994b3d24f5fb7f44e30459aa1d30774113ee6e8
 
 ## 7. Références
 - `development/PLAN_SIMPLIFICATION radicale.md` – sections s4.

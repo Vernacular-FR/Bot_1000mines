@@ -1,6 +1,4 @@
 # 01 · Pipeline Capture → Solver → Pathfinder
-
-Ce document fusionne les anciennes sections capture/vision, storage/solver et actionplanner/action pour offrir une vue unique du pipeline s0 → s6.
 Ce document fusionne les anciennes sections capture/vision, storage/solver et actionplanner/action pour offrir une vue unique du pipeline s0 → s6.
 
 ## 🔍 CLARIFICATIONS ARCHITECTURALES
@@ -31,7 +29,6 @@ Décisions clés validées pour éviter toute ambiguïté :
 
 ### Flux de données principal
 ```
-s3(revealed + unresolved) ← s2(Vision) → s4(TO_PROCESS + actions) → s5(actions + frontière_anticipée) → s6(exécution + validation) → s2(confirmations) → s3(mise_à_jour_finale)
 s3(revealed + unresolved) ← s2(Vision) → s4(TO_PROCESS + actions) → s5(actions + frontière_anticipée) → s6(exécution + validation) → s2(confirmations) → s3(mise_à_jour_finale)
 ```
 
