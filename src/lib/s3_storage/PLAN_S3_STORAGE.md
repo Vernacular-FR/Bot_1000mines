@@ -17,6 +17,12 @@ Document de cadrage qui synthétise les exigences de `PLAN_SIMPLIFICATION radica
 - Garantir qu’aucune donnée n’est perdue : la grille globale reste exhaustive ; les sets stockent uniquement les coordonnées pour optimiser le traitement.
 - **Export JSON** pour compatibilité WebExtension (pas de formats binaires propriétaires, focus sur la zone visible + marge).
 - **Stockage passif** : Vision pousse revealed+`JUST_REVEALED`, Solver (s40 grid_analyzer) reclasse ACTIVE/FRONTIER/SOLVED en mémoire et calcule frontier_add/remove, storage ne fait que stocker.
+=======
+- Fournir les **structures nécessaires** à s4 (revealed_set, unresolved_set, frontier_set) pour le workflow solver.
+- Garantir qu’aucune donnée n’est perdue : la grille globale reste exhaustive ; les sets stockent uniquement les coordonnées pour optimiser le traitement.
+- **Export JSON** pour compatibilité WebExtension (pas de formats binaires propriétaires, focus sur la zone visible + marge).
+- **Stockage passif** : Vision pousse revealed+unresolved, Solver calcule frontier_add/remove, storage ne fait que stocker.
+>>>>>>> 6994b3d24f5fb7f44e30459aa1d30774113ee6e8
 - **Set revealed** : coordonnées des cellules déjà connues (optimisation Vision, évite re-scan).
 - **Set unresolved** : cellules révélées mais pas encore traitées par le solver (UNRESOLVED→TO_PROCESS→RESOLVED géré par solver).
 - **Set frontier** : cellules fermées adjacentes aux révélées (frontière analytique sur laquelle le solver travaille).
@@ -80,9 +86,13 @@ class StorageControllerApi(Protocol):
 
 ## 4. Flux de données (séquentiel)
 1. **Vision (s2)** → `StorageController.upsert(batch)` : applique toutes les révélations en une passe, met à jour `cells`, `revealed_add` et `unresolved_add` (pas de `frontier_add`).
+<<<<<<< HEAD
 2. **Solver (s4)** :
    - **s40 Grid Analyzer** consomme `get_unresolved()` + `get_frontier()`, reclasse JUST_REVEALED→ACTIVE/FRONTIER/SOLVED et construit `SolverFrontierView`/Segmentation sans relecture complète.
    - **s41 Pattern Solver** et **s42 CSP Solver** utilisent ces vues pour produire actions sûres et frontier_add/remove.
+=======
+2. **Solver (s4)** → `get_unresolved()` : récupère les cellules UNRESOLVED, applique filtre (exclure résolues d’elles-mêmes), puis motifs sur les TO_PROCESS.
+>>>>>>> 6994b3d24f5fb7f44e30459aa1d30774113ee6e8
 3. **Solver → Storage** : met à jour `unresolved_remove` (cellules traitées) et `frontier_add/remove` (propagation analytique calculée depuis les TO_PROCESS).
 4. **Solver → s5_actionplanner** : retourne actions brutes (clics/drapeaux) pour planification.
 5. **Action (s6)** : exécute séquentiellement, valide les mises à jour de frontière, puis déclenche nouvelle capture → retour à l'étape 1.
