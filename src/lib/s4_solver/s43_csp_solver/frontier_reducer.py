@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple
 
-from src.lib.s3_storage.facade import CellState, GridCell
+from src.lib.s3_storage.facade import GridCell, LogicalCellState
 
 Coord = Tuple[int, int]
 
@@ -26,7 +26,7 @@ class ConstraintReducer:
 
         numbered = {
             coord for coord, cell in self.cells.items()
-            if cell.state == CellState.OPEN_NUMBER and cell.value is not None
+            if cell.logical_state == LogicalCellState.OPEN_NUMBER and cell.number_value is not None
         }
         queue: List[Coord] = list(numbered)
         processed: Set[Coord] = set()
@@ -37,11 +37,11 @@ class ConstraintReducer:
                 continue
 
             cell = self.cells.get(coord)
-            if not cell or cell.state != CellState.OPEN_NUMBER or cell.value is None:
+            if not cell or cell.logical_state != LogicalCellState.OPEN_NUMBER or cell.number_value is None:
                 continue
 
             closed_neighbors, flagged_count = self._classify_neighbors(coord, flag_cells)
-            remaining = cell.value - flagged_count
+            remaining = cell.number_value - flagged_count
 
             if remaining < 0:
                 processed.add(coord)
@@ -80,9 +80,9 @@ class ConstraintReducer:
             cell = self.cells.get(nb)
             if not cell:
                 continue
-            if cell.state == CellState.FLAG or nb in inferred_flags:
+            if cell.logical_state == LogicalCellState.CONFIRMED_MINE or nb in inferred_flags:
                 flagged += 1
-            elif cell.state in {CellState.CLOSED, CellState.UNKNOWN}:
+            elif cell.logical_state == LogicalCellState.UNREVEALED:
                 closed.append(nb)
 
         return closed, flagged
@@ -91,7 +91,7 @@ class ConstraintReducer:
         numbers: List[Coord] = []
         for nb in self._neighbors(coord):
             cell = self.cells.get(nb)
-            if cell and cell.state == CellState.OPEN_NUMBER and cell.value is not None:
+            if cell and cell.logical_state == LogicalCellState.OPEN_NUMBER and cell.number_value is not None:
                 numbers.append(nb)
         return numbers
 

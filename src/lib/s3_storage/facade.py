@@ -9,6 +9,20 @@ Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
 
 
+class CellState(str, Enum):
+    """Legacy state enum (derived from logical/raw data)."""
+
+    UNKNOWN = "UNKNOWN"
+    CLOSED = "CLOSED"
+    OPEN_NUMBER = "OPEN_NUMBER"
+    OPEN_EMPTY = "OPEN_EMPTY"
+    FLAG = "FLAG"
+
+    @property
+    def is_revealed(self) -> bool:
+        return self in {CellState.OPEN_NUMBER, CellState.OPEN_EMPTY}
+
+
 class CellSource(str, Enum):
     """Origin of the latest information for a cell."""
 
@@ -79,6 +93,26 @@ class GridCell:
     @property
     def coord(self) -> Coord:
         return (self.x, self.y)
+
+    @property
+    def state(self) -> CellState:
+        if self.logical_state == LogicalCellState.OPEN_NUMBER:
+            return CellState.OPEN_NUMBER
+        if self.logical_state == LogicalCellState.EMPTY:
+            return CellState.OPEN_EMPTY
+        if self.logical_state == LogicalCellState.CONFIRMED_MINE:
+            return CellState.FLAG
+        if self.raw_state == RawCellState.QUESTION:
+            return CellState.UNKNOWN
+        return CellState.CLOSED
+
+    @property
+    def value(self) -> Optional[int]:
+        if self.logical_state == LogicalCellState.OPEN_NUMBER:
+            return self.number_value
+        if self.logical_state == LogicalCellState.EMPTY:
+            return 0
+        return None
 
 
 @dataclass

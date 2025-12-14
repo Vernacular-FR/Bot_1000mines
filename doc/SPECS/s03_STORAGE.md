@@ -18,6 +18,12 @@ Couche de stockage passive pour le bot Minesweeper, basée sur une grille sparse
 └─────────────────┘     └─────────────────┘    └─────────────────┘
 ```
 
+### 1.1.1 Interaction avec s4 (s40/s41/s42)
+- Vision pousse uniquement `revealed_add` + `unresolved_add` (statuts JUST_REVEALED).
+- `s40_grid_analyzer` relit `get_frontier()` + `get_cells()` pour calculer en mémoire les statuts ACTIVE/FRONTIER/SOLVED et construire `SolverFrontierView`.
+- `s41_propagator_solver` et `s42_csp_solver` consomment ces vues et renvoient un `StorageUpsert` avec `unresolved_remove`, `frontier_add/remove` et les `cells` mis à jour (solver_status/action_status).
+- Storage reste passif : aucune logique de classification ni de propagation n’est implémentée ici.
+
 ### 1.2 Composants
 - **GridStore** (`s31_grid_store.py`) : Dictionnaire sparse `{(x,y) → GridCell}`
 - **SetManager** (`s32_set_manager.py`) : Trois sets de coordonnées
@@ -82,10 +88,11 @@ class StorageControllerApi(Protocol):
 ## 3. Flux de données
 
 ### 3.1 Cycle typique
-1. **Vision → Storage** : `upsert()` avec `revealed_add` + `unresolved_add`
-2. **Solver → Storage** : `get_unresolved()` pour récupérer les cellules à traiter
-3. **Solver → Storage** : `upsert()` avec `unresolved_remove` + `frontier_add/remove`
-4. **Storage → Solver** : `get_frontier()` pour la prochaine itération
+1. **Vision → Storage** : `upsert()` avec `revealed_add` + `unresolved_add` (statuts JUST_REVEALED uniquement).
+2. **Solver (s40)** : `get_frontier()` + `get_cells(bounds)` pour bâtir `SolverFrontierView` et appliquer `grid_classifier`.
+3. **Solver (s41/s42)** : motifs + CSP sur les cellules actives/frontière, déduction des safe/flags.
+4. **Solver → Storage** : `upsert()` avec `unresolved_remove`, `frontier_add/remove`, `cells` mis à jour (stats solver/action).
+5. **Storage → Solver suivant** : `get_frontier()` répercute la nouvelle frontière analytique calculée par s4.
 
 ### 3.2 Séquence d'opérations
 ```

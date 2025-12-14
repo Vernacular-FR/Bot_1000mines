@@ -17,56 +17,82 @@ Document de travail qui synthétise les exigences du **PLAN DE SIMPLIFICATION RA
 ## 2. Découpage prévu
 ```
 s4_solver/
-├─ pattern_engine.py      # motifs déterministes
-├─ local_solver.py        # composantes + backtracking
-├─ frontier_analyzer.py   # extraction composantes, métriques
-├─ facade.py              # dataclasses & Protocols
-└─ debug/
-    ├─ overlay_renderer.py
-    └─ json_exporter.py
+├─ s40_grid_analyzer/          # snapshot grille + statuts + vues
+│   ├─ grid_classifier.py      # JUST_REVEALED → ACTIVE/FRONTIER/SOLVED
+│   └─ grid_extractor.py       # vues Frontier + segmentation pour solveurs
+├─ s41_propagator_solver/         # motifs déterministes (First Pass)
+│   └─ pattern_engine.py
+├─ s42_csp_solver/             # composantes + backtracking exact
+│   ├─ csp_solver.py
+│   └─ frontier_reducer.py
+├─ controller.py / facade.py   # orchestration & API publique
+└─ test_unitaire/              # pipelines debug + overlays
 ```
 
-### 2.1 PatternEngine
-- Dictionnaire de motifs **3×3 / 5×5** (rotations/reflets compris).
-- Encodage en clé (base 16 / bitmask) pour lookup O(1).
-- Règles incontournables :
-  - `chiffre == nb_drapeaux` ⇒ ouvrir toutes les autres cases adjacentes.
-  - `chiffre == nb_drapeaux + nb_cases_fermées` ⇒ poser des drapeaux.
-  - Combinaisons classiques : 1-2-1, 2-1-1, 2-2-1, `edge` patterns, etc.
-- S'exécute en boucle tant que des actions sont trouvées sur les cellules **TO_PROCESS** de `unresolved_set`.
+### 2.1 Étape 0 – Grid Analyzer (s40)
+- `grid_classifier` applique la logique JUST_REVEALED → ACTIVE/FRONTIER/SOLVED en mémoire, sans relecture complète de storage.
+- `grid_extractor` construit `SolverFrontierView`, Segmentation et toutes les structures consommées par les solveurs.
+- Aucun solver_status n’est calculé ailleurs : c’est le point d’entrée unique pour préparer la frontière, les TO_PROCESS et les vues utilisées par s41/s42.
 
-### 2.2 First Pass Optimization (Pattern Matching + TO_PROCESS)
-**Objectif** : Résoudre 80-90% des cas avec règles déterministes rapides avant CSP coûteux.
+### 2.2 Frontière Reducer (Phase 1 – règles locales) - ✅ IMPLEMENTÉ
+- **s411_frontiere_reducer.py** : propagation déterministe basée sur les valeurs effectives (niveau monocellulaire).
+- **Règles locales implémentées** :
+  - `effective_value == 0` ⇒ toutes les voisines fermées sont sûres.
+  - `effective_value == nb_fermées` ⇒ toutes les voisines fermées sont des mines.
+- **Propagation itérative** : boucle jusqu'à stabilisation avec TO_PROCESS adaptatif + simulation d'états.
+- **Sorties** : actions sûres immédiates, mise à jour des zones (ACTIVE → SOLVED) et overlays `s41_propagator_solver_overlay/`.
+
+### 2.3 Subset Constraint Propagator (Phase 2 – raisonnement relationnel) - ✅ IMPLEMENTÉ
+- **s412_subset_constraint_propagator.py** : applique les règles d'inclusion stricte entre contraintes pour dépasser la monocellule sans lancer de CSP.
+- **Représentation canonique** : `Constraint(vars=frozenset(voisins fermés), count=effective_value)`.
+- **Boucle** :
+  1. Génération des contraintes à partir de la frontière déjà réduite.
+  2. Indexation par cellule/|vars| pour ne comparer que les contraintes chevauchantes.
+  3. Règle `C1 ⊆ C2` ⇒ `Cdiff = C2 - C1`, avec application immédiate des unités (SAFE/MINE).
+  4. Nettoyage des actifs résolus et réexécution jusqu'à stabilité.
+- **Objectif** : absorber automatiquement les motifs 121/212/coins sans duplication de logique avec la phase 1.
+
+### 2.4 Propagator Pipeline (Phases 1→3) - ✅ IMPLEMENTÉ
+- **s410_propagator_pipeline.py** : agrège `s411_frontiere_reducer`, `s412_subset_constraint_propagator`, `s413_advanced_constraint_engine` et renvoie `PropagatorPipelineResult`.
+- **Flux** :
+  1. Phase 1 – règles locales (IterativePropagator).
+  2. Phase 2 – subset inclusion (SubsetConstraintPropagator).
+  3. Phase 3 – pairwise/advanced (AdvancedConstraintEngine).
+- **Sorties** : `safe_cells`, `flag_cells`, `progress_cells()` pour informer la couche CSP.
+
+### 2.5 Advanced Constraint Propagator (Phase 3 – unions partielles & pairwise elimination) - ✅ IMPLEMENTÉ
+- **s413_advanced_constraint_engine.py** : exploite les intersections partielles entre contraintes pour pousser la propagation avant CSP.
+- **Fonctionnalités clés** :
+  - Pairwise elimination : calcul des bornes `common_min/common_max` sur `C1 ∩ C2`, forçage des parties communes/exclusives lorsque les bornes coïncident.
+  - Inclusion partielle bornée : compare `C_small` avec `C_large ∪ C_extra` (|vars| ≤ 6) via un index inversé pour ne traiter que les contraintes chevauchantes.
+  - Génération d’actions SAFE/FLAG supplémentaires, réinjection des contraintes réduites dans la boucle.
+- **Intégration** : appelée après la phase subset, partage `simulated_states` et `Constraint` dataclass pour éviter les copies.
+- **Logs** : traçabilité explicite (`Pairwise common`, `Pairwise only1`, etc.) pour comprendre les déductions avant CSP.
+
+### 2.5 First Pass Optimization (Pattern Matching + TO_PROCESS) - ✅ IMPLEMENTÉ
+**Objectif atteint** : Résolution déterministe rapide avant CSP coûteux.
 
 - **Pipeline TO_PROCESS optimisé** :
-  1. **Batching adaptatif** : Découper les révélations massives en batches 20×20/50×50
-  2. **Pré-calcul local** : `neighbors + flags_count` stockés temporairement pour chaque TO_PROCESS
-  3. **Règles simples** : `mines_non_assignées == 0 → sûrs`, `== nb_voisins → mines`
-  4. **Pattern matching** : Lookup tables bitmask 3×3 pour motifs 212, 121, 221, etc.
-  5. **Early exit propagation** : RESOLVED immédiat + ajout voisins à TO_PROCESS
+  1. **Classification s40** : `FrontierClassifier` → ACTIVE/FRONTIER/SOLVED
+  2. **Pré-calcul local** : `neighbors_cache` + `simulated_states` pour efficacité
+  3. **Règles effectives** : Valeurs normalisées (nombre - mines confirmées)
+  4. **Propagation itérative** : Mise à jour automatique de TO_PROCESS entre itérations
+  5. **Early exit** : Arrêt dès stabilisation (pas de changements)
 - **Optimisations mémoire** :
   - TO_PROCESS = set (O(1) lookup)
-  - Precomputed neighbors dans CellData.metadata ou cache temporaire
-  - Motifs codés en bitmasks pour matching quasi-instantané
-- **Intégration storage** : Lecture via `get_unresolved()`, écriture via `unresolved_remove` + `frontier_add/remove`
+  - Voisins pré-calculés dans `neighbors_cache`
+  - États simulés dans `simulated_states` dict
+- **Intégration overlays** : Export PNG pour visualisation des décisions
 
-### 2.3 LocalSolver (CSP + Probabilités) - Second Pass
-**Déclenchement** : Uniquement sur les cas ambigus après first pass.
+### 2.5 CSP Manager (segmentation + stabilité + CSP) – Second Pass (s43)
+- **csp_manager.py** :
+  1. **Segmentation** (via `SolverFrontierView`).
+  2. **StabilityEvaluator** (`s43_stability_evaluator.py`) pour compter les cycles `no_progress`.
+  3. **CSPSolver** sur les composantes stables (≤ `LIMIT_ENUM`).
+  4. **Probabilités par zone** (mise à jour `zone_probabilities`, `safe_cells`, `flag_cells`).
+- **Intégration** : HybridSolver appelle d’abord `PropagatorPipeline`, puis `CspManager` seulement si aucune action locale n’est trouvée.
 
-- Pipeline éprouvé (backup) :
-  1. **Segmentation** : Grouper les cellules `frontier_set` par signature de contraintes identiques
-  2. **Composantes** : Union-Find sur les zones partageant des contraintes
-  3. **CSP Solver** : Résoudre chaque composante indépendamment
-  4. **Probabilités** : Moyenne pondérée des solutions par composante
-- **Algorithmes éprouvés** :
-  - **Zone creation** : `signature = tuple(sorted(constraints))` → groupement O(n)
-  - **Union-Find** : Connexité des zones via contraintes partagées
-  - **Probabilité par zone** : `P(cell) = E[mines] / |zone|` avec pondération des solutions
-- **Actions sûres** : Zones avec P < 0.000001 (0%) ou P > 0.999999 (100%)
-- **Best guess** : Zone avec probabilité minimale > 0 (si aucune action sûre)
-- Intégration storage passif : Lecture via `get_frontier()` + `get_cells()`, écriture via `frontier_add/remove`
-
-### 2.4 Constraint Engine (méthode générique @stratégiers L374-L693)
+### 2.6 Constraint Engine (méthode générique @stratégiers L374-L693)
 - **Valeurs effectives** : `effective_value = shown_value - confirmed_mines` (motifs normalisés, cf. L236-L363)
 - **Inference loop** :
   1. Construire `constraints = (vars_set, b_effective)` pour chaque case ouverte
@@ -84,7 +110,29 @@ s4_solver/
   - Actions (safe/flag) + metadata zone probability
   - Cache temporaire (neighbors, flags_count) invalidé dès fin d'itération
 
-### 2.3 Debug
+### 2.7 Critères de déclenchement CSP (stabilité & composantes)
+- **Boucle locale** : les phases 1→3 tournent à chaque itération. Tant qu’une phase produit de nouvelles actions (safe/flag) ou modifie des `effective_value`, on continue la propagation sans CSP.
+- **Fixpoint global** : `any_change == False` après Phase 3 ⇒ le graphe de contraintes est stable → éligible CSP.
+- **Stabilité par composante** :
+  - Chaque composante `C` maintient `no_progress_cycles`.
+  - Si `C` n’a subi aucun changement pendant une itération, `no_progress_cycles += 1`, sinon reset à 0.
+  - `C` est éligible CSP si `no_progress_cycles >= 1` (ou 2 pour marge) **et** si `C.is_locally_closed` (toutes ses contraintes portent sur ses propres inconnues).
+  - CSP appliqué uniquement sur les composantes stables de taille ≤ `LIMIT_ENUM` (18–20 cases).
+- **Boucle recommandée** :
+  ```text
+  loop:
+      propagate_phase1()
+      propagate_phase2()
+      propagate_phase3()
+      if any_change: continue
+
+      for comp in frontier_components:
+          if comp.is_stable() and comp.size <= LIMIT_ENUM:
+              run_CSP(comp)
+  ```
+- **Objectif** : réserver le CSP aux “résidus logiques” pour éviter les coûts inutiles et garantir que le solveur exact travaille sur des snapshots cohérents.
+
+### 2.8 Debug
 - `overlay_renderer.py` : génération PNG pour visualiser les décisions solver (cases colorées).
 - `json_exporter.py` : dump des composantes + décisions, utile pour tests.
 

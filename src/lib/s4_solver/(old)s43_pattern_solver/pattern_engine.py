@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Set, Tuple
 from dataclasses import dataclass
 
-from src.lib.s3_storage.facade import CellState, GridCell
+from src.lib.s3_storage.facade import GridCell, LogicalCellState
 
 
 @dataclass
@@ -24,7 +24,7 @@ class PatternEngine:
         self.cells = cells
         self.numbered_cells = [
             coord for coord, cell in cells.items() 
-            if cell.state == CellState.OPEN_NUMBER and cell.value is not None
+            if cell.logical_state == LogicalCellState.OPEN_NUMBER and cell.number_value is not None
         ]
 
     def solve_patterns(self) -> PatternResult:
@@ -81,17 +81,17 @@ class PatternEngine:
         """
         x, y = coord
         cell = self.cells[coord]
-        if cell.value != 1:
+        if cell.number_value != 1:
             return PatternResult(set(), set(), "")
 
         neighbors = self._get_neighbors(x, y)
         unknown_neighbors = [
             (nx, ny) for nx, ny in neighbors 
-            if self.cells[(nx, ny)].state == CellState.CLOSED
+            if self.cells[(nx, ny)].logical_state == LogicalCellState.UNREVEALED
         ]
         flag_neighbors = [
             (nx, ny) for nx, ny in neighbors 
-            if self.cells[(nx, ny)].state == CellState.FLAG
+            if self.cells[(nx, ny)].logical_state == LogicalCellState.CONFIRMED_MINE
         ]
 
         if len(unknown_neighbors) == 2 and len(flag_neighbors) == 1:
@@ -109,26 +109,26 @@ class PatternEngine:
         """
         x, y = coord
         cell = self.cells[coord]
-        if cell.value != 1:
+        if cell.number_value != 1:
             return PatternResult(set(), set(), "")
 
         # Chercher un 2 adjacent
         neighbors = self._get_neighbors(x, y)
         for nx, ny in neighbors:
             neighbor_cell = self.cells[(nx, ny)]
-            if neighbor_cell.state == CellState.OPEN_NUMBER and neighbor_cell.value == 2:
+            if neighbor_cell.logical_state == LogicalCellState.OPEN_NUMBER and neighbor_cell.number_value == 2:
                 # Vérifier la configuration 1-2-1
                 two_neighbors = self._get_neighbors(nx, ny)
                 two_unknowns = [
                     (tx, ty) for tx, ty in two_neighbors 
-                    if self.cells[(tx, ty)].state == CellState.CLOSED
+                    if self.cells[(tx, ty)].logical_state == LogicalCellState.UNREVEALED
                 ]
                 
                 if len(two_unknowns) == 2:
                     # Le 1 partage-t-il un inconnu avec le 2?
                     one_unknowns = [
                         (ox, oy) for ox, oy in neighbors 
-                        if self.cells[(ox, oy)].state == CellState.CLOSED
+                        if self.cells[(ox, oy)].logical_state == LogicalCellState.UNREVEALED
                     ]
                     shared = set(one_unknowns) & set(two_unknowns)
                     
@@ -146,26 +146,26 @@ class PatternEngine:
         """
         x, y = coord
         cell = self.cells[coord]
-        if cell.value != 1:
+        if cell.number_value != 1:
             return PatternResult(set(), set(), "")
 
         # Chercher un 2 adjacent
         neighbors = self._get_neighbors(x, y)
         for nx, ny in neighbors:
             neighbor_cell = self.cells[(nx, ny)]
-            if neighbor_cell.state == CellState.OPEN_NUMBER and neighbor_cell.value == 2:
+            if neighbor_cell.logical_state == LogicalCellState.OPEN_NUMBER and neighbor_cell.number_value == 2:
                 # Vérifier la configuration
                 two_neighbors = self._get_neighbors(nx, ny)
                 two_unknowns = [
                     (tx, ty) for tx, ty in two_neighbors 
-                    if self.cells[(tx, ty)].state == CellState.CLOSED
+                    if self.cells[(tx, ty)].logical_state == LogicalCellState.UNREVEALED
                 ]
                 
                 if len(two_unknowns) == 2:
                     # Le 1 partage-t-il un inconnu avec le 2?
                     one_unknowns = [
                         (ox, oy) for ox, oy in neighbors 
-                        if self.cells[(ox, oy)].state == CellState.CLOSED
+                        if self.cells[(ox, oy)].logical_state == LogicalCellState.UNREVEALED
                     ]
                     shared = set(one_unknowns) & set(two_unknowns)
                     

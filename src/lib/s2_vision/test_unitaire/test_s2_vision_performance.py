@@ -21,7 +21,7 @@ from src.lib.s2_vision.facade import (  # noqa  # pylint: disable=wrong-import-p
     VisionControllerConfig,
 )
 
-SCREENSET_DIR = Path(__file__).resolve().parent / "00_raw_grid"
+SCREENSET_DIR = Path(__file__).resolve().parent / "00_raw_grids"
 
 
 class VisionPerformanceTest(unittest.TestCase):

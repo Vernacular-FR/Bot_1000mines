@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Set, Tuple
 
-from src.lib.s3_storage.facade import CellState, GridCell, Coord
+from src.lib.s3_storage.facade import (
+    GridCell,
+    Coord,
+    LogicalCellState,
+    RawCellState,
+)
 
-from .csp_solver import GridAnalyzerProtocol
-from .segmentation import FrontierViewProtocol
+from src.lib.s4_solver.s43_csp_solver.csp_solver import GridAnalyzerProtocol
+from src.lib.s4_solver.s43_csp_solver.segmentation import FrontierViewProtocol
 
 Neighbor = Tuple[int, int]
 
@@ -33,7 +38,8 @@ class SolverFrontierView(FrontierViewProtocol, GridAnalyzerProtocol):
             cell = self._cells.get((nx, ny))
             if not cell:
                 continue
-            if cell.state in {CellState.OPEN_NUMBER, CellState.OPEN_EMPTY} and cell.value is not None:
+            # Use logical_state for more precise filtering
+            if cell.logical_state == LogicalCellState.OPEN_NUMBER and cell.number_value is not None:
                 constraints.append((nx, ny))
         return constraints
 
@@ -42,11 +48,11 @@ class SolverFrontierView(FrontierViewProtocol, GridAnalyzerProtocol):
         cell = self._cells.get((x, y))
         if cell is None:
             return None
-        if cell.state == CellState.FLAG:
+        if cell.logical_state == LogicalCellState.CONFIRMED_MINE:
             return self.FLAG
-        if cell.state in {CellState.OPEN_NUMBER, CellState.OPEN_EMPTY}:
-            return cell.value if cell.value is not None else 0
-        if cell.state == CellState.UNKNOWN or cell.state == CellState.CLOSED:
+        if cell.logical_state in {LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY}:
+            return cell.number_value if cell.number_value is not None else 0
+        if cell.raw_state in {RawCellState.UNREVEALED, RawCellState.QUESTION}:
             return self.UNKNOWN
         return None
 

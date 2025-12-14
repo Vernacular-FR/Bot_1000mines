@@ -17,10 +17,12 @@ Décisions clés validées pour éviter toute ambiguïté :
 - **Export JSON** obligatoire pour compatibilité WebExtension (pas de formats binaires propriétaires).
 
 ### Solver (s4)  
-- **Auto-calcul des composantes** : le solver extrait lui-même les composantes connexes depuis la FrontierSlice (pas de pré-groupage).
-- **Actions uniquement** : s4 retourne seulement les actions (clics/drapeaux) à s5, PAS de mise à jour de frontière.
-- **Lecture seule** : le solver accède en lecture à la frontière mais ne la modifie jamais.
-- **Centralise solver_status** : gère UNRESOLVED→TO_PROCESS→RESOLVED, frontière = TO_PROCESS uniquement.
+- **Étape 0 – Grid Analyzer (s40)** : Vision fournit les cellules `JUST_REVEALED`; cette étape en mémoire (grid_classifier + grid_extractor) reclasse ACTIVE/FRONTIER/SOLVED et construit les vues Frontier/Segmentation pour les solveurs.
+- **First Pass – Pattern Solver (s41)** : motifs déterministes (3×3 / 5×5) appliqués sur les cellules TO_PROCESS pour générer un maximum d’actions sûres rapidement.
+- **Second Pass – CSP Solver (s42)** : segmentation de la frontière en composantes, backtracking exact ≤15 variables, probabilités pondérées sinon.
+- **Actions uniquement** : s4 retourne seulement les actions (clics/drapeaux) à s5, PAS de mise à jour directe de la frontière.
+- **Lecture seule** : le solver consomme FrontierSlice + cells mais ne modifie storage qu’à travers les StorageUpserts calculés après exécution (frontier_add/remove).
+- **Centralise solver_status** : gère UNRESOLVED→TO_PROCESS→RESOLVED, la frontière reflète les cellules encore à traiter.
 
 ### Flux de données principal
 ```
@@ -83,12 +85,11 @@ PNG bytes ─▶ CenterTemplateMatcher (zone 10×10, ordre prioritaire) ─▶ G
 - Mise à jour : s3 reçoit les confirmations de s2 après exécution par s6, pas de double mise à jour depuis s4.
 - *Implémentation complète : voir `doc/SPECS/s03_STORAGE.md`*
 
-## 6. s4 Solver – Motifs déterministes + solveur exact local
-- Bibliothèque de motifs 3×3/5×5 (rotations/reflets) encodés en base 16 → lookup O(1).
-- Propagation classique : si chiffre == nb de drapeaux, ouvre toutes les autres cases adjacentes.
-- Extraction de composantes frontier (groupe contraintes/variables) → backtracking SAT-like sur ≤15 variables (pruning min/max).
-- Au-delà : heuristique (Monte-Carlo contraint ou mini-CNN probabiliste local).
-- Sortie : `ActionBatch` (flags, open sûrs) + zones d’intérêt pour actionplanner.
+## 6. s4 Solver – Grid Analyzer + motifs + CSP
+- **s40 Grid Analyzer** : consomme le snapshot StorageUpsert pour produire les statuts (JUST_REVEALED → ACTIVE/FRONTIER/SOLVED) et les vues Frontier/Segmentation utilisées partout.
+- **s41 Pattern Solver** : bibliothèque de motifs 3×3/5×5 encodés en base 16 (lookup O(1)), propagation des cas trivialement sûrs (`== nb_drapeaux`, `== nb_drapeaux + nb_cases_fermées`, 1-2-1, etc.).
+- **s42 CSP Solver** : extraction des composantes frontier, backtracking exact (≤15 variables) + probabilités pondérées sinon. Produit les safe/flags restants + meilleur guess.
+- Sortie : `ActionBatch` (flags, open sûrs/guess) + metadata zone pour pathfinder/action.
 
 ## 7. s5 Pathfinder – Heatmap & trajets multi-étapes
 - Entrées : coordonnées frontière (set), archive pour zones hors écran, état viewport, batch d’actions solver.

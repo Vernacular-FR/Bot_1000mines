@@ -10,7 +10,7 @@ from src.services.s2_vision_analysis_service import VisionAnalysisService
 from src.services.s1_session_setup_service import SessionSetupService
 from src.lib.s3_storage.controller import StorageController
 from src.lib.s4_solver.controller import SolverController
-from src.lib.s4_solver.vision_to_storage import matches_to_upsert, render_solver_overlay
+from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert, render_solver_overlay
 
 
 class Minesweeper1000Bot:

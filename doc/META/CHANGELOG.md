@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Solver – 2025-12-13
+- **Refonte s4** : séparation complète des responsabilités en trois sous-modules.
+  - `s40_grid_analyzer/` regroupe désormais la classification JUST_REVEALED→ACTIVE/FRONTIER/SOLVED (`grid_classifier.py`) et l'exposition des vues (`grid_extractor.py`).
+  - `s41_propagator_solver/` concentre le moteur de motifs déterministes (`pattern_engine.py`).
+  - `s42_csp_solver/` héberge la segmentation, le backtracking exact (`csp_solver.py`) et la réduction contrainte (`frontier_reducer.py`).
+- **Tests unitaire** : `00_run_zone_overlay.py` consomme le `FrontierClassifier` du Grid Analyzer pour produire les overlays ACTIVE/FRONTIER/SOLVED, garantissant que toute la logique de statut est centralisée.
+- **Docs synchronisées** : `PLAN_S4_SOLVER.md`, `doc/PIPELINE.md`, `PLAN_SIMPLIFICATION radicale.md`, `SYNTHESE_pipeline_refonte.md`, `PLAN_S3_STORAGE.md` reflètent cette architecture (étape 0 → motifs → CSP).
+
 ### Changed
 - **Capture Canvas** : Refactor complet de la composition / capture brute.
   - `ZoneCaptureService` orchestre désormais les captures multi-canvases (`capture_canvas_tiles`) et délègue l'assemblage aligné aux modules `lib/s1_capture`.

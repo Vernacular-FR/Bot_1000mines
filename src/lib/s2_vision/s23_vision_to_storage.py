@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -7,7 +8,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 from src.config import CELL_BORDER, CELL_SIZE
 from src.lib.s2_vision.s21_template_matcher import MatchResult
-from src.lib.s3_storage.facade import CellState, GridCell, StorageUpsert
+from src.lib.s3_storage.facade import (
+    GridCell,
+    StorageUpsert,
+    RawCellState,
+    LogicalCellState,
+    SolverStatus,
+    ActionStatus,
+)
 from src.lib.s4_solver.facade import SolverAction, SolverActionType
 
 Coord = Tuple[int, int]
@@ -31,20 +39,26 @@ def _neighbors(coord: Coord) -> Iterable[Coord]:
             yield x + dx, y + dy
 
 
-def _symbol_to_state(symbol: str) -> Tuple[CellState, Optional[int]]:
+def _symbol_to_states(symbol: str) -> Tuple[RawCellState, LogicalCellState, Optional[int]]:
     if symbol.startswith("number_"):
         try:
             value = int(symbol.split("_", maxsplit=1)[1])
         except ValueError:
             value = None
-        return CellState.OPEN_NUMBER, value
+        if value in range(1, 9):
+            return RawCellState[f"NUMBER_{value}"], LogicalCellState.OPEN_NUMBER, value
+        return RawCellState.UNREVEALED, LogicalCellState.UNREVEALED, None
     if symbol == "empty":
-        return CellState.OPEN_EMPTY, 0
+        return RawCellState.EMPTY, LogicalCellState.EMPTY, None
     if symbol == "flag":
-        return CellState.FLAG, None
+        return RawCellState.FLAG, LogicalCellState.CONFIRMED_MINE, None
     if symbol == "exploded":
-        return CellState.FLAG, None  # Exploded mines count as confirmed mines
-    return CellState.CLOSED, None
+        return RawCellState.EXPLODED, LogicalCellState.CONFIRMED_MINE, None
+    if symbol == "question":
+        return RawCellState.QUESTION, LogicalCellState.UNREVEALED, None
+    if symbol == "decor":
+        return RawCellState.DECOR, LogicalCellState.EMPTY, None
+    return RawCellState.UNREVEALED, LogicalCellState.UNREVEALED, None
 
 
 def matches_to_upsert(
@@ -55,25 +69,47 @@ def matches_to_upsert(
 
     cells: Dict[Coord, GridCell] = {}
     revealed: set[Coord] = set()
-    closed: set[Coord] = set()
-    
+    unrevealed: set[Coord] = set()
+
     for (row, col), match in matches.items():
         x = start_x + col
         y = start_y + row
-        state, value = _symbol_to_state(match.symbol)
-        cell = GridCell(x=x, y=y, state=state, value=value)
+        raw_state, logical_state, number_value = _symbol_to_states(match.symbol)
+
+        if logical_state == LogicalCellState.OPEN_NUMBER:
+            solver_status = SolverStatus.JUST_REVEALED
+        elif logical_state == LogicalCellState.EMPTY:
+            solver_status = SolverStatus.JUST_REVEALED
+        elif logical_state == LogicalCellState.CONFIRMED_MINE:
+            solver_status = SolverStatus.SOLVED
+        else:
+            solver_status = SolverStatus.NONE
+
+        cell = GridCell(
+            x=x,
+            y=y,
+            raw_state=raw_state,
+            logical_state=logical_state,
+            number_value=number_value,
+            solver_status=solver_status,
+        )
         cells[(x, y)] = cell
-        if state in (CellState.OPEN_NUMBER, CellState.OPEN_EMPTY):
+        if logical_state in (LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY):
             revealed.add((x, y))
-        elif state == CellState.CLOSED:  # Only CLOSED cells, not FLAG or UNKNOWN
-            closed.add((x, y))
-        # FLAG cells are NOT added to either revealed or closed - they're confirmed mines
+        elif logical_state == LogicalCellState.UNREVEALED:
+            unrevealed.add((x, y))
 
     frontier: set[Coord] = set()
     for coord in revealed:
         for nb in _neighbors(coord):
-            if nb in closed:
+            if nb in unrevealed:
                 frontier.add(nb)
+
+    # Mettre à jour les solver_status pour les cellules de frontière
+    for coord in frontier:
+        cell = cells.get(coord)
+        if cell:
+            cells[coord] = replace(cell, solver_status=SolverStatus.FRONTIER)
 
     return StorageUpsert(
         cells=cells,
