@@ -28,6 +28,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
   - `s422_segmentation.py` : partition de la frontière en zones/composantes.
   - `s424_csp_solver.py` : backtracking exact (≤15 variables) + calcul de probabilités pondérées (best guess sinon).
   - `s421_frontiere_reducer.py` : réduction déterministe avant segmentation/CSP.
+  - `s423_range_filter.py` : filtrage des composantes par taille (`max_component_size=500`).
 
 ### 1.3 Façade & orchestrateurs
 - `controller.py` : récupère `FrontierSlice` + `cells` via StorageController, instancie `OptimizedSolver`, renvoie `SolverAction`.
@@ -37,21 +38,36 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
 ## 2. Flux de données
 
 ### 2.1 Cycle typique
-1. **Storage** fournit `frontier_slice`, `cells` (bounds) et `unresolved_set`.
-2. **s40 Grid Analyzer** reclasse les `GridCell` (JUST_REVEALED→ACTIVE/FRONTIER/SOLVED) et construit `SolverFrontierView`.
-3. **ConstraintReducer** (s42) détecte immédiatement les safe/flag via contraintes locales.
-4. **Segmentation + CSP** (s42) résolvent les composantes restantes, calculent les probabilités de mines par zone.
-5. **OptimizedSolver** agrège reducer + CSP (et, à terme, PatternEngine si réintroduit) et expose safe/flags + best guess.
-6. **Controller** convertit ces résultats en `SolverAction` (CLICK/FLAG/GUESS) et met à jour storage via `StorageUpsert` (`frontier_add/remove`, `unresolved_remove`, `cells` à jour pour solver_status/action_status).
+1. **Storage** fournit :
+   - `cells` (bounds)
+   - `active_set`
+   - `frontier_set`
+   - `ZoneDB` (index dérivé par `zone_id` + contraintes) et, en pratique, une vue dérivée `frontier_to_process` = union des cellules FRONTIER dont `FrontierRelevance == TO_PROCESS` (homogène par zone)
+2. **s40 Grid Analyzer** (si utilisé) reclasse les `GridCell` (JUST_REVEALED→ACTIVE/FRONTIER/SOLVED) et construit `SolverFrontierView`.
+3. **OptimizedSolver** choisit la phase :
+   - boucle click-based sur ACTIVE (mode “dumb”)
+   - ou CSP sur la frontière marquée `TO_PROCESS`
+4. **ConstraintReducer** (s42) détecte immédiatement les safe/flag via contraintes locales.
+5. **Segmentation + CSP** (s42) résolvent les composantes restantes.
+   - Les **zones** sont persistées côté storage.
+   - Les **components** sont éphémères (reconstruits au moment de la résolution).
+6. **Controller** publie :
+   - les décisions solver (SAFE/FLAG/GUESS) sous forme d’actions
+   - un `StorageUpsert` qui met à jour :
+     - `cells` (metadata solver)
+     - `active_add/remove`, `frontier_add/remove`
+     - `zone_upsert/zone_remove`
 
 ### 2.2 StorageUpsert émis par le solver
 ```python
 StorageUpsert(
     cells={coord: GridCell(..., solver_status=SolverStatus.SOLVED, action_status=ActionStatus.SAFE)},
-    unresolved_remove={...},          # cellules traitées
-    frontier_add={...}, frontier_remove={...}  # propagation analytique
+    active_add={...}, active_remove={...},
+    frontier_add={...}, frontier_remove={...}
 )
 ```
+
+Note : la mise à jour ZoneDB est batchée dans le même `StorageUpsert` (zones upsert/remove).
 
 ## 3. Interfaces clés
 
@@ -77,26 +93,32 @@ Retourne `PatternResult` :
 - `get_safe_cells()`, `get_flag_cells()` : agrègent reducer + CSP.
 - `get_best_guess()` : première cellule avec probabilité minimale > 0 (si aucune action sûre).
 
-## 4. Tests & outils debug
-
-- `test_unitaire/00_run_zone_overlay.py` : Vision → Grid Analyzer → Overlay ACTIVE/FRONTIER/SOLVED. Vérifie que la classification est centralisée dans `FrontierClassifier`.
-- `test_unitaire/02_run_solver_on_screenshots.py` : pipeline complet (vision → storage → solver) sur screenshots locaux. Produit overlays (segmentation/pattern/CSP) et logs motif/CSP.
-- Dossier `test_unitaire/vision_overlays`, `s40_zones_overllays`, `solver_overlays` : résultats visuels pour audit rapide.
-
 ## 5. Règles & invariants
 
-1. **Lecture seule storage** : s4 lit `frontier_set`, `unresolved_set`, `cells` mais ne modifie pas directement les sets. Les modifications passent via `StorageUpsert`.
+1. **Lecture seule storage** : s4 lit `active_set`, `frontier_set`, `cells` mais ne modifie pas directement les sets. Les modifications passent via `StorageUpsert`.
+
 2. **Classifier unique** : toute logique JUST_REVEALED→ACTIVE/FRONTIER/SOLVED doit résider dans `grid_classifier`. Les scripts/tests doivent l’utiliser (pas de duplication).
+
 3. **Motifs avant CSP** : PatternEngine tourne tant que des actions sont trouvées pour maximiser le coverage sans coût exponentiel.
+
 4. **CSP borné** : backtracking autorisé jusqu’à 15 variables par composante (`LIMIT_ENUM`), sinon fallback probabiliste.
+
 5. **Probabilités pondérées** : `zone_probabilities` = espérance (poids combinatoires). `best_guess` doit toujours refléter la probabilité la plus faible (>0).
+
 6. **Threading contrôlé** (`02_run_solver_on_screenshots.py`) : solver exécuté dans un thread avec timeout (15s) pour éviter les blocages lors des tests.
+
+7. **ZoneDB comme vérité de traitement CSP** :
+   - une zone `BLOCKED` ne repasse pas au CSP tant que sa signature / son contenu ne change pas
+   - toute zone impactée par une mise à jour (changement de `zone_id`, changement de contraintes) repasse `TO_PROCESS`
 
 ## 6. Performances cibles
 
 - **Pattern Engine** : <5 ms par frontière (lookup O(1)).
+
 - **CSP** : <50 ms pour composantes ≤15 variables ; fallback probabiliste si plus large.
+
 - **Classifier** : O(n) sur les cellules du batch, n ≪ grille complète (juste zone visible).
+
 - **Overlays runtime** : générés par `GameSolverServiceV2.solve_from_analysis_to_solver` avec chemins explicites `temp/games/{id}/s4_solver/` :
   - `s40_states_overlays` (zones pré-CSP via `FrontierClassifier`)
   - `s42_segmentation_overlay` (segmentation CSP)
@@ -112,7 +134,7 @@ Retourne `PatternResult` :
 
 ---
 
-*s4_solver reste strictement stateless entre deux résolutions : il consomme un snapshot storage, produit un StorageUpsert + ActionBatch, puis attend la prochaine capture Vision.* 
+*s4_solver reste stateless : il consomme un snapshot storage, produit un StorageUpsert + ActionBatch, puis attend la prochaine capture Vision. La mémoire inter-itérations (zones CSP + relevance) vit dans s3 via ZoneDB.*
 
 ---
 

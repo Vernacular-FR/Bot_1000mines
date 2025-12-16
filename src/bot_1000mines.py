@@ -17,8 +17,15 @@ class Minesweeper1000Bot:
         # La fermeture effective est pilotée par le script principal (main/loop).
         self.session_service.auto_close_browser = False
 
-    def run_minimal_pipeline(self, difficulty: str | None = None, overlay_enabled: bool = False) -> bool:
-        """Pipeline debug : une seule itération complète via GameLoopService (actions exécutées)."""
+    def run_minimal_pipeline(
+        self,
+        difficulty: str | None = None,
+        *,
+        overlay_enabled: bool = False,
+        max_iterations: int = 500,
+        delay_between_iterations: float = 0.2,
+    ) -> bool:
+        """Pipeline principal : boucle via GameLoopService jusqu'à fin de partie (ou max_iterations)."""
         init = self.session_service.setup_session(difficulty)
         if not init.get("success"):
             print(f"[SESSION] Échec init: {init.get('message')}")
@@ -26,16 +33,18 @@ class Minesweeper1000Bot:
 
         loop = GameLoopService(
             session_service=self.session_service,
-            max_iterations=1,
+            max_iterations=max_iterations,
             iteration_timeout=60.0,
-            delay_between_iterations=0.0,
+            delay_between_iterations=delay_between_iterations,
             overlay_enabled=overlay_enabled,
             execute_actions=True,
         )
-        pass_result = loop.execute_single_pass()
-        print(f"[PASS] success={pass_result['success']} msg={pass_result['message']} actions_executed={pass_result['actions_executed']}")
-
-        return bool(pass_result.get("success"))
+        result = loop.play_game()
+        print(
+            f"[GAME] success={result.success} final_state={getattr(result.final_state, 'value', result.final_state)} "
+            f"iterations={result.iterations} actions_executed={result.actions_executed}"
+        )
+        return bool(result.success)
 
     def cleanup(self) -> None:
         """Ferme proprement la session/navigateur (demande Entrée)."""

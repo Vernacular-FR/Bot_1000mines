@@ -279,13 +279,14 @@ class GameLoopService:
             if reducer_actions:
                 print(f"[SOLVEUR] reducer_actions: {reducer_actions}")
             unresolved = set(self.storage.get_unresolved())
+            frontier_set = set(self.storage.get_frontier().coords)
 
             if stats:
                 self.stats['total_safe_actions'] += getattr(stats, "safe_cells", 0)
                 self.stats['total_flag_actions'] += getattr(stats, "flag_cells", 0)
 
             # Détection simple d'état : aucune action + aucune case non résolue => victoire
-            detected_state = self._detect_game_state(solver_actions, unresolved)
+            detected_state = self._detect_game_state(solver_actions, unresolved, frontier_set)
             if detected_state != GameState.PLAYING:
                 self.current_game_state = detected_state
                 pass_result['game_state'] = detected_state.value
@@ -408,15 +409,20 @@ class GameLoopService:
         
         return result
 
-    def _detect_game_state(self, solver_actions: List[Any], unresolved: set[tuple[int, int]]) -> GameState:
+    def _detect_game_state(
+        self,
+        solver_actions: List[Any],
+        unresolved: set[tuple[int, int]],
+        frontier: set[tuple[int, int]],
+    ) -> GameState:
         """
-        Détection simple pour la version minimale (storage-based).
-        - Si aucune action et aucune case non résolue -> victoire.
-        - Sinon, continue à jouer.
+        Détection minimale : aucune condition de victoire automatique.
+        On ne renvoie pas WON ici pour éviter d’arrêter la boucle prématurément.
         """
         try:
-            if not solver_actions and not unresolved:
-                return GameState.WON
+            # Si aucune action n’est disponible, on signale NO_ACTIONS pour stopper proprement la boucle.
+            if not solver_actions and not unresolved and not frontier:
+                return GameState.NO_ACTIONS
             return GameState.PLAYING
         except Exception:
             return GameState.PLAYING

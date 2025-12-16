@@ -8,17 +8,21 @@ Cette fiche décrit l’architecture, les API et les invariants de la couche **s
 
 ## 1. Mission & périmètre
 
-- Convertir une capture alignée (issue de `ZoneCaptureService`) en **grille brute** (`GridRaw`) et produire les artefacts nécessaires au debug (overlays PNG/JSON).
+- Convertir une capture alignée (issue de s1_capture) en **observations de cellules** (symboles) et produire les artefacts nécessaires au debug (overlays PNG/JSON).
 - Garantir une classification **100 % déterministe** (pas de probas) avec des seuils documentés.
-- Exposer une API stable pour les services (aujourd’hui `VisionAnalysisService`, demain un orchestrateur de boucle complète).
+- Fournir des sorties prêtes à être injectées dans s3_storage.
+
+Ce que s2_vision ne fait pas :
+- elle ne calcule pas `ACTIVE/FRONTIER/SOLVED` (topologie) : c’est s4
+- elle ne calcule pas `active_set/frontier_set` : c’est s4 via `StorageUpsert`
 
 ## 2. Entrées / Sorties officielles
 
 | Élément | Producteur | Consommateur | Description |
 | --- | --- | --- | --- |
-| `GridCapture` (cf. `ZoneCaptureService`) | src/lib/s1_capture | s2_vision | Image PNG alignée (cell_stride = 25) + `grid_bounds` et metadata |
+| `GridCapture` | s1_capture | s2_vision | Image alignée (cell_stride = 25) + `grid_bounds` et metadata |
 | `VisionRequest` (`src/lib/s2_vision/facade.py`) | Services | Vision controller | `image`, `grid_bounds`, `cell_stride`, options overlay |
-| `VisionResult` | Vision controller | s3_storage / services | `matches` (liste de `MatchResult`), overlay path facultatif |
+| `VisionResult` | Vision controller | services | `matches` (liste de `MatchResult`), overlay path facultatif |
 
 ### Invariants d’entrée
 1. **Alignement** : l’image doit commencer sur un angle cellule (0,0 modulo stride). `src/lib/s1_capture/s12_canvas_compositor.py` garantit cette propriété.
@@ -29,6 +33,11 @@ Cette fiche décrit l’architecture, les API et les invariants de la couche **s
 - `matches`: liste ordonnée (ligne par ligne) de `MatchResult(symbol, distance, threshold, confidence, position)`.
 - `grid_overlay_path` (optionnel) : PNG généré par `s22_vision_overlay.py`.
 - `debug_json` (facultatif) : future extension pour stocker les distances et marges.
+
+Injection vers s3_storage :
+- Les `matches` sont transformés en `StorageUpsert` côté services/controller storage.
+- Vision n’écrit que l’observation et l’ajout `revealed_add` (les cellules désormais “déjà vues”).
+- Vision ne calcule pas la frontière : `active_set/frontier_set` sont maintenus par s4.
 
 ## 3. Architecture interne
 
@@ -62,7 +71,7 @@ PNG overlay (temp/games/{id}/s2_vision/…)
 - **Fonctions clés** :
   - `analyze_grid_capture(GridCapture, overlay=True)` → `VisionResult`
   - Convertit `GridCapture` en `VisionRequest` (pixel origin = (0,0)).
-  - Gestion du dossier overlay (`paths["vision"]`).
+  - Passe `export_root` / configuration overlay via le contexte runtime.
 
 ### 4.2 `VisionController`
 - **Fichier** : `src/lib/s2_vision/controller.py`
@@ -164,5 +173,5 @@ class MatchResult:
 
 **Références associées**
 - `doc/SPECS/s02_VISION_SAMPLING.md` – détails algorithmiques sur le sampling et les heuristiques.
-- `doc/PIPELINE.md` – schéma global capture → vision → solver.
+- `doc/SPECS/PIPELINE.md` – schéma global capture → vision → solver.
 - `doc/META/CHANGELOG.md` – historique des évolutions vision.

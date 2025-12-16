@@ -48,7 +48,36 @@ Arbo officielle sous `{base} = export_root` :
 - `s43_csp_combined_overlay/`
 
 La capture s1 produit les fichiers consommés par vision, et la vision/solver produisent leurs overlays dans leurs sous-dossiers dédiés.
+
+---
+
+## 16 décembre 2025 — Fusion des actions reducer + CSP dans GameLoopService
+
+Le pipeline CSP fonctionne bien, mais les actions du reducer n'étaient pas exécutées en jeu. Le problème venait de `GameLoopService` qui ne récupérait que `solver_actions` et ignorait `reducer_actions`.
+
+Correction apportée :
+- Ajout de `solve_snapshot_with_reducer_actions` dans `StorageSolverService` pour construire les `SolverAction` depuis `reducer_safe/reducer_flags`
+- Modification de `GameLoopService.execute_single_pass` pour fusionner reducer_actions + solver_actions
+- Priorisation des actions déterministes (CLICK/FLAG) avant les GUESS
+- Augmentation de `max_component_size` à 500 pour traiter des frontières plus grandes
+
+Résultat : le bot exécute maintenant toutes les actions sûres (reducer + CSP) avant un éventuel guess. Les logs montrent bien les reducer_actions avec le tag `frontiere-reducer`.
 La V2 verrouille donc un principe : l’information doit venir du canvas de manière la plus directe possible, et la vision doit rester déterministe.
+
+---
+
+## 16 décembre 2025 — Cohérence terminologique et alignement des SPECS
+
+Aujourd'hui je consacre la journée à la cohérence terminologique et à l'alignement de toute la documentation sur un seul modèle didactique :
+
+- **Sets storage** : `revealed_set / active_set / frontier_set` (plus de `unresolved`)
+- **FocusLevel** : nomenclature explicite `TO_TEST / TESTED / STERILE` (ACTIVE) et `TO_PROCESS / PROCESSED / BLOCKED` (FRONTIER)
+- **ZoneDB** : index dérivé basé sur `zone_id` pour piloter le CSP uniquement sur les zones `TO_PROCESS`
+- **Export_root unique** : tous les services reçoivent une seule racine de partie et ne reconstruisent plus de chemins
+- **SPECS unifiées** : réécriture de `doc/SPECS/*` (S0, S1, s2, s3, s4, s5, ARCHITECTURE, PIPELINE) en style didactique
+- **Dumb Solver Loop** : référence consolidée dans `src/services/s44_dumb_solver_loop.md`
+
+Ce travail de fond élimine les dernières ambiguïtés terminologiques et garantit que chaque couche parle le même langage. Le pipeline est maintenant entièrement lisible de la capture à l'action, avec des contrats explicites et une seule source de vérité pour les chemins.
 
 ---
 

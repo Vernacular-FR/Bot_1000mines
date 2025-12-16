@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Pipeline capture → vision → solver – 2025-12-15
+### Pipeline capture → vision → solver – 2025-12-16
+- **Fusion reducer + CSP** : `GameLoopService` fusionne maintenant `reducer_actions` et `solver_actions` avant planification
+- **Priorisation déterministe** : Actions CLICK/FLAG exécutées avant les GUESS
+- **Limite frontière augmentée** : `max_component_size` passé à 500 pour traiter des frontières plus grandes
+- **Exposition reducer_actions** : `StorageSolverService.solve_snapshot_with_reducer_actions` construit les `SolverAction` depuis `reducer_safe/reducer_flags`
+- **Overlays unifiés** : Consolidation sur `s1_capture/s10_overlay_utils.setup_overlay_context` (suppression d'`overlay_test_utils.py`)
+- **Tests corrigés** : Adaptation signature (`screenshot_path`, `overlay_enabled=True`) et imports `CspManager` dans les tests 02/04/05
 - **export_root unique** : `SessionStorage.build_game_paths` crée uniquement `{base}/s1_raw_canvases`, `{base}/s1_canvas`, et fournit `solver = {base}`. Aucun chemin overlay n’est construit par les services.
 - **Capture** : `ZoneCaptureService` assemble les tuiles canvas (`s1_raw_canvases` → `s1_canvas/full_grid_*.png`). Vision consomme une capture déjà persistée (sinon erreur).
 - **Vision intégrée** : `VisionAnalysisService` ne sauvegarde plus de captures ; VisionController enregistre l’overlay via `VisionOverlay.save` sous `{base}/s2_vision_overlay/` si overlay activé.
 - **Orchestration solver minimaliste** : `GameSolverServiceV2` passe uniquement `export_root` aux générateurs ; les overlays sont produits par les modules s491/s492/s493/s494 (`s40_states_overlays`, `s42_segmentation_overlay`, `s42_solver_overlay`, `s43_csp_combined_overlay`).
 - **Responsabilités strictes** : logique au plus bas niveau (modules lib/*), controllers passe-plats, services = orchestration seulement.
 - **Nettoyage session** : `SessionSetupService.cleanup_session` appelé une seule fois par le pilote principal (prompt Entrée avant fermeture navigateur).
+
+### Documentation & SPECS (cohérence V2) – 2025-12-16
+- **S3 index** : clarification des sets `revealed_set / active_set / frontier_set` et de leurs rôles.
+- **Nomenclature FocusLevel** : renommage en `TO_TEST/TESTED/STERILE` (ACTIVE) et `TO_PROCESS/PROCESSED/BLOCKED` (FRONTIER).
+- **ZoneDB** : formalisée comme un index dérivé basé sur `zone_id`/contraintes (déclenchement CSP via zones `TO_PROCESS`).
+- **Docs harmonisées** : mise à jour en style didactique des SPECS `S0_INTERFACE`, `S1_CAPTURE`, `s2_VISION`, `s4_SOLVER`, `s5_ACTION_PLANNER`, `ARCHITECTURE`, `PIPELINE`.
+- **Dumb Solver Loop** : référence consolidée sur `src/services/s44_dumb_solver_loop.md` (suppression de duplications).
 
 ### Solver – 2025-12-13
 - **Refonte s4** : séparation complète des responsabilités en trois sous-modules.

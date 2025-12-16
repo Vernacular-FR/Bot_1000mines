@@ -12,7 +12,33 @@
 
 ---
 
-## Session du 15 Décembre 2025 (Pipeline live capture → vision → solver)
+## Session du 16 Décembre 2025 (Fusion reducer + CSP dans GameLoopService)
+
+### Objectif principal
+Intégrer les actions du reducer dans le pipeline d'exécution du jeu pour que toutes les actions sûres soient appliquées, pas seulement celles du CSP.
+
+### Actions clés
+- Ajout de `solve_snapshot_with_reducer_actions` dans `StorageSolverService` pour exposer les `reducer_actions` en tant que `SolverAction`
+- Modification de `GameLoopService.execute_single_pass` pour fusionner `reducer_actions` + `solver_actions` avant planification
+- Priorisation des actions déterministes (CLICK/FLAG) avant les GUESS
+- Augmentation de `max_component_size` à 500 pour traiter des frontières plus grandes
+- Consolidation des overlays sur `s1_capture/s10_overlay_utils.setup_overlay_context` (suppression d'`overlay_test_utils.py`)
+- Correction des tests 02/04/05 : signature (`screenshot_path`, `overlay_enabled=True`) et imports `CspManager`
+
+### Résultats
+- Le bot exécute maintenant toutes les actions sûres (reducer + CSP) avant un éventuel guess
+- Les logs montrent bien les reducer_actions avec le tag `frontiere-reducer`
+- Les tests unitaires génèrent correctement leurs overlays
+- Pipeline principal fonctionnel avec 24 actions exécutées (incluant les reducer actions)
+
+### Documentation (même session)
+- Alignement de `doc/SPECS/*` sur un modèle didactique unique (`doc/SPECS/s3_STORAGE.md`).
+- Mise à jour des notions storage : `revealed_set / active_set / frontier_set`.
+- Nomenclature FocusLevel : `TO_TEST/TESTED/STERILE` et `TO_PROCESS/PROCESSED/BLOCKED`.
+- ZoneDB formalisée comme index dérivé (pilotage CSP via zones `TO_PROCESS`).
+- Référence dumb solver loop consolidée dans `src/services/s44_dumb_solver_loop.md`.
+
+---
 
 ### Objectif principal
 Aligner le pipeline runtime sur la refonte CSP testée : capture live, vision, stockage, solver + overlays cohérents, fermeture session unique.
@@ -263,7 +289,7 @@ Résoudre les erreurs "move target out of bounds" et stabiliser le système de c
 | **1 – s0 Interface** | Stabiliser `src/lib/s0_interface` (coords, anchor, navigation JS, capture meta). | API interface officielle + invariants de conversion. |
 | **2 – s1 Capture** | Capture canvas (`canvas.toDataURL`) + assemblage aligné (`s12_canvas_compositor.py`). | `src/lib/s1_capture/*`, service `ZoneCaptureService`. |
 | **3 – s2 Vision** | CenterTemplateMatcher + overlays runtime + tests perf. | `src/lib/s2_vision/*`, templates analyzers + manifest. |
-| **4 – s3 Storage** | Grille sparse + SetManager (revealed/unresolved/frontier) + invariants. | `src/lib/s3_storage/*` + exports JSON. |
+| **4 – s3 Storage** | Grille sparse + SetManager (revealed/active/frontier) + invariants. | `src/lib/s3_storage/*` + exports JSON. |
 | **5 – s4 Solver** | Grid Analyzer + CSP optimisé (OptimizedSolver) + bench scripts. | `src/lib/s4_solver/s40_*/s42_*/s49_optimized_solver.py`. |
 | **6 – s5 Actionplanner** | Heatmap, barycentres, déplacements multi-étapes. | `src/lib/s5_actionplanner/*`. |
 | **7 – s6 Action** | Exécuteur d’actions (JS natif/Selenium) + reporting. | `src/lib/s6_action/*`. |

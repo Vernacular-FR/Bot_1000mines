@@ -14,18 +14,31 @@ class MinimalPathfinder:
     def plan_actions(self, actions: List[SolverAction]) -> PathfinderPlan:
         flags = [a for a in actions if a.type == SolverActionType.FLAG]
         clicks = [a for a in actions if a.type == SolverActionType.CLICK]
-        guesses = [a for a in actions if a.type == SolverActionType.GUESS]
+        # On ignore les guesses à ce stade (le solver peut en émettre, mais s5 ne les exécute pas)
+        # guesses = [a for a in actions if a.type == SolverActionType.GUESS]
 
-        ordered = flags + clicks + guesses
+        # Ordre : flags -> (double) clicks -> guesses
+        pathfinder_actions: list[PathfinderAction] = []
 
-        pathfinder_actions = [
-            PathfinderAction(
-                type=a.type.value.lower(),
-                cell=a.cell,
-                confidence=a.confidence,
-                reasoning=a.reasoning,
+        for a in flags:
+            pathfinder_actions.append(
+                PathfinderAction(
+                    type=a.type.value.lower(),
+                    cell=a.cell,
+                    confidence=a.confidence,
+                    reasoning=a.reasoning,
+                )
             )
-            for a in ordered
-        ]
+
+        # Double clic logique : on injecte deux actions click successives sur chaque safe
+        for a in clicks:
+            click_payload = {
+                "type": a.type.value.lower(),
+                "cell": a.cell,
+                "confidence": a.confidence,
+                "reasoning": a.reasoning,
+            }
+            pathfinder_actions.append(PathfinderAction(**click_payload))
+            pathfinder_actions.append(PathfinderAction(**click_payload))
 
         return PathfinderPlan(actions=pathfinder_actions, overlay_path=None)

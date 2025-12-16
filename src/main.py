@@ -22,10 +22,27 @@ def main() -> None:
         action="store_true",
         help="Activer les overlays vision/solver (désactivé par défaut)",
     )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=500,
+        help="Nombre maximum d'itérations pour résoudre la grille (garde-fou)",
+    )
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.2,
+        help="Délai entre itérations (secondes) pour laisser les animations/DOM se stabiliser",
+    )
     args = parser.parse_args()
 
     bot = Minesweeper1000Bot()
-    success = bot.run_minimal_pipeline(args.difficulty, overlay_enabled=args.overlay)
+    success = bot.run_minimal_pipeline(
+        args.difficulty,
+        overlay_enabled=args.overlay,
+        max_iterations=args.max_iterations,
+        delay_between_iterations=args.delay,
+    )
     bot.cleanup()
 
     print("[FIN] Succès" if success else "[FIN] Échec")

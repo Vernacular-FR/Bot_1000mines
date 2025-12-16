@@ -2,57 +2,59 @@
 description: Chaîne de capture S1
 ---
 
-# PLAN S1 CAPTURE
+# S01 CAPTURE – Spécification technique
 
-## Objectif
-Documenter l’interaction entre les couches `s0_interface` et `s1_capture` après la refonte canvas-only, afin que les couches supérieures (solver / services) puissent s’appuyer sur une API unique.
+s1_capture produit des images exploitables par la vision.
 
-## Vue d’ensemble
+Elle est volontairement “bête” :
+- elle récupère des pixels
+- elle capture une zone alignée
+- elle ne fait pas de classification (c’est s2)
+
+## 1. Mission
+
+- Capturer une image du canvas (ou d’une zone du canvas) via JS (`canvas.toDataURL`).
+- Renvoyer une image alignée + ses métadonnées (bounds/stride), afin que s2_vision puisse mapper correctement les cellules.
+
+## 2. Architecture (qui appelle qui)
+
 ```
-S2+/Services ➜ InterfaceController (s0) ➜ CaptureController (s1) ➜ CanvasCaptureBackend (JS)
+Services
+  └─ InterfaceController (s0)
+       └─ CaptureController (s1)
+            └─ CanvasCaptureBackend (JS)
 ```
 
-- **InterfaceController** (façade s0) centralise navigateur, conversion de coordonnées, navigation et maintenant capture.
-- **CaptureController** (s1) orchestre la logique canvas : récupération des métadonnées, découpe, overlay.
-- **CanvasCaptureBackend** exécute le `canvas.toDataURL()` et gère les sauvegardes optionnelles.
-- Les overlays sont gérés par les couches de vision/debug (pas par la capture).
+## 3. Contrat (entrées / sorties)
 
-## API exposée
+### 3.1 Entrée
 
-### Côté InterfaceController
+- `CaptureRequest` : zone à capturer + options (save, metadata, …).
+
+### 3.2 Sortie
+
+- `CaptureResult` : image (PIL/bytes) + infos de sauvegarde.
+
+## 4. API utilisée par les services
+
+Ces appels transitent par la façade s0 (`InterfaceController`) :
+
 - `capture_zone(request: CaptureRequest) -> CaptureResult`
 - `capture_grid_window(grid_bounds, *, save=False, annotate=False, filename=None, bucket=None) -> CaptureResult`
 
-Ces deux méthodes déléguent à `_get_capture_controller()`, qui instancie paresseusement `CaptureController` avec :
-- `interface=self`
-- `canvas_backend=CanvasCaptureBackend(driver)`
-- `viewport_mapper=self.navigator.viewport_mapper`
+## 5. Flux d’exécution (résumé)
 
-### Côté s1_capture.facade
-- `CaptureRequest`: point canvas + taille + options (save, annotate, metadata…)
-- `CaptureResult`: image PIL + bytes + infos de sauvegarde
-- `CaptureControllerApi`: protocol pour `capture_zone`, `capture_grid_window`
+1) Service appelle `interface.capture_grid_window(bounds, ...)`.
+2) s0 s’assure que la zone est visible (`ensure_visible`).
+3) s1 construit/exécute la capture :
+   - lit `capture_meta` via s0
+   - valide la zone (`relative_origin`)
+   - appelle `CanvasCaptureBackend.capture_tile`.
+4) s1 retourne `CaptureResult` (image brute) aux services.
+5) s2_vision consomme `CaptureResult` et produit `matches` + overlay (si activé).
 
-## Flux d’exécution
-1. Service/Solver appelle `interface.capture_grid_window(bounds, annotate=True)`.
-2. `InterfaceController.ensure_visible` s’assure que la zone est à l’écran via NavigationController.
-3. Création d’un `CaptureRequest` (point d’origine + taille).
-4. `_get_capture_controller()` fournit un `CaptureController` configuré.
-5. `CaptureController.capture_zone` :
-   - récupère `capture_meta` via `interface.get_capture_meta`
-   - calcule `relative_origin` (validation de la zone)
-   - appelle `CanvasCaptureBackend.capture_tile`
-6. Optionnel : `annotate` est conservé comme paramètre de signature pour compatibilité et extensions futures, mais il est actuellement ignoré côté capture.
+## 6. Invariants
 
-## Règles d’utilisation
-1. **Toujours passer par InterfaceController** pour demander une capture (jamais instancier `CaptureController` directement dans les couches supérieures).
-2. **Pas de capture plein écran** : uniquement la zone canvas ciblée.
-3. **Sauvegardes disque** :
-   - `save=True` + `bucket` (clé dans `PATHS`)
-   - sinon résultat en mémoire (PIL + bytes).
-4. **Overlay** : la capture retourne une image brute; les overlays sont produits par la vision/les outils de debug.
-
-## Points d’extension
-- Ajouter d’autres couches d’overlay (statut, heatmap) côté s1 pour debug avancé.
-- Brancher un cache d’images ou un pipeline d’analyse directement après `CaptureResult`.
-- Étendre `CaptureRequest.metadata` pour tracer l’origine des captures ou les paramètres solver.
+- Toujours capturer via `InterfaceController` (pas d’accès direct aux composants internes depuis les couches supérieures).
+- Pas d’overlay ici : s1 renvoie des pixels; les overlays sont produits par s2/debug.
+- Pas de logique “grid” ici : s1 ne connaît pas `ACTIVE`, `frontier_set`, etc.

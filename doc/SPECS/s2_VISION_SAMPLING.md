@@ -22,6 +22,20 @@ description: Spécification du pipeline Center Sampling / Template Matching Cent
 2. Il faut conserver la couleur RGB (passage en niveaux de gris = perte de signature).
 3. Les seuils doivent être ancrés sur des mesures statistiques (et non constants arbitraires).
 
+---
+
+## 2bis. Position dans le pipeline (rappel)
+
+s2_vision fournit une **observation déterministe** (symboles) à partir d’une image alignée.
+
+Elle ne calcule pas :
+- la topologie (`ACTIVE/FRONTIER/SOLVED`)
+- les index storage (`active_set/frontier_set`)
+
+Ces traitements relèvent de s4_solver et sont décrits dans `doc/SPECS/s3_STORAGE.md` et `doc/SPECS/s4_SOLVER.md`.
+
+Pour le contrat global (entrées/sorties, overlays), voir `doc/SPECS/s2_VISION.md`.
+
 ## 3. Fondations analytiques (s21_templates_analyzer)
 1. **Variance analyzer** (`variance_analyzer.py`) :
    - Génère les heatmaps par symbole.

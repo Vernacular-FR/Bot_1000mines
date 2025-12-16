@@ -7,26 +7,26 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 1. **s0_interface** – Pilote le navigateur/canvas (DOM, coordonnées). Expose conversion grille↔écran, navigation viewport, clics JS et lecture statut. Doit rester interchangeable (Selenium aujourd’hui, extension demain).
 2. **s1_capture** – Récupère l’image via capture directe du canvas (`canvas.toDataURL`) + découpe/capture de tuiles 512×512. L’assemblage aligné est délégué à `src/lib/s1_capture/s12_canvas_compositor.py`.
 3. **s2_vision** – Convertit l’image en grille brute via matching déterministe (CenterTemplateMatcher) + overlays PNG/JSON.
-4. **s3_storage** – Grille sparse unique `{(x,y) → GridCell}` + trois sets (revealed/unresolved/frontier). Couche passive.
-5. **s4_solver** – **s40_grid_analyzer** (statuts + vues) puis **s42_csp_solver** (OptimizedSolver : reducer + segmentation + CSP exact ≤15 variables + probabilités). **s41_propagator_solver** est présent mais reste une étape optionnelle/future.
-6. **s5_actionplanner** – Calcule les trajets/viewport plans pour maximiser la frontier visible et prioriser les actions.
-7. **s6_action** – Applique les clics/drapeaux (macro-actions) et remonte l’état.
+4. **s3_storage** – Grille sparse unique `{(x,y) → GridCell}` + index `revealed_set/active_set/frontier_set` + ZoneDB (index dérivé). Couche passive.
+5. **s4_solver** – Calcule la topologie + pertinence (FocusLevel) et décide les actions (SAFE/FLAG/…); déclenche le CSP sur les zones `TO_PROCESS` quand nécessaire.
+6. **s5_actionplanner** – Planification minimale : ordonne et traduit les actions solver en actions exécutables. (Évolutions : double-clic SAFE, marquage `TO_VISUALIZE`.)
+7. **s6_action** – Applique les actions JS/DOM.
 
 ### Schéma pipeline
 
 ```
 ┌─────────────────┐
-│ s0 Interface     │ ← pilote le navigateur / canvas (DOM, coords)
+│ s0 Interface    │ ← pilote le navigateur / canvas (DOM, coords)
 ├─────────────────┤
 │ s1 Capture      │ ← canvas → raw image (bytes)
 ├─────────────────┤
 │ s2 Vision       │ ← CenterTemplateMatcher → grille brute
 ├─────────────────┤
-│ s3 Storage      │ ← Grid global + Frontier + pruning (alimenté par s2)
+│ s3 Storage      │ ← Grid global + index (revealed/active/frontier) + ZoneDB
 ├─────────────────┤
-│ s4 Solver       │ ← PatternEngine + LocalSolver (lit/écrit storage)
+│ s4 Solver       │ ← décisions SAFE/FLAG/GUESS + StorageUpsert (lit/écrit storage)
 ├─────────────────┤
-│ s5 Pathfinder   │ ← calcule heatmap + trajets (lit storage, pilote s6)
+│ s5 ActionPlanner│ ← ordonne / convertit (lit actions solver, pilote s6)
 ├─────────────────┤
 │ s6 Action       │ ← exécute clics/scroll envoyés par solver/actionplanner
 └─────────────────┘
@@ -38,15 +38,15 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 - `GridRaw` : dict[(x,y)] = code int (0 fermé, -1 drapeau, 1..8 num, 9 vide).
 - `FrontierSlice` : sous-ensemble compact + densité/priorités + metadata viewport.
 - `ActionBatch` : liste ordonnée d’actions sûres (flags/open) avec priorité et contexte.
-- `ViewportPlan` : ordres multi-étapes (scroll, zoom, reposition) envoyés par s5 vers s0/s6.
+- `PathfinderPlan` : liste d’actions à exécuter (click/flag/guess) envoyée par s5 vers s6.
 
 ## 3. Précisions clés
 
 - **Capture directe** : priorité au canvas (toDataURL) et CDP. Selenium classique uniquement en secours.
 - **Vision déterministe** : LUT calibrée automatiquement au démarrage (scan d’une grille connue). Filtre de stabilité (vote sur captures successives).
-- **Storage (3 sets)** : `revealed/unresolved/frontier` sont maintenus via `StorageUpsert`. Vision alimente revealed/unresolved, et la frontière représente les cellules fermées adjacentes aux révélées.
+- **Storage (index)** : `revealed_set/active_set/frontier_set` sont maintenus via `StorageUpsert`. Vision alimente `revealed_set`, et le solver maintient `active_set/frontier_set`.
 - **Solveur exact** : composants extraites sur la bordure ; backtracking avec pruning (bornes min/max par contrainte). Les actions renvoyées doivent être 100 % sûres.
-- **Pathfinder** : doit pouvoir fonctionner même si la vision ne peut pas relire certaines cases (zones hors écran). S’appuie sur densité/frontière pour choisir les déplacements (fonction attracteur à définir).
+- **ActionPlanner** : dans la version actuelle, pas de navigation viewport : il se contente d’ordonner/traduire les actions.
 - **Action** : support des macro-clics, ordonnancement précis, remontée d’état pour mettre à jour storage/vision.
 - **Responsabilités strictes** : la logique métier reste au plus bas niveau (modules lib/*). Les controllers sont des passe-plats vers ces modules. Les services orchestrent uniquement le flux (capture → vision → solver) en passant des paramètres bruts (export_root, bounds, matches) sans construire de chemins ou de suffixes.
 - **Chemins et export_root** : `SessionStorage.build_game_paths` fournit la racine de partie `{base}` et crée seulement `s1_raw_canvases/`, `s1_canvas/`, `solver` (alias `{base}`). Tous les générateurs d’overlays définissent eux-mêmes leurs sous-dossiers et suffixes sous `export_root = {base}`.
@@ -57,6 +57,14 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
   - Combined : `{base}/s43_csp_combined_overlay/{stem}_combined_solver.png`
   - s23 vision→storage délègue à `render_actions_overlay` (même dossier/suffixe).
 - **Captures** : la couche capture (s1) doit fournir un `GridCapture.saved_path` prêt. VisionAnalysisService n’écrit plus de fichier ; il lève si la capture n’est pas persistée. VisionController enregistre l’overlay via `VisionOverlay.save` uniquement si `export_root` est fourni.
+
+## 3bis. Nomenclature des pertinences (FocusLevel)
+
+Stockées dans `GridCell` (source de vérité), et utilisées par s4 pour choisir ses phases :
+- ACTIVE : `ActiveRelevance = TO_TEST / TESTED / STERILE`
+- FRONTIER : `FrontierRelevance = TO_PROCESS / PROCESSED / BLOCKED` (homogène par `zone_id`)
+
+Référence : `doc/SPECS/s3_STORAGE.md`.
 
 ## 4. Migration Extension
 
