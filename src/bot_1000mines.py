@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from typing import Dict, List
+from pathlib import Path
+
+from src.services.s1_session_setup_service import SessionSetupService
+from src.services.s5_game_loop_service import GameLoopService
+
+
+class Minesweeper1000Bot:
+    """
+    Scénario minimal : session → boucle unique via GameLoopService (capture → vision → storage → solver → action).
+    """
+
+    def __init__(self):
+        self.session_service = SessionSetupService(auto_close_browser=True)
+        # La fermeture effective est pilotée par le script principal (main/loop).
+        self.session_service.auto_close_browser = False
+
+    def run_minimal_pipeline(self, difficulty: str | None = None, overlay_enabled: bool = False) -> bool:
+        """Pipeline debug : une seule itération complète via GameLoopService (actions exécutées)."""
+        init = self.session_service.setup_session(difficulty)
+        if not init.get("success"):
+            print(f"[SESSION] Échec init: {init.get('message')}")
+            return False
+
+        loop = GameLoopService(
+            session_service=self.session_service,
+            max_iterations=1,
+            iteration_timeout=60.0,
+            delay_between_iterations=0.0,
+            overlay_enabled=overlay_enabled,
+            execute_actions=True,
+        )
+        pass_result = loop.execute_single_pass()
+        print(f"[PASS] success={pass_result['success']} msg={pass_result['message']} actions_executed={pass_result['actions_executed']}")
+
+        return bool(pass_result.get("success"))
+
+    def cleanup(self) -> None:
+        """Ferme proprement la session/navigateur (demande Entrée)."""
+        try:
+            self.session_service.cleanup_session()
+        except Exception as exc:  # pylint: disable=broad-except
+            print(f"[CLEANUP] Erreur lors du cleanup de session: {exc}")

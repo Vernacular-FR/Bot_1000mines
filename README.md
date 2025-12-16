@@ -111,6 +111,18 @@ Chaque partie vit dans `temp/games/{game_id}/` :
 
 Supprimez un dossier pour faire de la place : aucun autre état persistant.
 
+### Lancer le pipeline minimal
+
+Sans overlay (par défaut) :
+```bash
+python src/main.py --difficulty impossible
+```
+
+Avec overlays (vision + solver) :
+```bash
+python src/main.py --difficulty impossible --overlay --verbose
+```
+
 ---
 
 ## 🤝 Contribuer

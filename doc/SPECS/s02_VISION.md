@@ -16,12 +16,12 @@ Cette fiche décrit l’architecture, les API et les invariants de la couche **s
 
 | Élément | Producteur | Consommateur | Description |
 | --- | --- | --- | --- |
-| `GridCapture` (cf. `ZoneCaptureService`) | s1_capture | s2_vision | Image PNG alignée (cell_stride = 25) + `grid_bounds` et metadata |
+| `GridCapture` (cf. `ZoneCaptureService`) | src/lib/s1_capture | s2_vision | Image PNG alignée (cell_stride = 25) + `grid_bounds` et metadata |
 | `VisionRequest` (`src/lib/s2_vision/facade.py`) | Services | Vision controller | `image`, `grid_bounds`, `cell_stride`, options overlay |
 | `VisionResult` | Vision controller | s3_storage / services | `matches` (liste de `MatchResult`), overlay path facultatif |
 
 ### Invariants d’entrée
-1. **Alignement** : l’image doit commencer sur un angle cellule (0,0 modulo stride). `lib/s1_capture/s12_canvas_compositor.py` garantit cette propriété.
+1. **Alignement** : l’image doit commencer sur un angle cellule (0,0 modulo stride). `src/lib/s1_capture/s12_canvas_compositor.py` garantit cette propriété.
 2. **Stride constant** : `cell_stride = 25 px` = 24 px contenu + 1 px bordure. Toute variation doit être signalée dans `VisionRequest`.
 3. **`grid_bounds` cohérents** : rectangle `[x_min, y_min, x_max, y_max]` couvrant exactement l’image recadrée (utilisé pour mapper les indices vision → storage).
 

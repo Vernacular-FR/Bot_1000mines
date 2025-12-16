@@ -20,8 +20,8 @@ from src.lib.s2_vision.facade import VisionAPI, VisionControllerConfig  # noqa: 
 from src.lib.s2_vision.s21_template_matcher import MatchResult  # noqa: E402
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert  # noqa: E402
 from src.lib.s3_storage.facade import GridCell  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
+from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
+from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
 from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (  # noqa: E402
     PropagatorPipeline,
     PropagatorPipelineResult,
@@ -34,7 +34,7 @@ Bounds = Tuple[int, int, int, int]
 
 STRIDE = CELL_SIZE + CELL_BORDER
 RAW_GRIDS_DIR = Path(__file__).parent / "00_raw_grids"
-OUTPUT_DIR = Path(__file__).parent / "s429_solver_comparison"
+OUTPUT_DIR = Path(__file__).parent / "03_solver_comparison"
 BOUNDS_PATTERN = re.compile(r"zone_(?P<sx>-?\d+)_(?P<sy>-?\d+)_(?P<ex>-?\d+)_(?P<ey>-?\d+)")
 
 

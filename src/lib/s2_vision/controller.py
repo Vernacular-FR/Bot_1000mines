@@ -61,17 +61,7 @@ class VisionController:
                 results=results,
                 stride=stride_px,
             )
-            self._save_overlay(screenshot_path, overlay_img)
+            self.overlay.save(overlay_img, screenshot_path, self.config.overlay_output_dir)
 
         return results
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-    def _save_overlay(self, screenshot_path: str | Path, overlay_img: Image.Image) -> None:
-        if not self.config.overlay_output_dir:
-            return
-        output_dir = Path(self.config.overlay_output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / (Path(screenshot_path).stem + "_overlay.png")
-        overlay_img.save(output_path)

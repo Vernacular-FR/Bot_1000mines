@@ -96,8 +96,10 @@ class SessionSetupService:
     def cleanup_session(self) -> bool:
         try:
             if self.browser_manager and not self.auto_close_browser:
-                print("[SESSION] Appuyez sur Entrée pour fermer le navigateur…")
-                input()
+                try:
+                    input("[SESSION] Partie terminée. Appuyez sur Entrée pour fermer le navigateur…")
+                except Exception:
+                    pass
 
             if self.browser_manager:
                 self.browser_manager.stop_browser()
@@ -118,6 +120,11 @@ class SessionSetupService:
         if not self.is_initialized or not self.interface_controller:
             raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
         return self.interface_controller
+
+    def get_driver(self):
+        if not self.is_initialized:
+            raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
+        return self.browser_manager.get_driver()
 
     def get_browser_manager(self) -> BrowserManager:
         if not self.is_initialized:

@@ -10,10 +10,11 @@ from typing import List, Tuple, Optional, Dict, Any
 
 from enum import Enum
 
+from src.lib.s5_actionplanner.facade import PathfinderPlan
+
 # Imports du projet
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from src.lib.s0_navigation.coordinate_system import CoordinateConverter, GridViewportMapper
-from src.lib.s3_tensor.grid_state import GridDB
+from src.lib.s0_interface.s03_Coordonate_system import CoordinateConverter
 
 # Import du système de logging centralisé
 from Logs.logger import save_bot_log
@@ -70,8 +71,7 @@ class ActionExecutorService:
     """
 
     def __init__(self, coordinate_converter: CoordinateConverter, driver=None,
-                 click_delay: float = 0.1, action_delay: float = 0.05,
-                 grid_db: Optional[GridDB] = None):
+                 click_delay: float = 0.1, action_delay: float = 0.05):
         """
         Initialise le service d'exécution d'actions.
 
@@ -80,16 +80,14 @@ class ActionExecutorService:
             driver: Instance du WebDriver pour les interactions navigateur
             click_delay: Délai entre les clics (secondes)
             action_delay: Délai entre les actions consécutives (secondes)
-            grid_db: Instance GridDB pour persister les flags posés (optionnel)
         """
         self.coordinate_converter = coordinate_converter
         self.driver = driver
         self.click_delay = click_delay
         self.action_delay = action_delay
-        self.grid_db = grid_db
 
-        # Import et initialisation du GameController
-        from src.lib.s0_navigation.game_controller import NavigationController
+        # Import et initialisation du GameController (version s0_interface)
+        from src.lib.s0_interface.s03_game_controller import NavigationController
         self.game_controller = NavigationController(driver, coordinate_converter, None)
 
         # Statistiques d'exécution
@@ -109,11 +107,6 @@ class ActionExecutorService:
         """Définit l'instance du WebDriver"""
         self.driver = driver
         print("[INFO] WebDriver défini dans ActionExecutorService")
-
-    def set_grid_db(self, grid_db: GridDB):
-        """Définit la GridDB utilisée pour refléter les flags posés"""
-        self.grid_db = grid_db
-        print("[INFO] GridDB connectée à ActionExecutorService")
 
     def execute_batch(self, actions: List[GameAction]) -> Dict[str, Any]:
         """
@@ -201,6 +194,16 @@ class ActionExecutorService:
 
         return result
 
+    def execute_pathfinder_plan(self, plan: PathfinderPlan) -> Dict[str, Any]:
+        """
+        Exécute un plan Pathfinder minimal en le convertissant en GameAction.
+        """
+        # Import tardif pour éviter les cycles d'import
+        from src.lib.s6_action.controller import convert_pathfinder_plan_to_game_actions
+
+        game_actions = convert_pathfinder_plan_to_game_actions(plan)
+        return self.execute_actions(game_actions)
+
     def _execute_single_action(self, action: GameAction) -> bool:
         """
         Exécute une seule action.
@@ -244,19 +247,5 @@ class ActionExecutorService:
         print("[INFO] Statistiques ActionExecutorService remises à zéro")
 
     def _mark_flag_in_db(self, action: GameAction):
-        """Persiste immédiatement un drapeau dans GridDB pour les overlays incrémentaux"""
-        if not self.grid_db:
-            return
-        try:
-            self.grid_db.add_cell(
-                action.grid_x,
-                action.grid_y,
-                {
-                    "type": "flag",
-                    "confidence": action.confidence,
-                    "state": "PROCESSED",
-                },
-            )
-            self.grid_db.flush_to_disk()
-        except Exception as e:
-            print(f"[WARN] Impossible de persister le flag ({action.grid_x}, {action.grid_y}) : {e}")
+        """Stub: persistance GridDB désactivée dans la boucle minimale."""
+        return

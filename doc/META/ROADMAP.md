@@ -12,37 +12,63 @@
 
 ---
 
-## 📅 Session du 14 Décembre 2025 (CSP Optimized Solver & Benchmarks)
+## Session du 15 Décembre 2025 (Pipeline live capture → vision → solver)
 
-### 🎯 Objectif principal
+### Objectif principal
+Aligner le pipeline runtime sur la refonte CSP testée : capture live, vision, stockage, solver + overlays cohérents, fermeture session unique.
+
+### Actions clés
+- `bot_1000mines.py` et `main.py` délèguent capture→vision→solver à `ZoneCaptureService`, `VisionAnalysisService`, `GameSolverServiceV2`.
+- Overlays solver routés dans `temp/games/{id}/s4_solver/` : `s40_states_overlays`, `s42_segmentation_overlay`, `s43_csp_combined_overlay` (actions reducer opaques, guesses croix blanche).
+- `CspManager` transmet les actions reducer au combiné ; `s494_combined_overlay` rend opaque reducer + CSP, inclut guesses.
+- `SessionStorage.build_game_paths` définit les dossiers overlays; `cleanup_session` n’est appelé qu’en fin de run (prompt Entrée avant fermeture navigateur).
+
+### Résultats
+- Pipeline principal génère à nouveau tous les overlays (vision + états + segmentation + combiné) dans l’arborescence de partie.
+- Réduction CSP visible dans le combiné ; guesses plus lisibles.
+- Fin de session maîtrisée par le pilote principal (pas de cleanup dans la boucle).
+
+### Points d’attention
+- Conserver `overlay_enabled=True` pour produire les dossiers overlays par partie.
+- Vérifier les chemins `s4_solver/…` lors de nouveaux tests ou changement d’arborescence.
+
+---
+
+## Session du 14 Décembre 2025 (CSP Optimized Solver & Benchmarks)
+
+### Objectif principal
 Remplacer l’ancien hybrid solver par un pipeline CSP optimisé autonome, instrumenter des scripts de comparaison et préparer la future phase Pattern Solver.
 
-### ✅ Actions clés
+### Actions clés
 - Renommage/portage de `s49_hybrid_solver.py` → `s49_optimized_solver.py` exécutant uniquement `CspManager.run_with_frontier_reducer()`.
 - Ajout d’options `use_stability` + `ComponentRangeConfig` dans `CspManager` pour lever les garde-fous ou ajuster la taille max (50 cases par défaut).
 - Scripts de bench :
   - `01_run_propagation_solver.py` & `02_run_csp_solver_only.py` utilisent les overlays bi-opacité (phase 1 vs phases avancées / reducer vs CSP).
   - `03_compare_solver_pipelines.py` compare Propagator vs CSP (safe/flags, temps absolu, ratio, rapport JSON + Markdown avec moyennes).
 - Création de `s43_pattern_solver/IMPLEMENTATION_PLAN.md` (plan futur tests, overlays, intégration dans `03_compare...`).
+- Extension Native Messaging (content script) pour capturer le canvas et afficher les overlays PNG/JSON.
+- Backend Python réduit aux services s2→s6, invocable en CLI/daemon.
+- Tests d’intégration headless (Playwright) pour valider les overlays et les actions.
+- Clarifier responsabilités : modules `lib/*` portent la logique (chemins overlay, suffixes, calculs) ; controllers = passe-plats ; services = orchestration (export_root unique fourni par SessionStorage).
 
-### 📊 Résultats
+### Résultats
 - CSP isolé atteint les mêmes actions que le propagator sur les patterns testés, tout en étant ~3x plus rapide (cf. `solver_comparison_YYYYMMDD_HHMMSS.md`).
 - Les overlays CSP affichent désormais les actions du reducer (translucides) et du CSP (opaques), ce qui facilite la relecture.
 - La roadmap Pattern Solver dispose d’un plan dédié (tests `04_run_pattern_solver_only.py`, extension du comparateur, intégration future dans `OptimizedSolver`).
 
-### 🚨 Points d’attention
+### Points d’attention
 - Garder `use_stability=False` pour les campagnes de bench afin de ne pas filtrer les composantes intéressantes.
 - Prévoir l’intégration du Pattern Solver dans `OptimizedSolver` une fois les scripts 04/03 étendus.
 - Mettre à jour les documents de référence (CHANGELOG, PIPELINE, SPECS) dès que de nouvelles phases sont implémentées.
 
 ---
 
-## 📅 Session du 12 Décembre 2025 (Validation Vision S2)
+## Session du 12 Décembre 2025 (Validation Vision S2)
 
-### 🎯 Objectif principal
+### Objectif principal
 Valider le pipeline **CenterTemplateMatcher** end-to-end, intégrer `question_mark`, verrouiller les seuils (empty=25) et finaliser les overlays pour audit visuel.
 
-### ✅ Actions clés
+### Actions clés
 - Implémentation de l’ordre de priorité + early exit dans `s21_template_matcher.py`.
 - Heuristique discriminante `exploded` via pixel périphérique, ajout `question_mark` aux seuils uniformes.
 - Resserrement du seuil `empty` (25) pour couper les décors gris clairs repérés dans les captures réelles.
@@ -50,13 +76,13 @@ Valider le pipeline **CenterTemplateMatcher** end-to-end, intégrer `question_ma
 - Tests `tests/test_s2_vision_performance.py` rejoués en boucle jusqu’à obtenir 100 % de reconnaissance stable (question marks inclus).
 - Documentation mise à jour (`s02_VISION_SAMPLING.md`, `s21_templates_analyzer/READ_ME.md`, `PLAN_S2_VISION_PURGE.md`) + entrée dédiée dans `doc/META/CHANGELOG.md`.
 
-### 🔧 Extension Capture Alignée (même session)
+### Extension Capture Alignée (même session)
 - Délégation complète des captures multi-canvases à `ZoneCaptureService.capture_canvas_tiles`.
-- Création du module `lib/s1_capture/s12_canvas_compositor.py` (alignement cell_ref, ceil/floor, recalcul `grid_bounds`).
-- Suppression de la logique de collage dans `bot_1000mines.py` + suppression des overlays debug (`s12_grid_overlay.py`, `annotate_grid`).
-- Documentation mise à jour (CHANGELOG, INDEX lib/) pour refléter cette architecture.
+- Création du module `src/lib/s1_capture/s12_canvas_compositor.py` (alignement cell_ref, ceil/floor, recalcul `grid_bounds`).
+- Suppression de la logique de collage dans `bot_1000mines.py` + suppression des anciens overlays de debug côté capture.
+- Documentation mise à jour (CHANGELOG, doc/SPECS) pour refléter cette architecture.
 
-### 📊 Résultats
+### Résultats
 - Vision API validée : plus aucun `question_mark` classé décor, empty uniquement quand bord blanc confirmé.
 - Overlays lisibles en production (couleurs cohérentes, pourcentage aligné).
 - Temps moyen par screenshot <0,6 s (machine de référence) après la purge des logs de debug.
@@ -82,7 +108,7 @@ Repartir d’une architecture claire en 7 couches (s0→s6), aligner toute la do
 - Archiver les notes historiques dans `backups/` et pointer `doc/`/`SPECS/` depuis `.gitignore`.
 
 ### 📊 Résultats
-- Plan validé (capture canvas direct, storage double, solver local, actionplanner prioritaire).
+- Plan validé (capture canvas direct, storage trois sets, solver local, actionplanner prioritaire).
 - Documentation séparée : résumés dans `doc/`, référence technique dans `SPECS/`.
 - Itérations 0→8 prêtes à être lancées (voir section “Roadmap Simplification” ci-dessous).
 
@@ -90,148 +116,6 @@ Repartir d’une architecture claire en 7 couches (s0→s6), aligner toute la do
 - Prendre un backup complet avant de démarrer l’itération 0.
 - Prioriser la capture via `canvas.toDataURL`/CDP (Selenium legacy uniquement si nécessaire).
 - Tenir `SPECS/DEVELOPMENT_JOURNAL.md` à jour après chaque itération.
-
----
-
-### **Session historique – Exploitation CNN (archive `backups/src`)**
-- Pipeline CNN complet conservé dans `backups/src/` : acquisition Selenium → prétraitements multi-passes → réseau `s22_Neural_engine`.
-- Génération datasets automatisée (scripts `augment_borders.py`, `prepare_cnn_dataset.py`) + templates stockés dans `assets/symbols/`.
-- Services associés : `s2_optimized_analysis_service.py`, overlays lourds, base JSON des cellules analysées.
-- Statut : **archivé** pour référence/fallback. Le plan actuel (sampling + solver déterministe) remplace ce pipeline dans la boucle principale, mais la version CNN reste exploitable en laboratoire (réentraînement, comparaison perf).
-
----
-
-## 📅 Session du 1 Décembre 2024 (Refactoring Documentation)
-
-### **🎯 Objectif Principal**
-Créer une documentation technique complète et organiser les opérateurs de la bibliothèque `lib/`.
-
----
-
-## 🔄 Actions Réalisées
-
-### **Phase 1: Documentation des Opérateurs (12:00-12:20)**
-- ✅ **Analyse complète lib/** : Scan de tous les fichiers Python pour extraire les méthodes
-- ✅ **65+ méthodes documentées** : Coordinate System, Game Controller, Browser Manager, etc.
-- ✅ **lib/INDEX.md créé** : Documentation complète avec descriptions détaillées
-- ✅ **Structure hiérarchique** : Core Bot (3 modules), Utilities (2 modules), Vision (6 modules)
-
-### **Phase 2: Organisation Documentation (12:20-12:30)**
-- ✅ **docs/specs/operateurs_lib.md** : Création fichier dédié puis déplacement
-- ✅ **lib/INDEX.md** : Placement optimal directement avec le code
-- ✅ **docs/specs/composants_techniques.md** : Mise à jour avec lien vers `../lib/INDEX.md`
-- ✅ **Références croisées** : Navigation fluide entre documentation
-
-### **Phase 3: Mise à jour Architecture (12:30-12:40)**
-- ✅ **architecture_logicielle.md** : Ajout TestPatternsService et nouveaux modules
-- ✅ **Nouveaux noms** : screenshot_manager, grid_analyzer_overlay, interface_detector
-- ✅ **Vision restructuré** : Documentation des 4 modules recognition/
-- ✅ **Patterns architecturaux** : Ajout Template Method Pattern
-
-### **Phase 4: Meta Documentation (12:40-12:45)**
-- ✅ **changelog.md** : Ajout section [Unreleased] avec toutes les nouveautés
-- ✅ **roadmap.md** : Documentation de cette session
-- ✅ **Version 1.4.0** : Préparation avec nouvelles fonctionnalités
-
----
-
-## 📊 Métriques de la Session
-
-- **Durée totale** : 45 minutes
-- **Fichiers créés** : 1 (lib/INDEX.md)
-- **Fichiers modifiés** : 3 (architecture_logicielle.md, composants_techniques.md, changelog.md, roadmap.md)
-- **Méthodes documentées** : 65+ méthodes complètes
-- **Modules couverts** : 11 modules techniques
-- **Lignes de documentation** : ~300 lignes détaillées
-
----
-
-## 🎯 Résultats Atteints
-
-### **Documentation Complète**
-```
-lib/
-├── INDEX.md (65+ méthodes documentées)
-├── bot/ (Coordinate System, Game Controller, Browser Manager)
-├── vision/ (6 modules spécialisés)
-└── performance_monitor.py
-```
-
-### **Architecture Documentée**
-- **TestPatternsService** intégré dans l'architecture complète
-- **Vision restructuré** avec modules recognition/
-- **Patterns architecturaux** mis à jour
-- **Flux de données** enrichis avec nouveaux services
-
-### **Navigation Optimisée**
-- **lib/INDEX.md** : Référence principale pour les développeurs
-- **docs/specs/** : Vue d'ensemble avec liens croisés
-- **Références** : Navigation fluide entre tous les documents
-
----
-
-## 🚨 Décisions Techniques
-
-### **Décision 1: lib/INDEX.md vs docs/specs/**
-- **Choix** : Placer INDEX.md directement dans lib/
-- **Raison** : Proximité code/documentation pour les développeurs
-- **Résultat** : Navigation naturelle et maintenance facilitée
-
-### **Décision 2: Documentation détaillée**
-- **Choix** : Documenter chaque méthode avec description
-- **Raison** : Référence complète pour développement futur
-- **Résultat** : 65+ méthodes avec signatures et utilité
-
-### **Décision 3: Architecture mise à jour**
-- **Choix** : Intégrer TestPatternsService dans docs officiels
-- **Raison** : Refactoring terminé, architecture stabilisée
-- **Résultat** : Documentation cohérente avec code actuel
-
----
-
-## 🎯 Prochaines Étapes
-
-### **Priorité 1: Stabilisation**
-- [ ] **Tester la nouvelle architecture** avec scénario 1 complet
-- [ ] **Valider les nouveaux noms** de modules vision
-- [ ] **Vérifier les références** croisées dans toute la documentation
-
-### **Priorité 2: Fonctionnalités**
-- [ ] **Service de reconnaissance** cellules (basé sur modules vision/)
-- [ ] **Tests avancés** viewport (patterns complexes)
-- [ ] **Monitoring performance** intégré aux services
-
-### **Priorité 3: Qualité**
-- [ ] **Tests unitaires** pour tous les nouveaux modules
-- [ ] **Documentation utilisateur** (README.md simplifié)
-- [ ] **Intégration continue** avec validation documentation
-
----
-
-## 🎯 Leçons Apprises
-
-### **Documentation**
-- **Proximité code/doc** : INDEX.md dans lib/ est plus efficace
-- **Descriptions détaillées** : Essentiel pour référence future
-- **Références croisées** : Navigation fluide entre documents
-
-### **Architecture**
-- **Refactoring progressif** : TestPatternsService est maintenant stable
-- **Noms cohérents** : screenshot_manager plus clair que screenshot_capture
-- **Patterns réutilisables** : Template Method pour tests
-
-### **Organisation**
-- **Meta documentation** : Changelog et roadmap maintenus à jour
-- **Versions sémantiques** : 1.4.0 pour nouvelles fonctionnalités
-- **Structure évolutive** : Documentation prête pour extensions futures
-
----
-
-## 📝 Notes de Session
-
-**Cette session a transformé la documentation technique d'un état fragmenté à une référence complète et organisée. Les développeurs ont maintenant accès à 65+ méthodes documentées avec une navigation intuitive.**
-
-**Le plus important : maintenir cette discipline de documentation lors des futurs développements.**
 
 ---
 
@@ -375,14 +259,14 @@ Résoudre les erreurs "move target out of bounds" et stabiliser le système de c
 
 | Itération | Objectif | Livrables clés |
 |-----------|----------|----------------|
-| **0 – Nettoyage & nomenclature** | Archiver l’ancien CNN, purger les services legacy, créer les dossiers `src/s0_viewport ... s6_action` + `main_simple.py`. | Arborescence propre + boucle `main_simple` squelette. |
-| **1 – s0 Interface** | Refactor `lib/s0_navigation` en `src/s0_viewport/viewport_controller.py`. | Pilotage DOM/coords unifié + interface officielle. |
-| **2 – s1 Capture** | Implémenter `canvas.toDataURL`, fallback CDP, purge buffers. | `src/s1_capture/canvas_capture.py`, tests simples. |
-| **3 – s2 Vision** | LUT + pixel sampler + calibration auto + overlays. | `pixel_sampler.py`, `calibration.py`, dossier debug. |
-| **4 – s3 Storage** | Double base (archive + frontière compacte) + densité pour actionplanner. | `grid_store.py`, `serializers.py`, interface. |
-| **5 – s4 Solver** | Motifs déterministes + solveur exact local + debug overlays. | `pattern_engine.py`, `local_solver.py`, exports PNG/JSON. |
-| **6 – s5 Pathfinder** | Heatmap, barycentres, déplacements multi-étapes, prise en compte des zones hors écran. | `actionplanner.py`, interface + heuristique densité. |
-| **7 – s6 Action** | Exécuteur d’actions multi-clics + reporting. | `click_executor.py`, interface, scénarios Selenium. |
+| **0 – Nettoyage & nomenclature** | Archiver l’ancien CNN, purger les services legacy, consolider l’arborescence `src/lib/s0_interface … s6_action`. | Arborescence propre + points d’entrée stabilisés. |
+| **1 – s0 Interface** | Stabiliser `src/lib/s0_interface` (coords, anchor, navigation JS, capture meta). | API interface officielle + invariants de conversion. |
+| **2 – s1 Capture** | Capture canvas (`canvas.toDataURL`) + assemblage aligné (`s12_canvas_compositor.py`). | `src/lib/s1_capture/*`, service `ZoneCaptureService`. |
+| **3 – s2 Vision** | CenterTemplateMatcher + overlays runtime + tests perf. | `src/lib/s2_vision/*`, templates analyzers + manifest. |
+| **4 – s3 Storage** | Grille sparse + SetManager (revealed/unresolved/frontier) + invariants. | `src/lib/s3_storage/*` + exports JSON. |
+| **5 – s4 Solver** | Grid Analyzer + CSP optimisé (OptimizedSolver) + bench scripts. | `src/lib/s4_solver/s40_*/s42_*/s49_optimized_solver.py`. |
+| **6 – s5 Actionplanner** | Heatmap, barycentres, déplacements multi-étapes. | `src/lib/s5_actionplanner/*`. |
+| **7 – s6 Action** | Exécuteur d’actions (JS natif/Selenium) + reporting. | `src/lib/s6_action/*`. |
 | **8 – Extension-ready** | Interfaces isolées, PoC Native Messaging / WebExtension, endpoints stable. | Spéc proto extension + doc API. |
 
 ---

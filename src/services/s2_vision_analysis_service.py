@@ -10,6 +10,7 @@ from typing import Dict, Optional, Tuple
 from src.lib.s2_vision.controller import VisionController, VisionControllerConfig
 from src.lib.s2_vision.s21_template_matcher import MatchResult
 from src.services.s1_zone_capture_service import GridCapture
+from src.lib.s3_storage.s30_session_context import get_session_context
 
 
 @dataclass
@@ -24,11 +25,12 @@ class VisionAnalysisService:
     def __init__(
         self,
         manifest_path: Optional[str | Path] = None,
-        overlay_output_dir: Optional[str | Path] = None,
     ) -> None:
+        ctx = get_session_context()
+        self.export_root = Path(ctx.export_root) if ctx.export_root else None
         config = VisionControllerConfig(
             manifest_path=Path(manifest_path) if manifest_path else None,
-            overlay_output_dir=Path(overlay_output_dir) if overlay_output_dir else None,
+            overlay_output_dir=self.export_root,
         )
         self.controller = VisionController(config)
 
@@ -39,6 +41,8 @@ class VisionAnalysisService:
         allowed_symbols: Optional[Tuple[str, ...]] = None,
         overlay: bool = False,
     ) -> VisionAnalysisResult:
+        ctx = get_session_context()
+        overlay_flag = overlay or bool(ctx.overlay_enabled)
         screenshot_path = self._ensure_capture_saved(capture)
         left, top, right, bottom = capture.grid_bounds
         grid_width = right - left + 1
@@ -50,27 +54,14 @@ class VisionAnalysisService:
             grid_size=(grid_width, grid_height),
             stride=capture.cell_stride,
             allowed_symbols=allowed_symbols,
-            overlay=overlay,
+            overlay=overlay_flag,
         )
 
-        overlay_path = None
-        if overlay and self.controller.config.overlay_output_dir:
-            overlay_path = (
-                Path(self.controller.config.overlay_output_dir)
-                / (Path(screenshot_path).stem + "_overlay.png")
-            )
-
-        return VisionAnalysisResult(matches=matches, overlay_path=overlay_path)
+        return VisionAnalysisResult(matches=matches, overlay_path=None)
 
     def _ensure_capture_saved(self, capture: GridCapture) -> str:
         saved_path = capture.result.saved_path
         if saved_path:
             return saved_path
 
-        target_dir = Path("temp/s2_vision")
-        target_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"capture_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
-        saved_path = str(target_dir / filename)
-        capture.result.image.save(saved_path)
-        capture.result.saved_path = saved_path
-        return saved_path
+        raise ValueError("GridCapture sans saved_path fourni à VisionAnalysisService")

@@ -1,19 +1,34 @@
-# Journal Interface - Le Combat des Coordonnées
+# Journal interface — V2 (contrat et repère)
 
-**5 octobre 2025**  
-*Le cauchemar des décalages*  
-"Pourquoi mes clics ne tombent jamais au bon endroit ?"  
-- Problème documenté dans SPECS/S0_INTERFACE.md  
-- Solution : abandonner Selenium pour du JS natif  
+Ce journal couvre la **V2 à partir du 10 décembre 2025**.
+L’objectif n’est plus juste “arriver à cliquer”. L’objectif, c’est que l’interface devienne une brique fiable, presque ennuyeuse, sur laquelle tout le reste peut se poser.
 
-**8 novembre 2025**  
-*L'application du contrat simplifié*  
-"Comment faire tenir l'interface dans 3 fonctions ?"  
-- Réduction drastique selon PLAN_SIMPLIFICATION.md §3.1  
-- API réduite de 12 à 3 méthodes (SYNTHESE §2.4)
+---
 
-**15 novembre 2025**  
-*L'épiphanie du ViewportState*  
-Après 2 semaines de debug :  
-- Implémentation du CoordinateConverter  
-- Synchronisation parfaite avec la capture
+## 10 décembre 2025 — Réduire l’interface à un contrat minimal
+
+Je force une idée très stricte : l’interface doit se résumer à quelques opérations stables.
+Tout le reste doit être reconstruit à partir d’un repère commun (anchor + conversion cellule→pixel).
+
+---
+
+## 12 décembre 2025 — Cohérence capture / interface
+
+Je comprends que l’interface ne peut pas vivre séparée de la capture.
+Si je déplace la vue d’une façon et que je capture d’une autre, je reconstruis des décalages artificiels.
+
+---
+
+## 14 décembre 2025 — Une base prête pour l’extension
+
+En stabilisant le contrat, je prépare la suite : une interface qui pourra migrer vers une extension navigateur.
+L’idée est simple : si je peux décrire “où je suis” et “où je clique” de manière stable, alors je peux changer l’implémentation (Selenium → extension) sans réécrire le bot.
+
+---
+
+## 15 décembre 2025 — Fin de session : une seule porte de sortie
+
+Je corrige un problème très classique : quand plusieurs couches “ferment” la session, on finit par fermer trop tôt, ou au mauvais moment.
+En V2, je verrouille le comportement : la session (et donc le navigateur) est fermée une seule fois, par le pilote principal, après la boucle.
+
+Ce détail est important en pratique : je peux laisser le navigateur ouvert le temps d’inspecter une partie, puis valider la fermeture explicitement (prompt Entrée), sans qu’une passe de solver ne vienne interrompre le diagnostic.

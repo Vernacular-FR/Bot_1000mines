@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List, Set, Tuple
 
 from src.lib.s3_storage.facade import GridCell, LogicalCellState
-from ..s40_grid_analyzer.grid_classifier import FrontierClassifier
+from ..s40_states_analyzer.grid_classifier import FrontierClassifier
 from .s411_frontiere_reducer import PropagationResult
 
 

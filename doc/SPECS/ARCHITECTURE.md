@@ -4,13 +4,13 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 
 ## 1. Vue d’ensemble des couches
 
-1. **s0_viewport** – Pilote le navigateur/canvas (DOM, coordonnées). Réutilise `lib/s0_navigation` comme base. Fournit offsets, zoom et callbacks DOM. Doit rester interchangeable (Selenium aujourd’hui, extension demain).
-2. **s1_capture** – Récupère l’image la plus rapidement possible (`canvas.toDataURL`, CDP, Playwright). `ZoneCaptureService` orchestre la capture multi-canvases (512×512) et assemble un composite aligné via `lib/s1_capture/s12_canvas_compositor.py` (alignement cell_ref, ceil/floor, recalcul `grid_bounds`). Gère la purge des buffers et expose `CaptureMeta` (timestamp, offset, cell_size).
-3. **s2_vision** – Convertit l’image en grille brute via sampling déterministe (LUT couleurs, offsets fixes). Exporte `GridRaw` + overlays PNG/JSON. Peut intégrer un mini-CNN pour les cas bruités localisés.
-4. **s3_storage** – Conserve l’archive globale (toutes les cellules vues) + une frontière compacte (épaisseur 2 cases révélées + 1 couche fermée). Expose densité/attracteurs pour actionplanner. Pruning uniquement sur la frontière.
-5. **s4_solver** – Enchaîne motifs déterministes (lookup 3×3/5×5) puis solveur exact local (backtracking SAT-like sur composantes ≤15 variables). Au-delà, heuristique/Monte-Carlo. Sort `ActionBatch` sûrs.
-6. **s5_actionplanner** – Calcule la heatmap/barycentres pour décider des déplacements viewport et prioriser les zones. Gère les cases révélées hors écran en ordonnant les déplacements nécessaires.
-7. **s6_action** – Applique les clics/drapeaux (macro-actions) et remonte l’état par action. Interface unique pour remplacer Selenium par une WebExtension.
+1. **s0_interface** – Pilote le navigateur/canvas (DOM, coordonnées). Expose conversion grille↔écran, navigation viewport, clics JS et lecture statut. Doit rester interchangeable (Selenium aujourd’hui, extension demain).
+2. **s1_capture** – Récupère l’image via capture directe du canvas (`canvas.toDataURL`) + découpe/capture de tuiles 512×512. L’assemblage aligné est délégué à `src/lib/s1_capture/s12_canvas_compositor.py`.
+3. **s2_vision** – Convertit l’image en grille brute via matching déterministe (CenterTemplateMatcher) + overlays PNG/JSON.
+4. **s3_storage** – Grille sparse unique `{(x,y) → GridCell}` + trois sets (revealed/unresolved/frontier). Couche passive.
+5. **s4_solver** – **s40_grid_analyzer** (statuts + vues) puis **s42_csp_solver** (OptimizedSolver : reducer + segmentation + CSP exact ≤15 variables + probabilités). **s41_propagator_solver** est présent mais reste une étape optionnelle/future.
+6. **s5_actionplanner** – Calcule les trajets/viewport plans pour maximiser la frontier visible et prioriser les actions.
+7. **s6_action** – Applique les clics/drapeaux (macro-actions) et remonte l’état.
 
 ### Schéma pipeline
 
@@ -20,7 +20,7 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 ├─────────────────┤
 │ s1 Capture      │ ← canvas → raw image (bytes)
 ├─────────────────┤
-│ s2 Vision       │ ← PixelSampler + LUT → grille brute
+│ s2 Vision       │ ← CenterTemplateMatcher → grille brute
 ├─────────────────┤
 │ s3 Storage      │ ← Grid global + Frontier + pruning (alimenté par s2)
 ├─────────────────┤
@@ -44,10 +44,19 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 
 - **Capture directe** : priorité au canvas (toDataURL) et CDP. Selenium classique uniquement en secours.
 - **Vision déterministe** : LUT calibrée automatiquement au démarrage (scan d’une grille connue). Filtre de stabilité (vote sur captures successives).
-- **Storage dual** : archive jamais purgée, frontière recalculable. La frontière inclut systématiquement les 8 voisins autour des dernières cases révélées.
+- **Storage (3 sets)** : `revealed/unresolved/frontier` sont maintenus via `StorageUpsert`. Vision alimente revealed/unresolved, et la frontière représente les cellules fermées adjacentes aux révélées.
 - **Solveur exact** : composants extraites sur la bordure ; backtracking avec pruning (bornes min/max par contrainte). Les actions renvoyées doivent être 100 % sûres.
 - **Pathfinder** : doit pouvoir fonctionner même si la vision ne peut pas relire certaines cases (zones hors écran). S’appuie sur densité/frontière pour choisir les déplacements (fonction attracteur à définir).
 - **Action** : support des macro-clics, ordonnancement précis, remontée d’état pour mettre à jour storage/vision.
+- **Responsabilités strictes** : la logique métier reste au plus bas niveau (modules lib/*). Les controllers sont des passe-plats vers ces modules. Les services orchestrent uniquement le flux (capture → vision → solver) en passant des paramètres bruts (export_root, bounds, matches) sans construire de chemins ou de suffixes.
+- **Chemins et export_root** : `SessionStorage.build_game_paths` fournit la racine de partie `{base}` et crée seulement `s1_raw_canvases/`, `s1_canvas/`, `solver` (alias `{base}`). Tous les générateurs d’overlays définissent eux-mêmes leurs sous-dossiers et suffixes sous `export_root = {base}`.
+  - Vision overlay : `{base}/s2_vision_overlay/{stem}_vision_overlay.png`
+  - States : `{base}/s40_states_overlays/{stem}_{suffix}.png`
+  - Segmentation : `{base}/s42_segmentation_overlay/{stem}_segmentation_overlay.png`
+  - Actions : `{base}/s42_solver_overlay/{stem}_solver_overlay.png`
+  - Combined : `{base}/s43_csp_combined_overlay/{stem}_combined_solver.png`
+  - s23 vision→storage délègue à `render_actions_overlay` (même dossier/suffixe).
+- **Captures** : la couche capture (s1) doit fournir un `GridCapture.saved_path` prêt. VisionAnalysisService n’écrit plus de fichier ; il lève si la capture n’est pas persistée. VisionController enregistre l’overlay via `VisionOverlay.save` uniquement si `export_root` est fourni.
 
 ## 4. Migration Extension
 
@@ -58,10 +67,10 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 ## 5. Roadmap (rappel)
 
 Itération 0 : nettoyage + création arborescence s0→s6 + `main_simple.py`.
-Itération 1 : s0_viewport refactor.
+Itération 1 : s0_interface refactor.
 Itération 2 : s1_capture (canvas toDataURL).
 Itération 3 : s2_vision (sampler + calibration + debug).
-Itération 4 : s3_storage (double structure + pruning).
+Itération 4 : s3_storage (grille sparse + sets + invariants).
 Itération 5 : s4_solver.
 Itération 6 : s5_actionplanner.
 Itération 7 : s6_action.
@@ -74,7 +83,7 @@ src/
 ├─ app/                      # points d’entrée (cli / scripts)
 ├─ services/                 # orchestrateurs (session, boucle…)
 └─ lib/
-    ├─ s0_viewport/
+    ├─ s0_interface/
     │  ├─ facade.py / controller.py           # portes d’entrée
     │  ├─ s01_*, s02_* …                      # toute la logique
     │  └─ __init__.py

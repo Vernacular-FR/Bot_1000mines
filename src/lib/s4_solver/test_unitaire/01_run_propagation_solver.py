@@ -19,11 +19,11 @@ from src.lib.s2_vision.s21_template_matcher import MatchResult  # noqa: E402
 from src.lib.s3_storage.facade import GridCell, LogicalCellState  # noqa: E402
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert  # noqa: E402
 from src.lib.s4_solver.facade import SolverAction, SolverActionType  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.zone_overlay import render_zone_overlay  # noqa: E402
-from src.lib.s4_solver.s41_propagator_solver.actions_overlay import (  # noqa: E402
-    render_actions_overlay,
-)
+from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
+from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s491_states_overlay import render_states_overlay  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s494_combined_overlay import render_combined_overlay  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s493_actions_overlay import render_actions_overlay  # noqa: E402
 from src.lib.s4_solver.s41_propagator_solver.s411_frontiere_reducer import (  # noqa: E402
     IterativePropagator,
 )
@@ -33,18 +33,12 @@ from src.lib.s4_solver.s41_propagator_solver.s412_subset_constraint_propagator i
 from src.lib.s4_solver.s41_propagator_solver.s413_advanced_constraint_engine import (  # noqa: E402
     AdvancedConstraintEngine,
 )
-from src.lib.s4_solver.s41_propagator_solver.combined_overlay import render_combined_overlay  # noqa: E402
-
-
 Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
 
+EXPORT_ROOT = Path(__file__).parent / "01_propagation"
 STRIDE = CELL_SIZE + CELL_BORDER
 RAW_GRIDS_DIR = Path(__file__).parent / "00_raw_grids"
-VISION_OVERLAYS_DIR = Path(__file__).parent / "s3_vision_overlays"
-ZONE_OVERLAYS_DIR = Path(__file__).parent / "s40_zones_overlays"
-PATTERN_OVERLAYS_DIR = Path(__file__).parent / "s41_propagator_solver_overlay"
-COMBINED_OVERLAYS_DIR = Path(__file__).parent / "s423_propagation_combined_overlay"
 BOUNDS_PATTERN = re.compile(r"zone_(?P<sx>-?\d+)_(?P<sy>-?\d+)_(?P<ex>-?\d+)_(?P<ey>-?\d+)")
 
 ACTIVE_COLOR = (0, 120, 255, 180)
@@ -73,8 +67,8 @@ def analyze_screenshot(screenshot: Path) -> Tuple[Bounds, Dict[Tuple[int, int], 
     grid_width = end_x - start_x + 1
     grid_height = end_y - start_y + 1
 
-    VISION_OVERLAYS_DIR.mkdir(exist_ok=True, parents=True)
-    vision = VisionAPI(VisionControllerConfig(overlay_output_dir=VISION_OVERLAYS_DIR))
+    EXPORT_ROOT.mkdir(exist_ok=True, parents=True)
+    vision = VisionAPI(VisionControllerConfig(overlay_output_dir=EXPORT_ROOT))
     matches = vision.analyze_screenshot(
         screenshot_path=str(screenshot),
         grid_top_left=(0, 0),
@@ -82,14 +76,7 @@ def analyze_screenshot(screenshot: Path) -> Tuple[Bounds, Dict[Tuple[int, int], 
         stride=STRIDE,
         overlay=True,
     )
-    generated_overlay = VISION_OVERLAYS_DIR / f"{screenshot.stem}_overlay.png"
-    if generated_overlay.exists():
-        target_overlay = VISION_OVERLAYS_DIR / f"{screenshot.stem}_vision_overlay.png"
-        if target_overlay.exists():
-            target_overlay.unlink()
-        generated_overlay.rename(target_overlay)
     return bounds, matches
-
 
 def _neighbors(coord: Coord) -> Iterable[Coord]:
     x, y = coord
@@ -179,11 +166,11 @@ def process_screenshot(screenshot: Path) -> None:
     iterative_refresh_result = iterative_refresh.solve_with_zones()
     
     # Extraire les zones depuis le résultat pour l'overlay des zones
-    from src.lib.s4_solver.s40_grid_analyzer.grid_classifier import FrontierClassifier
+    from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier
     classifier = FrontierClassifier(cells)
     zones = classifier.classify()
     
-    overlay_path = render_zone_overlay(
+    overlay_path = render_states_overlay(
         screenshot,
         bounds,
         active=zones.active,
@@ -191,7 +178,7 @@ def process_screenshot(screenshot: Path) -> None:
         solved=zones.solved,
         stride=STRIDE,
         cell_size=CELL_SIZE,
-        output_dir=ZONE_OVERLAYS_DIR,
+        export_root=EXPORT_ROOT,
     )
     
     # Créer les actions à partir du résultat de la propagation
@@ -312,16 +299,14 @@ def process_screenshot(screenshot: Path) -> None:
         | iterative_refresh_result.flag_cells
     )
 
-    output_dir = PATTERN_OVERLAYS_DIR
-    output_dir.mkdir(exist_ok=True, parents=True)
     render_actions_overlay(
         screenshot,
         bounds,
-        phase1_actions=phase1_actions,
-        later_actions=later_actions,
+        reducer_actions=[],
+        csp_actions=phase1_actions + later_actions,
         stride=STRIDE,
         cell_size=CELL_SIZE,
-        output_dir=output_dir,
+        export_root=EXPORT_ROOT,
     )
 
     if phase1_actions or later_actions:
@@ -333,7 +318,6 @@ def process_screenshot(screenshot: Path) -> None:
             f"subset_safe={len(subset_new_safe)} subset_flags={len(subset_new_flags)} "
             f"adv_safe={len(advanced_new_safe)} adv_flags={len(advanced_new_flags)} "
             f"refresh_safe={len(refresh_new_safe)} refresh_flags={len(refresh_new_flags)} "
-            f"(overlay: {output_dir.name})"
         )
         print(f"  Iterative reasoning: {iterative_result.reasoning}")
         print(f"  Subset reasoning: {subset_result.reasoning}")
@@ -349,7 +333,7 @@ def process_screenshot(screenshot: Path) -> None:
         cells=cells,  # Ajouter les cellules pour calculer effective values
         stride=STRIDE,
         cell_size=CELL_SIZE,
-        output_dir=COMBINED_OVERLAYS_DIR,
+        export_root=EXPORT_ROOT,
     )
     print(f"[COMBINED] {screenshot.name}: zones + solver → {combined_path.name}")
 

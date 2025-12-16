@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Pipeline capture → vision → solver – 2025-12-15
+- **export_root unique** : `SessionStorage.build_game_paths` crée uniquement `{base}/s1_raw_canvases`, `{base}/s1_canvas`, et fournit `solver = {base}`. Aucun chemin overlay n’est construit par les services.
+- **Capture** : `ZoneCaptureService` assemble les tuiles canvas (`s1_raw_canvases` → `s1_canvas/full_grid_*.png`). Vision consomme une capture déjà persistée (sinon erreur).
+- **Vision intégrée** : `VisionAnalysisService` ne sauvegarde plus de captures ; VisionController enregistre l’overlay via `VisionOverlay.save` sous `{base}/s2_vision_overlay/` si overlay activé.
+- **Orchestration solver minimaliste** : `GameSolverServiceV2` passe uniquement `export_root` aux générateurs ; les overlays sont produits par les modules s491/s492/s493/s494 (`s40_states_overlays`, `s42_segmentation_overlay`, `s42_solver_overlay`, `s43_csp_combined_overlay`).
+- **Responsabilités strictes** : logique au plus bas niveau (modules lib/*), controllers passe-plats, services = orchestration seulement.
+- **Nettoyage session** : `SessionSetupService.cleanup_session` appelé une seule fois par le pilote principal (prompt Entrée avant fermeture navigateur).
+
 ### Solver – 2025-12-13
 - **Refonte s4** : séparation complète des responsabilités en trois sous-modules.
   - `s40_grid_analyzer/` regroupe désormais la classification JUST_REVEALED→ACTIVE/FRONTIER/SOLVED (`grid_classifier.py`) et l'exposition des vues (`grid_extractor.py`).
@@ -24,10 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Capture Canvas** : Refactor complet de la composition / capture brute.
-  - `ZoneCaptureService` orchestre désormais les captures multi-canvases (`capture_canvas_tiles`) et délègue l'assemblage aligné aux modules `lib/s1_capture`.
-  - Nouveau module `lib/s1_capture/s12_canvas_compositor.py` responsable de l'alignement pixel-parfait (cell_ref, ceil/floor, recalc `grid_bounds`).
+  - `ZoneCaptureService` orchestre désormais les captures multi-canvases (`capture_canvas_tiles`) et délègue l'assemblage aligné aux modules `src/lib/s1_capture`.
+  - Nouveau module `src/lib/s1_capture/s12_canvas_compositor.py` responsable de l'alignement pixel-parfait (cell_ref, ceil/floor, recalc `grid_bounds`).
   - Le bot (`src/apps/bot_1000mines.py`) ne contient plus de logique de collage ni de boucle de capture.
-- **Nettoyage overlay debug** : Suppression définitive de `lib/s1_capture/s12_grid_overlay.py`, de l'API `annotate_grid/export_debug_overlay` et de toute dépendance. Les overlays runtime restent fournis par `lib/s2_vision/s22_vision_overlay.py`.
+- **Nettoyage overlay debug** : suppression des anciens overlays de debug côté capture. Les overlays runtime restent fournis par `src/lib/s2_vision/s22_vision_overlay.py`.
 
 ### Storage – 2025-12-12
 - **Architecture trois sets** : Implémentation complète de revealed/unresolved/frontier sets dans s3_storage
@@ -44,8 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Vision – 2025-12-12
 - Validation complète du **CenterTemplateMatcher** : heuristiques uniformes (`unrevealed`, `empty`), discriminant pixel pour `exploded`, ordre de test prioritaire avec early exit, décor testé uniquement en dernier recours.
-- Ajout du symbole `question_mark` dans la chaîne complète (templates, manifest, matcher, overlay). Les overlays affichent désormais `question_mark` en blanc (comme `unrevealed`) et `decor` en gris/noir.
-- Resserrement du seuil runtime `empty` (`UNIFORM_THRESHOLDS["empty"]=25`) pour éviter les faux positifs décor.
 - Ajout du symbole `question_mark` dans la chaîne complète (templates, manifest, matcher, overlay). Les overlays affichent désormais `question_mark` en blanc (comme `unrevealed`) et `decor` en gris/noir.
 - Resserrement du seuil runtime `empty` (`UNIFORM_THRESHOLDS["empty"]=25`) pour éviter les faux positifs décor.
 - Vision API + test `tests/test_s2_vision_performance.py` servent de validation continue (<0,6 s/screenshot sur machine de ref).

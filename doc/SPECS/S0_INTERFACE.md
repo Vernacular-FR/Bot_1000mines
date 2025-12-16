@@ -25,10 +25,10 @@ S2+ / Services
 | Module | Rôle clé | Fichiers |
 |--------|----------|----------|
 | **BrowserManager** | Démarre/arrête Chrome, applique BROWSER_CONFIG, gère navigation et attentes. | `s00_browser_manager.py` |
-| **CoordinateConverter** | Calcule les correspondances grille/canvas/écran, maintient l’ancre CSS, expose `canvas_locator`. | `s01_Coordonate_system.py` |
-| **CanvasLocator** | Trouve les tuiles canvas (id, position, taille) utilisées par la capture. | `s01_Coordonate_system.py` |
+| **CoordinateConverter** | Calcule les correspondances grille/canvas/écran, maintient l’ancre CSS, expose `canvas_locator`. | `s03_Coordonate_system.py` |
+| **CanvasLocator** | Trouve les tuiles canvas (id, position, taille) utilisées par la capture. | `s03_Coordonate_system.py` |
 | **NavigationController** | Déplacements viewport (via JS), clics sur canvas ou grille, interactions clavier/souris simulées. | `s03_game_controller.py` |
-| **StatusReader** | Lit `#status` (scores, vies, difficulté) via Selenium et renvoie `GameStatus`. | `s04_status_reader.py` |
+| **StatusReader** | Lit `#status` (scores, vies, difficulté) via Selenium et renvoie `GameStatus`. | `s05_status_reader.py` |
 | **InterfaceController** | Façade publique : compose les composants ci-dessus, expose API simple, assure liaison avec `s1_capture`. | `controller.py` |
 
 ## Flux majeurs

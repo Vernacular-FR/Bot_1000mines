@@ -106,7 +106,6 @@ class GridCell:
             return CellState.UNKNOWN
         return CellState.CLOSED
 
-<<<<<<< HEAD
     @property
     def value(self) -> Optional[int]:
         if self.logical_state == LogicalCellState.OPEN_NUMBER:
@@ -116,8 +115,6 @@ class GridCell:
         return None
 
 
-=======
->>>>>>> 6994b3d24f5fb7f44e30459aa1d30774113ee6e8
 @dataclass
 class FrontierSlice:
     coords: Set[Coord]

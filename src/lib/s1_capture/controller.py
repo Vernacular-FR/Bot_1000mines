@@ -47,9 +47,11 @@ class CaptureController(CaptureControllerApi):
         grid_bounds: Tuple[int, int, int, int],
         *,
         save: bool = False,
+        annotate: bool = False,
         filename: Optional[str] = None,
         bucket: Optional[str] = None,
     ) -> CaptureResult:
+        _ = annotate
         self.interface.ensure_visible(grid_bounds)
         left, top, right, bottom = grid_bounds
         width = (right - left + 1) * self.interface.converter.cell_total

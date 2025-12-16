@@ -102,10 +102,10 @@ class SessionStorage:
         base = self.get_game_base_path(game_id)
         return {
             'raw_canvases': os.path.join(base, "s1_raw_canvases"),
-            'vision': os.path.join(base, "s2_vision"),
-            'solver': os.path.join(base, "solver),
+            's1_canvas': os.path.join(base, "s1_canvas"),
+            # Racine unique pour overlays générés par les fonctions elles-mêmes
+            'solver': base,
             'metadata': os.path.join(base, "metadata.json"),
-            'grid_state_db': os.path.join(base, "grid_state_db.json")
         }
 
     def ensure_storage_ready(self, state: SessionState, create_metadata: bool = True) -> Dict[str, Dict[str, str]]:
@@ -115,6 +115,18 @@ class SessionStorage:
         paths = self.build_game_paths(state.game_id)
         base_path = self.get_game_base_path(state.game_id)
         os.makedirs(base_path, exist_ok=True)
+
+        # Nettoyage des anciens dossiers hérités (s4_solver/*) pour éviter les intermédiaires
+        legacy_dirs = [
+            os.path.join(base_path, "s4_solver"),
+        ]
+        for legacy in legacy_dirs:
+            if os.path.isdir(legacy):
+                try:
+                    shutil.rmtree(legacy)
+                    print(f"[CLEANUP] Dossier legacy supprimé: {legacy}")
+                except Exception as e:
+                    print(f"[CLEANUP] Erreur suppression legacy {legacy}: {e}")
 
         for key, path in paths.items():
             target_dir = path if key not in {"metadata", "grid_state_db"} else os.path.dirname(path)

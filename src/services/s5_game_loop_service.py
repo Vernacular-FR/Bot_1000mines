@@ -8,22 +8,31 @@ import os
 import sys
 import shutil
 import json
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 from enum import Enum
 
 # Imports du projet
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from src.lib.s0_navigation.game_session_manager import SessionState
-from src.lib.s0_navigation.coordinate_system import CoordinateConverter, GridViewportMapper
-from src.lib.s3_tensor.cell import CellSymbol
-from src.lib.s3_tensor.grid_state import GamePersistence
+from src.config import CELL_SIZE
+from src.lib.s0_interface.s03_Coordonate_system import CoordinateConverter, CanvasLocator
+from src.lib.s1_capture.s11_canvas_capture import CanvasCaptureBackend
 
 # Imports des services
 from .s1_session_setup_service import SessionSetupService
 from .s1_zone_capture_service import ZoneCaptureService
-from .s2_optimized_analysis_service import OptimizedAnalysisService
-from .s3_game_solver_service import GameSolverService
+from .s2_vision_analysis_service import VisionAnalysisService
 from .s4_action_executor_service import ActionExecutorService
+from .s3_game_solver_service import GameSolverServiceV2
+from src.lib.s5_actionplanner.controller import ActionPlannerController
+from src.lib.s6_action.controller import convert_pathfinder_plan_to_game_actions
+from src.lib.s3_storage.controller import StorageController
+from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert
+from src.lib.s3_storage.s30_session_context import (
+    set_session_context,
+    update_capture_path,
+    update_capture_metadata,
+)
 
 class GameState(Enum):
     """États possibles du jeu"""
@@ -59,9 +68,16 @@ class GameResult:
         }
 
 class GameLoopService:
-    def __init__(self, session_service: SessionSetupService, 
-                 max_iterations: int = 100, iteration_timeout: float = 60.0,
-                 delay_between_iterations: float = 1.0, game_session=None):
+    def __init__(
+        self,
+        session_service: SessionSetupService,
+        max_iterations: int = 100,
+        iteration_timeout: float = 60.0,
+        delay_between_iterations: float = 1.0,
+        overlay_enabled: bool = False,
+        execute_actions: bool = True,
+        game_session=None,
+    ):
         """
         Initialise le service de boucle de jeu.
 
@@ -81,10 +97,16 @@ class GameLoopService:
             self.coordinate_converter = None
             
         self.max_iterations = max_iterations
+        self.overlay_enabled = overlay_enabled
+        self.execute_actions = execute_actions
         
-        # Utiliser le gestionnaire centralisé de session fourni ou en créer un nouveau
+        # Utiliser le gestionnaire centralisé de session fourni
         if game_session is None:
-            self.game_session = SessionState.create_new_session()
+            # Construire à partir du SessionSetupService existant
+            self.game_session = {
+                "state": session_service.session_state,
+                "storage": session_service.session_storage,
+            }
         else:
             self.game_session = game_session
             
@@ -99,24 +121,26 @@ class GameLoopService:
         storage = self.game_session['storage'].ensure_storage_ready(self.game_session['state'], create_metadata=False)
         self.game_paths = storage['paths']
         self.game_base_path = storage['base_path']
-        self.persistence = GamePersistence(
-            base_path=self.game_base_path,
-            metadata_path=self.game_paths.get('metadata'),
-            actions_dir=self.game_paths.get('actions')
-        )
-        
-        # Initialiser les services
-        self.capture_service = ZoneCaptureService(
-            driver=self.driver, 
-            paths=self.game_paths, 
+        # Initialiser les services (pipeline minimal vision -> storage -> solver V2)
+        self.interface = session_service.get_interface()
+        self.capture_service = ZoneCaptureService(interface=self.interface)
+        export_root = Path(self.game_base_path) if self.overlay_enabled else None
+        # Publier le contexte de session (consommé par les modules)
+        set_session_context(
             game_id=self.game_id,
-            session_service=session_service
+            iteration=self.iteration_num or 0,
+            export_root=str(export_root) if export_root else "",
+            overlay_enabled=self.overlay_enabled,
         )
-        self.analysis_service = OptimizedAnalysisService(paths=self.game_paths)
-        self.solver_service = GameSolverService(paths=self.game_paths)
-        self.action_service = ActionExecutorService(self.coordinate_converter, self.driver)
-        if hasattr(self.analysis_service, "grid_db"):
-            self.action_service.set_grid_db(self.analysis_service.grid_db)
+        self.vision_service = VisionAnalysisService()
+        self.storage = StorageController()
+        self.solver_service = GameSolverServiceV2(storage=self.storage)
+        self.action_service = (
+            ActionExecutorService(self.coordinate_converter, self.driver)
+            if self.execute_actions and self.coordinate_converter
+            else None
+        )
+        self.action_planner = ActionPlannerController()
         
         # État du jeu
         self.current_game_state = GameState.PLAYING
@@ -138,7 +162,8 @@ class GameLoopService:
 
     def execute_single_pass(self, iteration_num: int = None) -> Dict[str, Any]:
         """
-        Exécute une seule passe complète : Capture -> Analyse -> Solver -> Actions
+        Exécute une seule passe complète : Capture -> Analyse -> Solver
+        (sans exécution d'actions si execute_actions=False)
         Utilise le gestionnaire centralisé de session pour le numéro d'itération.
         
         Args:
@@ -150,6 +175,7 @@ class GameLoopService:
         # Utiliser le numéro d'itération de la session si non fourni
         if iteration_num is None:
             iteration_num = self.game_session['state'].iteration_num
+        iter_label = iteration_num if iteration_num is not None else 0
         
         try:
             pass_result = {
@@ -160,75 +186,107 @@ class GameLoopService:
                 'files_saved': []
             }
             
-            # 1. Capture de la zone de jeu (s1_zone)
-            print("[CAPTURE] Capture de la zone de jeu...")
-            capture_result = self.capture_service.capture_game_zone_inside_interface(
-                self.session_service, 
-                iteration_num=iteration_num
+            # 1. Capture de la zone de jeu via canvases
+            print("[CAPTURE] Capture de la zone de jeu (canvases)...")
+            locator = CanvasLocator(driver=self.interface.browser.get_driver())
+            backend = CanvasCaptureBackend(self.interface.browser.get_driver())
+            raw_dir = Path(self.game_paths["raw_canvases"])
+            captures = self.capture_service.capture_canvas_tiles(
+                locator=locator,
+                backend=backend,
+                out_dir=raw_dir,
+                game_id=self.game_id,
             )
-            
-            if not capture_result['success']:
-                pass_result['message'] = f"Erreur capture: {capture_result['message']}"
+            if not captures:
+                pass_result['message'] = "Aucune capture canvas effectuée"
                 return pass_result
-            
+
+            grid_capture = self.capture_service.compose_from_canvas_tiles(
+                captures=captures,
+                grid_reference=self.interface.converter.grid_reference_point,
+                save_dir=Path(self.game_paths["s1_canvas"]),
+            )
+            # Renommer la capture principale pour inclure game_id, itération et bounds
+            try:
+                sx, sy, ex, ey = grid_capture.grid_bounds
+                target_name = f"{self.game_id}_iter{iter_label}_{sx}_{sy}_{ex}_{ey}.png"
+                target_path = Path(self.game_paths["s1_canvas"]) / target_name
+                current_path = Path(grid_capture.result.saved_path)
+                if current_path != target_path:
+                    if target_path.exists():
+                        target_path.unlink()
+                    current_path.rename(target_path)
+                    grid_capture.result.saved_path = str(target_path)
+            except Exception as exc:
+                print(f"[CAPTURE] Impossible de renommer la capture principale: {exc}")
+
+            pass_result['files_saved'].append(grid_capture.result.saved_path)
+            # Publier la capture + métadonnées pour les modules aval (vision/solver/overlays)
+            update_capture_metadata(
+                grid_capture.result.saved_path,
+                grid_capture.grid_bounds,
+                grid_capture.cell_stride,
+            )
+            zone_bounds = grid_capture.grid_bounds
+
             # 2. Analyse de la grille
             print("[ANALYSE] Analyse de la grille...")
-            grid_zone = capture_result['grid_zone']
-            zone_bounds = (grid_zone['start_x'], grid_zone['start_y'], grid_zone['end_x'], grid_zone['end_y'])
-            
-            analysis_result = self.analysis_service.analyze_from_path(capture_result['zone_path'], zone_bounds=zone_bounds)
-            
-            if not analysis_result['success']:
-                pass_result['message'] = f"Erreur analyse: {analysis_result.get('message', 'Erreur inconnue')}"
-                return pass_result
-            
-            # Utiliser directement le fichier de zone créé par le service de capture
-            start_x, start_y, end_x, end_y = zone_bounds
-            pass_result['files_saved'].append(capture_result['zone_path'])
-            print(f"[SAVE] Zone déjà sauvegardée: {capture_result['zone_path']}")
-            
-            # Ajouter le fichier d'analyse créé
-            if analysis_result.get('db_path'):
-                pass_result['files_saved'].append(analysis_result['db_path'])
-                print(f"[SAVE] Analyse sauvegardée: {analysis_result['db_path']}")
-            
-            # Ajouter l'overlay d'analyse si généré
-            if analysis_result.get('overlay_path'):
-                pass_result['files_saved'].append(analysis_result['overlay_path'])
-                print(f"[SAVE] Overlay analyse sauvegardé: {analysis_result['overlay_path']}")
-            
-            # Vérification état fin de jeu (Mines / Victoire) via l'analyse
-            detected_state = self._detect_game_state(analysis_result)
+            analysis = self.vision_service.analyze_grid_capture(
+                grid_capture,
+                overlay=True,
+            )
+            if analysis.overlay_path:
+                pass_result['files_saved'].append(str(analysis.overlay_path))
+
+            # 3. Upsert storage puis résolution
+            upsert = matches_to_upsert(grid_capture.grid_bounds, analysis.matches)
+            self.storage.upsert(upsert)
+            # Debug stockage
+            unresolved = self.storage.get_unresolved()
+            frontier = self.storage.get_frontier().coords
+            print(f"[STORAGE] cells={len(upsert.cells)} unresolved={len(unresolved)} frontier={len(frontier)}")
+            # Log rapide des premiers symboles
+            sample_cells = list(upsert.cells.items())[:10]
+            sample_desc = ", ".join([f"{coord}:{cell.raw_state.name}" for coord, cell in sample_cells])
+            print(f"[STORAGE] échantillon cells: {sample_desc}")
+
+            print("[SOLVEUR] Résolution du puzzle...")
+            solve_result = self.solver_service.solve_snapshot()
+            solver_actions = solve_result.get("actions", [])
+            reducer_actions = solve_result.get("reducer_actions", [])
+            stats = solve_result.get("stats")
+            segmentation = solve_result.get("segmentation")
+            safe_cells = solve_result.get("safe_cells", [])
+            print(
+                f"[SOLVEUR] actions={len(solver_actions)} "
+                f"(zones={getattr(stats, 'zones_analyzed', 0)}, comps={getattr(stats, 'components_solved', 0)}, "
+                f"safe={getattr(stats, 'safe_cells', 0)}, flags={getattr(stats, 'flag_cells', 0)})"
+            )
+            unresolved = set(self.storage.get_unresolved())
+
+            if stats:
+                self.stats['total_safe_actions'] += getattr(stats, "safe_cells", 0)
+                self.stats['total_flag_actions'] += getattr(stats, "flag_cells", 0)
+
+            # Détection simple d'état : aucune action + aucune case non résolue => victoire
+            detected_state = self._detect_game_state(solver_actions, unresolved)
             if detected_state != GameState.PLAYING:
                 self.current_game_state = detected_state
                 pass_result['game_state'] = detected_state.value
                 pass_result['message'] = f"Partie terminée: {detected_state.value}"
-                pass_result['success'] = True  # La passe a réussi même si le jeu est fini
+                pass_result['success'] = True
                 return pass_result
-            
-            # 3. Résolution
-            print("[SOLVEUR] Résolution du puzzle...")
-            solve_result = self.solver_service.solve_from_db_path(
-                analysis_result['db_path'], 
-                capture_result['zone_path'],
-                game_id=self.game_id,
-                iteration_num=iteration_num
-            )
-            
-            if not solve_result['success']:
-                pass_result['message'] = f"Résolution partielle: {solve_result.get('message', 'Erreur inconnue')}"
-                pass_result['success'] = True  # La passe a réussi même si résolution partielle
+
+            # 4. (Optionnel) planification/exécution : désactivé si execute_actions=False
+            if not self.execute_actions or not self.action_service:
+                pass_result['success'] = True
+                pass_result['actions_executed'] = 0
+                pass_result['message'] = "Passe solver-only (aucune action exécutée)"
                 return pass_result
-            
-            # L'overlay est déjà sauvegardé au bon endroit avec la bonne nomenclature
-            if solve_result.get('overlay_path'):
-                print(f"[SAVE] Overlay solver sauvegardé: {solve_result['overlay_path']}")
-                pass_result['files_saved'].append(solve_result['overlay_path'])
-            
-            # 4. Exécution des actions
-            solve_result['analysis_result'] = analysis_result
-            game_actions = self.solver_service.convert_actions_to_game_actions(solve_result)
-            
+
+            path_plan = self.action_planner.plan(solver_actions) if solver_actions else None
+            game_actions = convert_pathfinder_plan_to_game_actions(path_plan) if path_plan else []
+
             if not game_actions:
                 self.current_game_state = GameState.NO_ACTIONS
                 pass_result['game_state'] = GameState.NO_ACTIONS.value
@@ -238,17 +296,6 @@ class GameLoopService:
             
             print(f"[EXÉCUTION] Exécution de {len(game_actions)} actions...")
             execution_result = self.action_service.execute_batch(game_actions)
-            
-            # Sauvegarder les actions dans s4_actions
-            actions_save_path = self.persistence.save_actions(
-                self.game_id,
-                iteration_num,
-                zone_bounds,
-                game_actions,
-                execution_result
-            )
-            pass_result['files_saved'].append(actions_save_path)
-            print(f"[SAVE] Actions sauvegardées: {actions_save_path}")
             
             pass_result['success'] = True
             pass_result['actions_executed'] = execution_result['executed_count']
@@ -321,23 +368,11 @@ class GameLoopService:
             # Pause pour laisser le jeu réagir aux actions (animations, chargement)
             time.sleep(self.delay_between_iterations)
         
-        # Fin de partie - Mettre à jour les métadonnées
+        # Fin de partie
         total_time = time.time() - start_time
         self.stats['total_time'] = total_time
         self.stats['iterations'] = iteration
         self.stats['total_actions'] = total_actions
-        
-        # Mettre à jour le fichier de métadonnées
-        metadata = self.persistence.update_metadata({
-            "end_time": time.time(),
-            "end_datetime": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "duration": total_time,
-            "iterations": iteration,
-            "total_actions": total_actions,
-            "final_state": self.current_game_state.value,
-            "success": self.current_game_state == GameState.WON
-        })
-        print(f"[GAME] Métadonnées sauvegardées: {self.persistence.metadata_path}")
         
         result = GameResult()
         result.success = (self.current_game_state == GameState.WON)
@@ -349,27 +384,18 @@ class GameLoopService:
         
         return result
 
-    def _detect_game_state(self, analysis_result: Dict[str, Any]) -> GameState:
+    def _detect_game_state(self, solver_actions: List[Any], unresolved: set[tuple[int, int]]) -> GameState:
         """
-        Détecte l'état actuel du jeu via l'analyse.
+        Détection simple pour la version minimale (storage-based).
+        - Si aucune action et aucune case non résolue -> victoire.
+        - Sinon, continue à jouer.
         """
-        # 1. Vérifier la victoire (les mines découvertes ne terminent plus la partie)
-        game_status = analysis_result.get('game_status', {})
-        summary = analysis_result.get('summary', {})
-        symbol_distribution = game_status.get('symbol_distribution', summary.get('symbol_distribution', {}))
-        
-        unknown_count = symbol_distribution.get(CellSymbol.UNKNOWN.value, 0)
-        unrevealed_count = symbol_distribution.get(CellSymbol.UNREVEALED.value, 0)
-        flag_count = symbol_distribution.get(CellSymbol.FLAG.value, 0)
-        
-        total_cells = summary.get('total_cells', 0)
-        
-        # Si on a tout révélé sauf les mines (supposées)
-        if total_cells > 0 and unknown_count == 0 and unrevealed_count == 0: # Cas simple
-             print("[GAME] Plus de cases inconnues ! Partie gagnée.")
-             return GameState.WON
-        
-        return GameState.PLAYING
+        try:
+            if not solver_actions and not unresolved:
+                return GameState.WON
+            return GameState.PLAYING
+        except Exception:
+            return GameState.PLAYING
 
     def _should_continue(self, state: GameState, iterations: int) -> bool:
         if state in [GameState.WON, GameState.LOST, GameState.ERROR, GameState.NO_ACTIONS]:
@@ -391,6 +417,8 @@ class GameLoopService:
             'total_iterations': 0,
             'total_actions': 0,
             'total_time': 0.0,
-            'errors': []
+            'errors': [],
+            'total_safe_actions': 0,
+            'total_flag_actions': 0,
         }
         print("[INFO] Statistiques GameLoopService remises à zéro")

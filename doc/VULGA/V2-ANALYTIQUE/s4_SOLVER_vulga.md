@@ -1,153 +1,42 @@
-# Journal de développement - Solver CSP
+# Journal solver — V2 (CSP optimisé, autonome)
+
+Ce journal couvre la **V2 à partir du 10 décembre 2025**.
+L’objectif n’est pas de rajouter un nouveau solver “en plus”. L’objectif est d’obtenir un pipeline qui marche seul, avec une logique claire : réduire d’abord, résoudre ensuite.
 
 ---
-**14 novembre 2025**
 
-*Le premier choc : quand la théorie rencontre la réalité*
+## 10 décembre 2025 — Formaliser la propagation
 
-Après avoir étudié les travaux de Richard Kaye sur la NP-complétude du démineur, j'implémente le CSP solver avec conviction. L'algorithme de backtracking fonctionne parfaitement sur les tests unitaires (<15 cases), mais les résultats sont catastrophiques sur les vraies grilles :
-- Seulement 20% des cas résolus
-- Des "no solution found" sur des configurations pourtant triviales
-- Le vieux propagator, avec ses simples règles locales, surpasse le CSP sur 80% de nos benchmarks
+Je restructure le raisonnement en phases.
+Au lieu d’un grand bloc monolithique, je fais une propagation qui commence par des règles locales, puis monte en complexité (contraintes entre voisines), jusqu’au point où le problème devient suffisamment stable.
 
-*Questionnement :*
-"Ai-je mal implémenté l'algorithme ou y a-t-il un problème plus profond dans notre approche ?"
+L’effet est immédiat : ce n’est pas forcément “plus intelligent”, mais c’est plus contrôlable.
+Et surtout, ça prépare un terrain propre pour un solveur exact.
 
 ---
-**21 novembre 2025**
 
-*La révélation des overlays - Quand la visualisation éclaire la raison*
+## 14 décembre 2025 — Le déclic : la réduction frontière doit précéder le zonage
 
-En superposant les overlays de décision, le problème saute aux yeux :
+Le vrai problème historique du CSP, je finis par le voir clairement : les zones tronquées.
+Ce n’est pas juste “le CSP qui est mauvais”. C’est moi qui lui donnais des composantes instables, découpées trop tôt.
 
-1. **Filtre de stabilité trop strict** :
-   - Élimine des composantes valides mais récentes
-   - Basé sur un compteur de cycles (`no_progress_cycles`) mal calibré
+Et comme si ça ne suffisait pas, je me rends compte qu’en V2 j’avais ajouté par inadvertance un garde-fou de **taille maximale** sur certaines frontières : résultat, même des frontières complètes (mais un peu longues) ne passaient plus au solver.
+Le jour où je le rends configurable (au lieu de le subir), je récupère enfin des cas qui auraient dû être traités.
 
-2. **Taille max arbitraire** :
-   - La limite de 15 cases vient d'un vieux benchmark
-   - Ne tient pas compte de la connectivité réelle
+La décision qui change tout est simple :
 
-3. **Intolérance aux états transitoires** :
-   - Le CSP exige une stabilité illusoire
-   - Le propagator profite des informations partielles
+Je fais la réduction frontière **avant** de segmenter et d’appeler le CSP.
 
-*Réflexion documentée dans ROADMAP.md :*
-"Le solver doit apprendre à vivre avec l'imperfection dynamique des grilles"
+En pratique, ça donne un pipeline CSP optimisé, autonome : le reducer fait le ménage, puis le CSP travaille sur un snapshot cohérent.
+
+Les benchmarks confirment ce basculement : on passe d’un CSP pénible et imprévisible à un solver qui devient compétitif, et souvent meilleur, tout en étant plus rapide que l’ancien hybride.
 
 ---
-**28 novembre 2025**
 
-*La quête du juste milieu - Science ou art ?*
+## 15 décembre 2025 — Overlays : voir le raisonnement, pas juste le résultat
 
-Semaine folle d'expérimentations :
+Une fois le pipeline live branché, le besoin change : je ne veux pas seulement “des actions”, je veux comprendre pourquoi.
+Je verrouille donc la génération des overlays solver par partie, avec une logique simple : un overlay d’état (avant CSP), un overlay de segmentation, et un overlay combiné.
 
-1. **Tailles max variables** :
-   - 30 cases : légère amélioration
-   - 50 cases : résultats intéressants mais instables
-   - 100 cases : déluge de faux positifs
-
-2. **Filtres adaptatifs** :
-   - Désactivation complète → chaos
-   - Seuil dynamique basé sur la connectivité → prometteur
-
-3. **Réduction frontière** :
-   - Pré-phase systématique avant CSP
-   - Réduction de 40% des composantes
-
-*Note technique :*
-Premiers prototypes de ComponentRangeConfig avec seuils dynamiques
-
----
-**5 décembre 2025**
-
-*La grande décision architecturale - Tournant philosophique*
-
-Les benchmarks convergent vers une vérité inconfortable :
-
-- L'hybridité dilue les responsabilités
-- Le CSP pur est trop rigide
-
-*Solution radicale :*
-1. Nouvelle architecture CSP-centric mais adaptable
-2. ComponentRangeConfig avec :
-   - `max_size=50` (optimisé empiriquement)
-   - `min_stable_cycles=2` (nouvelle métrique)
-   - `allow_recent_changes=False` (configurable)
-
-*Impact storage (cf s3_STORAGE_VULGA.md) :*
-- Révision complète du cache des composantes
-- Nouveau système de snapshots incrémentaux
-
----
-**14 décembre 2025**
-
-*Le déclic CSP*  
-"La réduction frontière est la clé !"  
-- Benchmark : 80% des grilles résolues  
-- Temps divisé par 3 vs version hybride  
-- Configuration dynamique implémentée
-
-*Benchmarks :*
-- 80% des grilles résolues (vs 20% initial)
-- Temps moyen divisé par 3
-- Stabilité exceptionnelle
-
-*Réflexion pour la ROADMAP :*
-"Le Pattern Solver devra s'intégrer comme une couche de pré-processing, pas comme une alternative. Nous avons appris que la flexibilité configurable est la clé, pas la multiplicité des approches."
-
-## L'Erreur Initiale
-```mermaid
-graph TD
-    S[CSP Pur] --> T[Zones tronquées]
-    T --> U[Échecs]
-```
-
-*"Je voulais que le CSP fasse tout..."*
-
-## La Solution Emerge
-```mermaid
-graph LR
-    V[Frontière] --> W[Reducer]
-    W --> X[CSP Ciblé]
-    X --> Y[80% réussite]
-```
-
-*"C'est en réduisant qu'on comprend !"*
-
-## La Révolution de la Réduction Frontière (Déc 2025)
-
-### Le Problème Fondamental
-```mermaid
-graph LR
-    A[CSP Pur] --> B((Problème))
-    B --> C[Zones Tronquées]
-    B --> D[Composantes Instables]
-    B --> E[Temps Excessif]
-```
-
-*"J'ai compris que le CSP seul était comme un moteur surpuissant... mais sans volant !"*
-
-### La Solution en 3 Étapes
-
-1. **Phase de Réduction** :
-```mermaid
-graph TB
-    F[Frontière] --> G{Reducer}
-    G --> H[Composantes Stables]
-    G --> I[Élimination Zones Tronquées]
-```
-
-2. **Zonage Intelligent** :
-   - Découpe seulement après réduction
-   - Taille adaptative (5-50 cases)
-   - Respect de la connectivité
-
-3. **CSP Ciblé** :
-```mermaid
-graph LR
-    J[Composante Réduite] --> K[CSP]
-    K --> L[Solutions Fiables]
-```
-
-*"C'est comme préparer un puzzle avant d'assembler - on enlève d'abord les pièces mal découpées"*
+Le point critique, c’est la réduction : les cases résolues par le reducer doivent aussi apparaître dans le combiné, sinon on a l’impression que le CSP “invente” des actions.
+En rendant ces actions visibles au même niveau que le reste (opaque), le debug redevient lisible.

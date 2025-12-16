@@ -14,6 +14,14 @@ Document de cadrage qui synthétise les exigences de `PLAN_SIMPLIFICATION radica
 - Gérer la frontière côté intelligence interne (hors Vision) pour anticiper la capture future.
 - Coordonner l'exécution avec s6_action et gérer les retours de confirmation.
 
+### Étape de développement immédiate (version minimale)
+- Objectif : boucler une game loop rapidement sans déplacement viewport.
+- Entrée : liste de `SolverAction` (CLICK/FLAG/GUESS).
+- Règle de tri minimal : flags d’abord, clicks sûrs ensuite, guesses en dernier (ordre d’entrée).
+- Sortie : plan minimal (liste ordonnée) directement exécutable par s6.
+- Overlay optionnel : si la capture courante est disponible, dessiner les clics/flags prévus.
+- Aucune anticipation de frontière ni calcul viewport ; ce sera ajouté dans les phases suivantes de la roadmap ci-dessous.
+
 ## 2. Architecture cible
 ```
 s5_actionplanner/

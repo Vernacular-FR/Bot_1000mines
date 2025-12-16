@@ -153,6 +153,16 @@ class VisionOverlay:
 
         return Image.alpha_composite(base_image.convert("RGBA"), overlay)
 
+    def save(self, overlay_img: Image.Image, screenshot_path: str | Path, export_root: Path | None) -> Path | None:
+        """Enregistre l'overlay dans le sous-dossier officiel s2_vision_overlay sous export_root."""
+        if not export_root:
+            return None
+        out_dir = Path(export_root) / "s2_vision_overlay"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"{Path(screenshot_path).stem}_vision_overlay.png"
+        overlay_img.save(out_path)
+        return out_path
+
     def _fill_color(self, result: MatchResult) -> Tuple[int, int, int, int]:
         base_color = self.TYPE_COLORS.get(result.symbol, (255, 255, 0))
         return (*base_color, self.config.opacity)

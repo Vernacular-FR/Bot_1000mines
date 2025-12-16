@@ -2,23 +2,22 @@ from __future__ import annotations
 
 from typing import Dict, List, Set, Tuple
 
-from src.lib.s3_storage.facade import (
-    StorageControllerApi,
-    StorageUpsert,
-)
-from src.lib.s4_solver.s40_grid_analyzer.grid_extractor import SolverFrontierView
-from src.lib.s4_solver.facade import SolverAction, SolverActionType, SolverStats
-from src.lib.s4_solver.s49_hybrid_solver import (
-    HybridSolver,
-    build_metadata_updates,
+from src.lib.s3_storage.facade import StorageControllerApi
+from src.lib.s4_solver.facade import SolverAction, SolverStats
+from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView
+from src.lib.s4_solver.s49_optimized_solver import (
+    OptimizedSolver,
+    SolverUpdate,
     compute_bounds,
+    compute_frontier_from_cells,
+    compute_solver_update,
 )
 
 
 class SolverController:
     """
-    Façade minimale : charge le snapshot storage puis délègue à HybridSolver.
-    Pas de logique métier ici (pipeline/CSP géré par HybridSolver).
+    Façade minimale : charge le snapshot storage puis délègue à OptimizedSolver.
+    Pas de logique métier ici (pipeline CSP géré par OptimizedSolver).
     """
 
     def __init__(self, storage: StorageControllerApi):
@@ -27,66 +26,55 @@ class SolverController:
         self._solver = None
 
     def solve(self) -> List[SolverAction]:
-        frontier_slice = self._storage.get_frontier()
-        frontier_coords = set(frontier_slice.coords)
+
+        unresolved_coords = set(self._storage.get_unresolved())
+        if not unresolved_coords:
+            return []
+
+        bounds = compute_bounds(unresolved_coords)
+        cells = self._storage.get_cells(bounds)
+
+        frontier_coords = compute_frontier_from_cells(cells)
         if not frontier_coords:
             return []
 
-        bounds = compute_bounds(frontier_coords)
-
-        cells = self._storage.get_cells(bounds)
         view = SolverFrontierView(cells, frontier_coords)
 
-        solver = HybridSolver(view, cells)
+        solver = OptimizedSolver(view, cells)
         solver.solve()
         self._solver = solver
 
-        safe_cells = set(solver.get_safe_cells())
-        flag_cells = set(solver.get_flag_cells())
+        update = self._build_update(cells, bounds, frontier_coords, solver)
+        self._stats = update.stats
+        # Déclenche les overlays post-CSP (actions + combiné) via le solver
+        try:
+            solver.emit_overlays(update.actions or [])
+        except Exception:
+            pass
+        if (
+            update.storage_upsert.cells
+            or update.storage_upsert.unresolved_remove
+            or update.storage_upsert.frontier_add
+            or update.storage_upsert.frontier_remove
+        ):
+            self._storage.upsert(update.storage_upsert)
+        return update.actions
 
-        actions: List[SolverAction] = []
-        actions.extend(
-            SolverAction(cell=cell, type=SolverActionType.CLICK, confidence=1.0, reasoning="hybrid")
-            for cell in safe_cells
-        )
-        actions.extend(
-            SolverAction(cell=cell, type=SolverActionType.FLAG, confidence=1.0, reasoning="hybrid")
-            for cell in flag_cells
-        )
-
-        if not actions:
-            guess = solver.get_best_guess()
-            if guess:
-                x, y, prob = guess
-                actions.append(
-                    SolverAction(
-                        cell=(x, y),
-                        type=SolverActionType.GUESS,
-                        confidence=1.0 - prob,
-                        reasoning=f"CSP Best Guess ({prob*100:.1f}% mine)",
-                    )
-                )
-
-        self._stats = SolverStats(
-            zones_analyzed=len(solver.segmentation.zones) if solver.segmentation else 0,
-            components_solved=len(solver.segmentation.components) if solver.segmentation else 0,
-            safe_cells=len(safe_cells),
-            flag_cells=len(flag_cells),
-        )
-
-        self._update_cell_metadata(cells, frontier_coords, safe_cells, flag_cells)
-        return actions
-
-    def _update_cell_metadata(
+    def _build_update(
         self,
         cells: Dict[Tuple[int, int], "GridCell"],
+        bounds: Tuple[int, int, int, int],
         frontier_coords: Set[Tuple[int, int]],
-        safe_cells: Set[Tuple[int, int]],
-        flag_cells: Set[Tuple[int, int]],
-    ) -> None:
-        updated = build_metadata_updates(cells, frontier_coords, safe_cells, flag_cells)
-        if updated:
-            self._storage.upsert(StorageUpsert(cells=updated))
+        solver: OptimizedSolver,
+    ) -> SolverUpdate:
+        current_frontier = set(self._storage.get_frontier().coords)
+        x_min, y_min, x_max, y_max = bounds
+        current_frontier_in_bounds = {
+            (x, y)
+            for (x, y) in current_frontier
+            if x_min <= x <= x_max and y_min <= y <= y_max
+        }
+        return compute_solver_update(solver, cells, frontier_coords, current_frontier_in_bounds)
 
     def get_stats(self) -> SolverStats:
         return self._stats

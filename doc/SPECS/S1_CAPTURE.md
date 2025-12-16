@@ -15,7 +15,7 @@ S2+/Services ➜ InterfaceController (s0) ➜ CaptureController (s1) ➜ CanvasC
 - **InterfaceController** (façade s0) centralise navigateur, conversion de coordonnées, navigation et maintenant capture.
 - **CaptureController** (s1) orchestre la logique canvas : récupération des métadonnées, découpe, overlay.
 - **CanvasCaptureBackend** exécute le `canvas.toDataURL()` et gère les sauvegardes optionnelles.
-- **GridOverlayLayer** ajoute un overlay diagnostique optionnel (géré depuis s1).
+- Les overlays sont gérés par les couches de vision/debug (pas par la capture).
 
 ## API exposée
 
@@ -31,7 +31,7 @@ Ces deux méthodes déléguent à `_get_capture_controller()`, qui instancie par
 ### Côté s1_capture.facade
 - `CaptureRequest`: point canvas + taille + options (save, annotate, metadata…)
 - `CaptureResult`: image PIL + bytes + infos de sauvegarde
-- `CaptureControllerApi`: protocol pour `capture_zone`, `capture_grid_window`, `export_debug_overlay`
+- `CaptureControllerApi`: protocol pour `capture_zone`, `capture_grid_window`
 
 ## Flux d’exécution
 1. Service/Solver appelle `interface.capture_grid_window(bounds, annotate=True)`.
@@ -42,7 +42,7 @@ Ces deux méthodes déléguent à `_get_capture_controller()`, qui instancie par
    - récupère `capture_meta` via `interface.get_capture_meta`
    - calcule `relative_origin` (validation de la zone)
    - appelle `CanvasCaptureBackend.capture_tile`
-6. Optionnel : overlay via `GridOverlayLayer` si `annotate_grid=True`.
+6. Optionnel : `annotate` est conservé comme paramètre de signature pour compatibilité et extensions futures, mais il est actuellement ignoré côté capture.
 
 ## Règles d’utilisation
 1. **Toujours passer par InterfaceController** pour demander une capture (jamais instancier `CaptureController` directement dans les couches supérieures).
@@ -50,7 +50,7 @@ Ces deux méthodes déléguent à `_get_capture_controller()`, qui instancie par
 3. **Sauvegardes disque** :
    - `save=True` + `bucket` (clé dans `PATHS`)
    - sinon résultat en mémoire (PIL + bytes).
-4. **Overlay** : activer via `annotate=True` ou appeler `CaptureController.export_debug_overlay` depuis s1 uniquement (s0 ne l’expose plus).
+4. **Overlay** : la capture retourne une image brute; les overlays sont produits par la vision/les outils de debug.
 
 ## Points d’extension
 - Ajouter d’autres couches d’overlay (statut, heatmap) côté s1 pour debug avancé.

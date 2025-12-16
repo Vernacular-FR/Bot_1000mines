@@ -31,6 +31,9 @@ class SetManager:
         self._frontier_set.update(frontier_add)
         self._frontier_set.difference_update(frontier_remove)
 
+        self._unresolved_set.intersection_update(self._revealed_set)
+        self._frontier_set.difference_update(self._revealed_set)
+
     def get_revealed(self) -> Set[Coord]:
         """Return revealed coordinates."""
         return set(self._revealed_set)

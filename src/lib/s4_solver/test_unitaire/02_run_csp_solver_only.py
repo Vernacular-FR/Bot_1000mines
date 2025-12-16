@@ -19,10 +19,10 @@ from src.lib.s2_vision.s21_template_matcher import MatchResult  # noqa: E402
 from src.lib.s3_storage.facade import GridCell, LogicalCellState  # noqa: E402
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert  # noqa: E402
 from src.lib.s4_solver.facade import SolverAction, SolverActionType  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
-from src.lib.s4_solver.s40_grid_analyzer.zone_overlay import render_zone_overlay  # noqa: E402
-from src.lib.s4_solver.s41_propagator_solver.combined_overlay import render_combined_overlay  # noqa: E402
+from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
+from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s491_states_overlay import render_states_overlay  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s494_combined_overlay import render_combined_overlay  # noqa: E402
 from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (  # noqa: E402
     PropagatorPipeline,
     PropagatorPipelineResult,
@@ -31,10 +31,10 @@ from src.lib.s4_solver.s41_propagator_solver.s411_frontiere_reducer import (  # 
     PropagationResult,
 )
 from src.lib.s4_solver.s42_csp_solver.s420_csp_manager import CspManager  # noqa: E402
-from src.lib.s4_solver.s42_csp_solver.actions_overlay import (  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s493_actions_overlay import (  # noqa: E402
     render_actions_overlay,
 )
-from src.lib.s4_solver.s42_csp_solver.segmentation_overlay import (  # noqa: E402
+from src.lib.s4_solver.s49_overlays.s492_segmentation_overlay import (  # noqa: E402
     render_segmentation_overlay,
 )
 
@@ -42,18 +42,10 @@ from src.lib.s4_solver.s42_csp_solver.segmentation_overlay import (  # noqa: E40
 Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
 
+EXPORT_ROOT = Path(__file__).parent / "02_csp_only"
 STRIDE = CELL_SIZE + CELL_BORDER
 RAW_GRIDS_DIR = Path(__file__).parent / "00_raw_grids"
-VISION_OVERLAYS_DIR = Path(__file__).parent / "s3_vision_overlays"
-ZONE_OVERLAYS_DIR = Path(__file__).parent / "s40_zones_overlays"
-CSP_OVERLAYS_DIR = Path(__file__).parent / "s42_csp_solver_overlay"
-SEGMENTATION_OVERLAYS_DIR = Path(__file__).parent / "s42_segmentation_overlay"
-COMBINED_OVERLAYS_DIR = Path(__file__).parent / "s43_csp_combined_overlay"
 BOUNDS_PATTERN = re.compile(r"zone_(?P<sx>-?\d+)_(?P<sy>-?\d+)_(?P<ex>-?\d+)_(?P<ey>-?\d+)")
-
-ACTIVE_COLOR = (0, 120, 255, 180)
-FRONTIER_COLOR = (255, 170, 0, 200)
-SOLVED_COLOR = (0, 180, 90, 180)
 
 
 def parse_bounds(path: Path) -> Optional[Bounds]:
@@ -77,8 +69,8 @@ def analyze_screenshot(screenshot: Path) -> Tuple[Bounds, Dict[Tuple[int, int], 
     grid_width = end_x - start_x + 1
     grid_height = end_y - start_y + 1
 
-    VISION_OVERLAYS_DIR.mkdir(exist_ok=True, parents=True)
-    vision = VisionAPI(VisionControllerConfig(overlay_output_dir=VISION_OVERLAYS_DIR))
+    EXPORT_ROOT.mkdir(exist_ok=True, parents=True)
+    vision = VisionAPI(VisionControllerConfig(overlay_output_dir=EXPORT_ROOT))
     matches = vision.analyze_screenshot(
         screenshot_path=str(screenshot),
         grid_top_left=(0, 0),
@@ -86,12 +78,6 @@ def analyze_screenshot(screenshot: Path) -> Tuple[Bounds, Dict[Tuple[int, int], 
         stride=STRIDE,
         overlay=True,
     )
-    generated_overlay = VISION_OVERLAYS_DIR / f"{screenshot.stem}_overlay.png"
-    if generated_overlay.exists():
-        target_overlay = VISION_OVERLAYS_DIR / f"{screenshot.stem}_vision_overlay.png"
-        if target_overlay.exists():
-            target_overlay.unlink()
-        generated_overlay.rename(target_overlay)
     return bounds, matches
 
 
@@ -110,7 +96,7 @@ def process_screenshot(screenshot: Path) -> None:
     cells = upsert.cells
     
     # Classification pour overlay + vue CSP
-    from src.lib.s4_solver.s40_grid_analyzer.grid_classifier import FrontierClassifier
+    from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier
     classifier = FrontierClassifier(cells)
     zones = classifier.classify()
     frontier_coords = set(zones.frontier)
@@ -132,10 +118,10 @@ def process_screenshot(screenshot: Path) -> None:
             segmentation=csp_manager.segmentation,
             stride=STRIDE,
             cell_size=CELL_SIZE,
-            output_dir=SEGMENTATION_OVERLAYS_DIR,
+            export_root=EXPORT_ROOT,
         )
     
-    overlay_path = render_zone_overlay(
+    overlay_path = render_states_overlay(
         screenshot,
         bounds,
         active=zones.active,
@@ -143,7 +129,7 @@ def process_screenshot(screenshot: Path) -> None:
         solved=zones.solved,
         stride=STRIDE,
         cell_size=CELL_SIZE,
-        output_dir=ZONE_OVERLAYS_DIR,
+        export_root=EXPORT_ROOT,
     )
     
     # Créer les actions (reducer + CSP) pour l'overlay
@@ -199,8 +185,6 @@ def process_screenshot(screenshot: Path) -> None:
     combined_safe = pipeline_safe.union(csp_safe)
     combined_flags = pipeline_flags.union(csp_flags)
 
-    output_dir = CSP_OVERLAYS_DIR
-    output_dir.mkdir(exist_ok=True, parents=True)
     render_actions_overlay(
         screenshot,
         bounds,
@@ -208,7 +192,7 @@ def process_screenshot(screenshot: Path) -> None:
         csp_actions=actions,
         stride=STRIDE,
         cell_size=CELL_SIZE,
-        output_dir=output_dir,
+        export_root=EXPORT_ROOT,
     )
     safe_count = len(combined_safe)
     flag_count = len(combined_flags)
@@ -216,7 +200,6 @@ def process_screenshot(screenshot: Path) -> None:
         f"[CSP] {screenshot.name}: "
         f"reducer_safe={len(pipeline_safe)} reducer_flags={len(pipeline_flags)} "
         f"csp_safe={len(csp_safe)} csp_flags={len(csp_flags)} "
-        f"(overlay: {output_dir.name})"
     )
     print(
         f"  CSP zones: {len(csp_manager.segmentation.zones) if csp_manager.segmentation else 0} | "
@@ -234,7 +217,7 @@ def process_screenshot(screenshot: Path) -> None:
         cells=cells,  # Ajouter les cellules pour calculer effective values
         stride=STRIDE,
         cell_size=CELL_SIZE,
-        output_dir=COMBINED_OVERLAYS_DIR,
+        export_root=EXPORT_ROOT,
     )
     print(f"[COMBINED] {screenshot.name}: zones + solver → {combined_path.name}")
 

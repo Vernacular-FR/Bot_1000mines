@@ -40,6 +40,7 @@ class CaptureControllerApi(Protocol):
         grid_bounds: Tuple[int, int, int, int],
         *,
         save: bool = False,
+        annotate: bool = False,
         filename: Optional[str] = None,
         bucket: Optional[str] = None,
     ) -> CaptureResult: ...
