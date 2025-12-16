@@ -30,7 +30,8 @@ from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (  
 from src.lib.s4_solver.s41_propagator_solver.s411_frontiere_reducer import (  # noqa: E402
     PropagationResult,
 )
-from src.lib.s4_solver.s42_csp_solver.s420_csp_manager import CspManager  # noqa: E402
+from src.lib.s4_solver.s42_csp_solver.s420_csp_manager import CspManager
+from src.lib.s1_capture.s10_overlay_utils import setup_overlay_context
 from src.lib.s4_solver.s49_overlays.s493_actions_overlay import (  # noqa: E402
     render_actions_overlay,
 )
@@ -121,6 +122,15 @@ def process_screenshot(screenshot: Path) -> None:
             export_root=EXPORT_ROOT,
         )
     
+    setup_overlay_context(
+        export_root=str(EXPORT_ROOT),
+        screenshot_path=str(screenshot),
+        bounds=bounds,
+        stride=STRIDE,
+        game_id=screenshot.stem,
+        iteration=0,
+        overlay_enabled=True,
+    )
     overlay_path = render_states_overlay(
         screenshot,
         bounds,

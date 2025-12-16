@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
+from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 from src.lib.s4_solver.facade import SolverAction, SolverActionType
 
 Coord = Tuple[int, int]
@@ -80,19 +81,29 @@ def draw_action_on_image(
 
 
 def render_actions_overlay(
-    screenshot: Path,
-    bounds: Bounds,
+    screenshot: Optional[Path],
+    bounds: Optional[Bounds],
     reducer_actions: Iterable[SolverAction],
     csp_actions: Iterable[SolverAction],
-    stride: int,
-    cell_size: int,
-    export_root: Path,
-) -> Path:
+    stride: Optional[int],
+    cell_size: Optional[int],
+    export_root: Optional[Path],
+) -> Optional[Path]:
     """
     Dessine deux couches :
     - actions du FrontiereReducer en transparent
     - actions CSP en opaque
     """
+    if not (screenshot and bounds and stride and cell_size and export_root):
+        meta = build_overlay_metadata_from_session()
+        if not meta:
+            return None
+        screenshot = Path(meta["screenshot_path"])
+        bounds = meta["bounds"]
+        stride = meta["stride"]
+        cell_size = meta["cell_size"]
+        export_root = Path(meta["export_root"])
+
     image = Image.open(screenshot).convert("RGBA")
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)

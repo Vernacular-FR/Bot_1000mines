@@ -133,22 +133,10 @@ class CspManager:
                 elif prob > 1 - 1e-6:
                     self.flag_cells.update(zone.cells)
 
-        # Overlays post-CSP déclenchés à la demande (avec actions finales)
-        # -> voir emit_solver_overlays(actions)
-
     # ------------------------------------------------------------------
     # Overlays (optionnels)
     # ------------------------------------------------------------------
     def emit_states_overlay(self) -> None:
-        cfg = self.overlay_metadata or {}
-        screenshot = cfg.get("screenshot_path")
-        bounds = cfg.get("bounds")
-        stride = cfg.get("stride")
-        cell_size = cfg.get("cell_size")
-        export_root = cfg.get("export_root")
-        if not (screenshot and bounds and stride and cell_size and export_root):
-            return
-
         classification = FrontierClassifier(self.cells).classify()
         frontier = set(classification.frontier)
         active = set(classification.active)
@@ -156,28 +144,20 @@ class CspManager:
 
         try:
             render_states_overlay(
-                Path(screenshot),
-                bounds,
+                None,
+                None,
                 active=active,
                 frontier=frontier,
                 solved=solved,
-                stride=stride,
-                cell_size=cell_size,
-                export_root=export_root,
+                stride=None,
+                cell_size=None,
+                export_root=None,
                 suffix="pre",
             )
         except Exception:
             pass
 
     def emit_solver_overlays(self, actions: List[SolverAction]) -> None:
-        cfg = self.overlay_metadata or {}
-        screenshot = cfg.get("screenshot_path")
-        bounds = cfg.get("bounds")
-        stride = cfg.get("stride")
-        cell_size = cfg.get("cell_size")
-        export_root = cfg.get("export_root")
-        if not (screenshot and bounds and stride and cell_size and export_root):
-            return
         reducer_actions: List[SolverAction] = []
         if self.reducer_result:
             reducer_actions.extend(
@@ -193,12 +173,12 @@ class CspManager:
         try:
             if self.segmentation:
                 render_segmentation_overlay(
-                    Path(screenshot),
-                    bounds,
+                    None,
+                    None,
                     segmentation=self.segmentation,
-                    stride=stride,
-                    cell_size=cell_size,
-                    export_root=export_root,
+                    stride=None,
+                    cell_size=None,
+                    export_root=None,
                 )
         except Exception:
             pass
@@ -211,17 +191,17 @@ class CspManager:
                 frontier_coords = set(classification.frontier)
                 solved_coords = set(classification.solved)
                 render_actions_overlay(
-                    Path(screenshot),
-                    bounds,
+                    None,
+                    None,
                     reducer_actions=reducer_actions,
                     csp_actions=actions,
-                    stride=stride,
-                    cell_size=cell_size,
-                    export_root=export_root,
+                    stride=None,
+                    cell_size=None,
+                    export_root=None,
                 )
                 render_combined_overlay(
-                    Path(screenshot),
-                    bounds,
+                    None,
+                    None,
                     actions=actions,
                     zones=(
                         active_coords,
@@ -229,9 +209,9 @@ class CspManager:
                         solved_coords,
                     ),
                     cells=self.cells,
-                    stride=stride,
-                    cell_size=cell_size,
-                    export_root=export_root,
+                    stride=None,
+                    cell_size=None,
+                    export_root=None,
                     reducer_actions=reducer_actions,
                 )
             except Exception:

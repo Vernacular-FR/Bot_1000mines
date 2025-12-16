@@ -32,12 +32,13 @@ from src.lib.s4_solver.s49_overlays.s493_actions_overlay import (  # noqa: E402
 from src.lib.s4_solver.s49_overlays.s492_segmentation_overlay import (  # noqa: E402
     render_segmentation_overlay,
 )
+from src.lib.s1_capture.s10_overlay_utils import setup_overlay_context  # noqa: E402
 
 
 Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
 
-EXPORT_ROOT = Path(__file__).parent / "02_csp_only"
+EXPORT_ROOT = Path(__file__).parent / "05_csp_raw"
 STRIDE = CELL_SIZE + CELL_BORDER
 RAW_GRIDS_DIR = Path(__file__).parent / "00_raw_grids"
 BOUNDS_PATTERN = re.compile(r"zone_(?P<sx>-?\d+)_(?P<sy>-?\d+)_(?P<ex>-?\d+)_(?P<ey>-?\d+)")
@@ -87,6 +88,15 @@ def _neighbors(coord: Coord) -> Iterable[Coord]:
 
 def process_screenshot(screenshot: Path) -> None:
     bounds, matches = analyze_screenshot(screenshot)
+    setup_overlay_context(
+        export_root=str(EXPORT_ROOT),
+        screenshot_path=str(screenshot),
+        bounds=bounds,
+        stride=STRIDE,
+        game_id=screenshot.stem,
+        iteration=0,
+        overlay_enabled=True,
+    )
     upsert = matches_to_upsert(bounds, matches)
     cells = upsert.cells
     

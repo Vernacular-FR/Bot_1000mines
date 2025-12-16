@@ -25,7 +25,7 @@ class GameSolverServiceV2:
         Exécute le solver CSP sur l'état actuel de storage et retourne actions + stats.
         Overlays sont gérés côté solver via le contexte global.
         """
-        return self.solver.solve_snapshot()
+        return self.solver.solve_snapshot_with_reducer_actions()
 
     def solve_from_file_with_vision(
         self,

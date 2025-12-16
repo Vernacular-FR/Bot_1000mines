@@ -13,7 +13,7 @@ Modules techniques utilisés par les services runtime capture → vision → sol
 ## s1 Capture
 - `s11_canvas_capture.py` : capture JS `canvas.toDataURL`, helpers fallback.
 - `s12_canvas_compositor.py` : assemblage tuiles → `full_grid_*.png`, recalcul `grid_bounds`.
-- Overlay interface legacy conservé mais non utilisé dans le pipeline principal.
+- `s1_capture/s10_overlay_utils.py` : helper SessionContext (export_root, bounds, stride, screenshot) pour les overlays.
 
 ## s2 Vision (actif)
 - `s21_template_matcher.py` (CenterTemplateMatcher), manifest central templates.
@@ -31,7 +31,7 @@ Modules techniques utilisés par les services runtime capture → vision → sol
 - `s49_overlays/` : `s491_states_overlay`, `s492_segmentation_overlay`, `s493_actions_overlay` (guesses croix blanche, reducer + CSP opaques), `s494_combined_overlay` (zones + actions, applique reducer + CSP).
 
 ## Overlays & sorties (par partie)
-- export_root = `{base}` (SessionStorage.build_game_paths → clé `solver`)
+- export_root = `{base}` (SessionStorage.build_game_paths → clé `solver`) publié via SessionContext (capture/loop).
 - Vision overlay : `{base}/s2_vision_overlay/{stem}_vision_overlay.png` (via `VisionOverlay.save`)
 - Solver overlays (générés par les modules) :
   - `s40_states_overlays/{stem}_{suffix}.png`

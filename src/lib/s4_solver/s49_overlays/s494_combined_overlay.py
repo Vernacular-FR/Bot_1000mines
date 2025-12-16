@@ -2,13 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from PIL import Image, ImageDraw
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
+from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 from src.lib.s3_storage.facade import LogicalCellState
 from src.lib.s4_solver.facade import SolverAction, SolverActionType
 
@@ -18,21 +15,31 @@ SOLVED_COLOR = (0, 180, 90, 180)
 
 
 def render_combined_overlay(
-    screenshot_path: Path,
-    bounds: Tuple[int, int, int, int],
+    screenshot_path: Optional[Path],
+    bounds: Optional[Tuple[int, int, int, int]],
     actions: List[SolverAction],
     zones: Tuple[set, set, set],  # (active, frontier, solved)
     cells: dict,  # Ajouter les cellules pour calculer effective values
-    stride: int,
-    cell_size: int,
-    export_root: Path,
+    stride: Optional[int],
+    cell_size: Optional[int],
+    export_root: Optional[Path],
     reducer_actions: List[SolverAction] | None = None,
-) -> Path:
+) -> Optional[Path]:
     """
     Génère un overlay combiné avec zones mises à jour + actions du solver.
     
     Les cellules actives deviennent 'solved' quand toutes leurs voisines sont résolues.
     """
+    if not (screenshot_path and bounds and stride and cell_size and export_root):
+        meta = build_overlay_metadata_from_session()
+        if not meta:
+            return None
+        screenshot_path = Path(meta["screenshot_path"])
+        bounds = meta["bounds"]
+        stride = meta["stride"]
+        cell_size = meta["cell_size"]
+        export_root = Path(meta["export_root"])
+
     active, frontier, solved = zones
     
     # 0. Mettre à jour les zones : active -> solved quand toutes les voisines sont résolues

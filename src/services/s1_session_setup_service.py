@@ -12,6 +12,7 @@ from src.lib.s0_interface.controller import InterfaceController
 from src.lib.s0_interface.s00_browser_manager import BrowserManager
 from src.lib.s0_interface.s03_game_controller import GameSessionController
 from src.lib.s0_interface.s01_game_session_manager import SessionState, SessionStorage
+from src.lib.s3_storage.s30_session_context import set_session_context
 
 
 class SessionSetupService:
@@ -64,6 +65,13 @@ class SessionSetupService:
             # Créer une nouvelle session de jeu avec ID unique
             game_id = self.session_state.spawn_new_game(chosen_difficulty)
             storage_info = self.session_storage.ensure_storage_ready(self.session_state)
+            # Initialiser le contexte global (export_root défini plus tard par GameLoop)
+            set_session_context(
+                game_id=game_id,
+                iteration=self.session_state.iteration_num,
+                export_root="",
+                overlay_enabled=False,
+            )
 
             print(f"[SESSION] Configuration du jeu en mode {chosen_difficulty}…")
             print(f"[SESSION] Game ID: {game_id}")
@@ -125,6 +133,16 @@ class SessionSetupService:
         if not self.is_initialized:
             raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
         return self.browser_manager.get_driver()
+
+    def get_coordinate_converter(self):
+        if not self.is_initialized or not self.interface_controller:
+            raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
+        return self.interface_controller.converter
+
+    def get_viewport_mapper(self):
+        if not self.is_initialized or not self.interface_controller:
+            raise RuntimeError("Session non initialisée. Appelez setup_session() d'abord.")
+        return self.interface_controller.navigator.viewport_mapper
 
     def get_browser_manager(self) -> BrowserManager:
         if not self.is_initialized:

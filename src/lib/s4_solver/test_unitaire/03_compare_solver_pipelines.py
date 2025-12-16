@@ -27,6 +27,7 @@ from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (  
     PropagatorPipelineResult,
 )
 from src.lib.s4_solver.s42_csp_solver.s420_csp_manager import CspManager  # noqa: E402
+from src.lib.s1_capture.s10_overlay_utils import setup_overlay_context  # noqa: E402
 
 
 Coord = Tuple[int, int]
@@ -170,8 +171,18 @@ def compare_results(
 
 def process_screenshot(screenshot: Path) -> Dict[str, object]:
     bounds, matches = analyze_screenshot(screenshot)
+    setup_overlay_context(
+        export_root=OUTPUT_DIR,
+        screenshot=screenshot,
+        bounds=bounds,
+        stride=STRIDE,
+        game_id=screenshot.stem,
+        iteration=0,
+        cell_size=CELL_SIZE,
+    )
     upsert = matches_to_upsert(bounds, matches)
 
+    cells = upsert.cells
     propagator_cells = clone_cells(upsert.cells)
     csp_cells = clone_cells(upsert.cells)
 

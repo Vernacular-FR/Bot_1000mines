@@ -11,6 +11,7 @@ from src.lib.s2_vision.controller import VisionController, VisionControllerConfi
 from src.lib.s2_vision.s21_template_matcher import MatchResult
 from src.services.s1_zone_capture_service import GridCapture
 from src.lib.s3_storage.s30_session_context import get_session_context
+from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 
 
 @dataclass
@@ -26,8 +27,12 @@ class VisionAnalysisService:
         self,
         manifest_path: Optional[str | Path] = None,
     ) -> None:
-        ctx = get_session_context()
-        self.export_root = Path(ctx.export_root) if ctx.export_root else None
+        overlay_meta = build_overlay_metadata_from_session()
+        if overlay_meta:
+            self.export_root = Path(overlay_meta["export_root"])
+        else:
+            ctx = get_session_context()
+            self.export_root = Path(ctx.export_root) if ctx.export_root else None
         config = VisionControllerConfig(
             manifest_path=Path(manifest_path) if manifest_path else None,
             overlay_output_dir=self.export_root,

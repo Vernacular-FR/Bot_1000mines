@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
+from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 from src.lib.s4_solver.s42_csp_solver.s422_segmentation import Segmentation
 
 Coord = Tuple[int, int]
@@ -13,16 +14,26 @@ Bounds = Tuple[int, int, int, int]
 
 
 def render_segmentation_overlay(
-    screenshot: Path,
-    bounds: Bounds,
+    screenshot: Optional[Path],
+    bounds: Optional[Bounds],
     segmentation: Segmentation,
-    stride: int,
-    cell_size: int,
-    export_root: Path,
-) -> Path:
+    stride: Optional[int],
+    cell_size: Optional[int],
+    export_root: Optional[Path],
+) -> Optional[Path]:
     """
     Dessine un overlay coloré représentant les composantes/zonings issus de Segmentation.
     """
+    if not (screenshot and bounds and stride and cell_size and export_root):
+        meta = build_overlay_metadata_from_session()
+        if not meta:
+            return None
+        screenshot = Path(meta["screenshot_path"])
+        bounds = meta["bounds"]
+        stride = meta["stride"]
+        cell_size = meta["cell_size"]
+        export_root = Path(meta["export_root"])
+
     image = Image.open(screenshot).convert("RGBA")
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)

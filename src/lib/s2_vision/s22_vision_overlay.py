@@ -14,6 +14,7 @@ from typing import Dict, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from src.config import CELL_SIZE, CELL_BORDER
+from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 from src.lib.s2_vision.s21_template_matcher import MatchResult
 
 
@@ -156,7 +157,11 @@ class VisionOverlay:
     def save(self, overlay_img: Image.Image, screenshot_path: str | Path, export_root: Path | None) -> Path | None:
         """Enregistre l'overlay dans le sous-dossier officiel s2_vision_overlay sous export_root."""
         if not export_root:
-            return None
+            meta = build_overlay_metadata_from_session()
+            if meta:
+                export_root = Path(meta["export_root"])
+            else:
+                return None
         out_dir = Path(export_root) / "s2_vision_overlay"
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"{Path(screenshot_path).stem}_vision_overlay.png"

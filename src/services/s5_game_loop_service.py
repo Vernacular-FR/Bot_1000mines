@@ -26,8 +26,9 @@ from .s4_action_executor_service import ActionExecutorService
 from .s3_game_solver_service import GameSolverServiceV2
 from src.lib.s5_actionplanner.controller import ActionPlannerController
 from src.lib.s6_action.controller import convert_pathfinder_plan_to_game_actions
-from src.lib.s3_storage.controller import StorageController
+from src.lib.s4_solver.facade import SolverAction, SolverActionType
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert
+from src.lib.s3_storage.controller import StorageController
 from src.lib.s3_storage.s30_session_context import (
     set_session_context,
     update_capture_path,
@@ -176,6 +177,17 @@ class GameLoopService:
         if iteration_num is None:
             iteration_num = self.game_session['state'].iteration_num
         iter_label = iteration_num if iteration_num is not None else 0
+        # Publier le contexte courant (inclut l'itération à jour)
+        export_root = Path(self.game_base_path) if self.overlay_enabled else None
+        set_session_context(
+            game_id=self.game_id,
+            iteration=iter_label,
+            export_root=str(export_root) if export_root else "",
+            overlay_enabled=self.overlay_enabled,
+        )
+        # Import de secours pour éviter un NameError sur SolverActionType (rechargement)
+        from src.lib.s4_solver.facade import SolverActionType as _SAT  # noqa: F401
+        SolverActionType = _SAT  # ensure symbole local défini (NameError hotfix)
         
         try:
             pass_result = {
@@ -262,6 +274,10 @@ class GameLoopService:
                 f"(zones={getattr(stats, 'zones_analyzed', 0)}, comps={getattr(stats, 'components_solved', 0)}, "
                 f"safe={getattr(stats, 'safe_cells', 0)}, flags={getattr(stats, 'flag_cells', 0)})"
             )
+            if solver_actions:
+                print(f"[SOLVEUR] actions détail: {solver_actions}")
+            if reducer_actions:
+                print(f"[SOLVEUR] reducer_actions: {reducer_actions}")
             unresolved = set(self.storage.get_unresolved())
 
             if stats:
@@ -283,8 +299,20 @@ class GameLoopService:
                 pass_result['actions_executed'] = 0
                 pass_result['message'] = "Passe solver-only (aucune action exécutée)"
                 return pass_result
+            # Fusionner actions reducer + solver, puis prioriser les déterministes (CLICK/FLAG)
+            all_actions = []
+            if reducer_actions:
+                all_actions.extend(reducer_actions)
+            if solver_actions:
+                all_actions.extend(solver_actions)
+            deterministic_actions = [a for a in all_actions if a.type != SolverActionType.GUESS]
+            chosen_actions = deterministic_actions if deterministic_actions else all_actions
+            print(
+                f"[PLAN] total_actions={len(all_actions)} deterministes={len(deterministic_actions)} "
+                f"chosens={len(chosen_actions)}"
+            )
 
-            path_plan = self.action_planner.plan(solver_actions) if solver_actions else None
+            path_plan = self.action_planner.plan(chosen_actions) if chosen_actions else None
             game_actions = convert_pathfinder_plan_to_game_actions(path_plan) if path_plan else []
 
             if not game_actions:
@@ -293,26 +321,22 @@ class GameLoopService:
                 pass_result['message'] = "Aucune action trouvée par le solveur"
                 pass_result['success'] = True  # La passe a réussi
                 return pass_result
-            
+        
             print(f"[EXÉCUTION] Exécution de {len(game_actions)} actions...")
             execution_result = self.action_service.execute_batch(game_actions)
             
             pass_result['success'] = True
             pass_result['actions_executed'] = execution_result['executed_count']
-            pass_result['message'] = f"Passe réussie: {execution_result['executed_count']} actions exécutées"
-            
+            pass_result['game_actions'] = game_actions
             return pass_result
 
-        except Exception as e:
-            print(f"[ERREUR] Exception dans la passe: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception as exc:
             return {
                 'success': False,
                 'actions_executed': 0,
-                'game_state': GameState.ERROR.value,
-                'message': f"Erreur critique: {str(e)}",
-                'files_saved': []
+                'game_state': self.current_game_state.value if self.current_game_state else GameState.ERROR.value,
+                'message': f"Erreur: {exc}",
+                'files_saved': [],
             }
 
     def play_game(self) -> GameResult:

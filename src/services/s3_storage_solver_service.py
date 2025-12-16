@@ -55,6 +55,21 @@ class StorageSolverService:
             "zone_probabilities": zone_probabilities,
         }
 
+    def solve_snapshot_with_reducer_actions(self) -> Dict[str, Any]:
+        """
+        Retourne les actions du solver ET les actions du reducer dans 'reducer_actions'.
+        """
+        result = self.solve_snapshot()
+        # Construire les objets SolverAction pour reducer_safe/reducer_flags si présents
+        reducer_actions = []
+        from src.lib.s4_solver.facade import SolverAction, SolverActionType
+        for coord in result.get("reducer_safe", []):
+            reducer_actions.append(SolverAction(cell=coord, type=SolverActionType.CLICK, confidence=1.0, reasoning="frontiere-reducer"))
+        for coord in result.get("reducer_flags", []):
+            reducer_actions.append(SolverAction(cell=coord, type=SolverActionType.FLAG, confidence=1.0, reasoning="frontiere-reducer"))
+        result["reducer_actions"] = reducer_actions
+        return result
+
     def get_solver_actions(self) -> list[SolverAction]:
         return self.solver.solve()
 

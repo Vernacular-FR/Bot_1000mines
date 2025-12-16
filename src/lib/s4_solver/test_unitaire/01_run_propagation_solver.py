@@ -33,6 +33,7 @@ from src.lib.s4_solver.s41_propagator_solver.s412_subset_constraint_propagator i
 from src.lib.s4_solver.s41_propagator_solver.s413_advanced_constraint_engine import (  # noqa: E402
     AdvancedConstraintEngine,
 )
+from src.lib.s1_capture.s10_overlay_utils import setup_overlay_context  # noqa: E402
 Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
 
@@ -130,6 +131,16 @@ def infer_pattern_moves(
 
 def process_screenshot(screenshot: Path) -> None:
     bounds, matches = analyze_screenshot(screenshot)
+    # Publier le contexte overlay pour les renderers
+    setup_overlay_context(
+        export_root=EXPORT_ROOT,
+        screenshot=screenshot,
+        bounds=bounds,
+        stride=STRIDE,
+        game_id=screenshot.stem,
+        iteration=0,
+        cell_size=CELL_SIZE,
+    )
     upsert = matches_to_upsert(bounds, matches)
     cells = upsert.cells
     

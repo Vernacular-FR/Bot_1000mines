@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Dict, Iterable, List, Set, Tuple, Optional
 
-from src.lib.s3_storage.s30_session_context import get_session_context
 from src.config import CELL_SIZE, CELL_BORDER
 
 from src.lib.s3_storage.facade import (
@@ -43,7 +42,7 @@ class OptimizedSolver:
         self.safe_cells: Set[Tuple[int, int]] = set()
         self.flag_cells: Set[Tuple[int, int]] = set()
         self.csp_manager: CspManager | None = None
-        self.overlay_metadata = overlay_metadata or self._build_overlay_metadata_from_session()
+        self.overlay_metadata = overlay_metadata
 
     def solve(self) -> None:
         self.zone_probabilities.clear()
@@ -52,9 +51,6 @@ class OptimizedSolver:
         self.flag_cells.clear()
         self.segmentation = None
         self.csp_manager = None
-
-        if not self.overlay_metadata:
-            self.overlay_metadata = self._build_overlay_metadata_from_session()
 
         # Exécuter le pipeline CSP complet (réducteur + segmentation + CSP)
         self.csp_manager = CspManager(
@@ -73,7 +69,6 @@ class OptimizedSolver:
         self.zone_probabilities = self.csp_manager.zone_probabilities
         self.safe_cells.update(self.csp_manager.safe_cells)
         self.flag_cells.update(self.csp_manager.flag_cells)
-
     def emit_overlays(self, actions: List[SolverAction]) -> None:
         """Déclenche les overlays post-CSP avec les actions finales."""
         if not self.csp_manager:
@@ -82,26 +77,6 @@ class OptimizedSolver:
             self.csp_manager.emit_solver_overlays(actions)
         except Exception:
             pass
-
-    # ------------------------------------------------------------------
-    # Overlay metadata
-    # ------------------------------------------------------------------
-    def _build_overlay_metadata_from_session(self) -> Dict:
-        ctx = get_session_context()
-        if not (ctx.overlay_enabled and ctx.export_root and ctx.capture_saved_path):
-            return {}
-        bounds = ctx.capture_bounds or compute_bounds(set(self.cells.keys()))
-        stride = ctx.capture_stride or (CELL_SIZE + CELL_BORDER)
-        cell_size = CELL_SIZE
-        if not (bounds and stride and cell_size):
-            return {}
-        return {
-            "export_root": ctx.export_root,
-            "screenshot_path": ctx.capture_saved_path,
-            "bounds": bounds,
-            "stride": stride,
-            "cell_size": cell_size,
-        }
 
     def get_safe_cells(self) -> List[Tuple[int, int]]:
         """Retourne les cellules sûres trouvées par réduction + motifs + CSP."""

@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.config import CELL_BORDER, CELL_SIZE  # noqa: E402
 from src.lib.s4_solver.facade import SolverAction, SolverActionType  # noqa: E402
 from src.services.s3_game_solver_service import GameSolverServiceV2  # noqa: E402
+from src.lib.s1_capture.s10_overlay_utils import setup_overlay_context  # noqa: E402
 
 
 Coord = Tuple[int, int]
@@ -39,17 +40,30 @@ def parse_bounds(path: Path) -> Optional[Bounds]:
 
 
 def process_screenshot(screenshot: Path) -> None:
+    # Publier le contexte overlay pour les renderers/solver
+    bounds = parse_bounds(screenshot)
+    if not bounds:
+        raise ValueError(f"Impossible de parser les bornes pour {screenshot.name}")
+    setup_overlay_context(
+        export_root=str(EXPORT_ROOT),
+        screenshot_path=str(screenshot),
+        bounds=bounds,
+        stride=STRIDE,
+        game_id=screenshot.stem,
+        iteration=0,
+        overlay_enabled=True,
+    )
     solver_service = GameSolverServiceV2()
     solve_result = solver_service.solve_from_screenshot_file(
         screenshot,
         solver_overlay_dir=EXPORT_ROOT,
         emit_solver_overlays=True,
     )
-    bounds = solve_result.get("bounds")
+    bounds = solve_result.get("bounds") or bounds
     stride = solve_result.get("stride", STRIDE)
     actions = solve_result.get("actions", [])
     stats = solve_result.get("stats")
-    states_overlay = solve_result.get("states)
+    states_overlay = solve_result.get("states")
 
     pipeline_safe: Set[Coord] = set(solve_result.get("reducer_safe") or [])
     pipeline_flags: Set[Coord] = set(solve_result.get("reducer_flags") or [])

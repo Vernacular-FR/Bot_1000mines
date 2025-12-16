@@ -10,6 +10,7 @@ Orchestration runtime capture → vision → solver → action. Chaque service e
 ### SessionSetupService (`s1_session_setup_service.py`)
 - Démarrage/arrêt du navigateur, sélection mode/difficulté, création `SessionStorage` + `SessionState`.
 - `cleanup_session()` appelé uniquement par le pilote principal (prompt Entrée avant fermeture).
+- Initialise `SessionContext` (game_id, iteration, export_root="", overlay_enabled=False).
 
 ### ZoneCaptureService (`s1_zone_capture_service.py`)
 - Découverte des canvases (`CanvasLocator`) et capture JS `canvas.toDataURL`.
@@ -28,7 +29,8 @@ Orchestration runtime capture → vision → solver → action. Chaque service e
 
 ### GameLoopService (`s5_game_loop_service.py`)
 - Boucle de jeu : capture → vision → solver → (optionnel) exécution d’actions.
-- Passe `export_root = base_path` (SessionStorage.build_game_paths) à vision/solver ; aucun chemin overlay construit ici.
+- Publie `SessionContext` à chaque passe (game_id, iteration, export_root={base_path}, overlay_enabled).
+- Planifie puis exécute les actions via `ActionPlannerController` + `ActionExecutorService` dans la même passe.
 
 ### ActionExecutorService (`s4_action_executor_service.py`)
 - Exécute les actions du solver via NavigationController/JS.
