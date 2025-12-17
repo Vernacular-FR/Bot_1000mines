@@ -27,13 +27,22 @@ Service d’orchestration V2 : `src/services/s5_game_loop_service.py`.
  s1 Capture  ──> image(s)
    │
    ▼
- s2 Vision   ──> matches + bounds/stride
+ s2 Vision   ──> matches + bounds/stride (aucune frontière topologique, pose JUST_VISUALIZED)
    │
    ▼
  s3 Storage  <── StorageUpsert (vision)
    │
    ▼
- s4 Solver   ──> actions + StorageUpsert (solver)
+ s4 State Analyzer + focus_actualizer (reclustering JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED + repromotions voisines)
+   │
+   ▼
+ s3 Storage  <── StorageUpsert (post reclustering + repromotions)
+   │
+   ▼
+ s4 Solver (réduction + CSP sur les `to_*`) ──> solver_actions + StorageUpsert (solver) + repromotions (focus_actualizer post solver)
+   │
+   ▼
+ s4 cleanup (phase qui ajoute les cleanup_actions sur TO_VISUALIZE + voisines ACTIVE)
    │
    ▼
  s5 ActionPlanner ──> plan d’actions (ordonnancement)
@@ -49,7 +58,7 @@ Le viewport sert donc principalement à la **vision** (cadrage capture), pas à 
 
 ## 3. API / données échangées
 
-- `SessionContext` : `game_id`, `iteration`, `export_root`, `overlay_enabled`, `capture_saved_path`, `capture_bounds`, `capture_stride`.
+- `SessionContext` : `game_id`, `iteration`, `export_root`, `overlay_enabled`, `capture_saved_path`, `capture_bounds`, `capture_stride`, **historical_canvas_path** (pour overlays combined/states/actions).
 - `StorageUpsert` : batch unique pour modifier `cells` + index (`revealed/active/frontier`) + ZoneDB.
 - `FrontierSlice` : coords frontier (consommé par s4).
 - `SolverAction` : `CLICK` / `FLAG` / `GUESS` + `cell` + `confidence` + `reasoning`.

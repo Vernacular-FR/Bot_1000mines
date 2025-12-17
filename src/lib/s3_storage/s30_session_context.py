@@ -13,6 +13,7 @@ class SessionContext:
     capture_saved_path: Optional[str] = None
     capture_bounds: Optional[tuple[int, int, int, int]] = None
     capture_stride: Optional[int] = None
+    historical_canvas_path: Optional[str] = None
 
 
 _SESSION_CONTEXT = SessionContext()

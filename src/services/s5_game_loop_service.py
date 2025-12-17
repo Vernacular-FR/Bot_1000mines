@@ -22,8 +22,9 @@ from src.lib.s1_capture.s11_canvas_capture import CanvasCaptureBackend
 from .s1_session_setup_service import SessionSetupService
 from .s1_zone_capture_service import ZoneCaptureService
 from .s2_vision_analysis_service import VisionAnalysisService
-from .s4_action_executor_service import ActionExecutorService
 from .s3_game_solver_service import GameSolverServiceV2
+from .s4_action_executor_service import ActionExecutorService
+from src.lib.s4_solver.s40_states_classifier.state_analyzer import StateAnalyzer
 from src.lib.s5_actionplanner.controller import ActionPlannerController
 from src.lib.s6_action.controller import convert_pathfinder_plan_to_game_actions
 from src.lib.s4_solver.facade import SolverAction, SolverActionType
@@ -143,6 +144,9 @@ class GameLoopService:
         )
         self.action_planner = ActionPlannerController()
         
+        # Instance réutilisable de StateAnalyzer
+        self.state_analyzer = StateAnalyzer()
+        
         # État du jeu
         self.current_game_state = GameState.PLAYING
         self.total_actions_executed = 0
@@ -250,9 +254,16 @@ class GameLoopService:
             if analysis.overlay_path:
                 pass_result['files_saved'].append(str(analysis.overlay_path))
 
-            # 3. Upsert storage puis résolution
+            # 3. Upsert storage puis state analyzer
             upsert = matches_to_upsert(grid_capture.grid_bounds, analysis.matches)
             self.storage.upsert(upsert)
+            
+            # 3b. State analyzer : promeut JUST_VISUALIZED -> ACTIVE/FRONTIER/SOLVED
+            cells_snapshot = self.storage.get_cells(grid_capture.grid_bounds)
+            state_upsert = self.state_analyzer.analyze_and_promote(cells_snapshot)
+            if state_upsert.cells:
+                self.storage.upsert(state_upsert)
+            
             # Debug stockage
             active = self.storage.get_active()
             frontier = self.storage.get_frontier().coords

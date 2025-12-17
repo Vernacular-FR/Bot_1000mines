@@ -6,10 +6,11 @@ Coord = Tuple[int, int]
 
 
 class SetManager:
-    """Manage three sets: revealed, active, frontier."""
+    """Manage four sets: revealed, known, active, frontier, and to_visualize."""
 
     def __init__(self) -> None:
         self._revealed_set: Set[Coord] = set()
+        self._known_set: Set[Coord] = set()
         self._active_set: Set[Coord] = set()
         self._frontier_set: Set[Coord] = set()
         self._to_visualize: Set[Coord] = set()
@@ -24,11 +25,14 @@ class SetManager:
         frontier_remove: Set[Coord],
         to_visualize: Set[Coord],
     ) -> None:
-        """Apply incremental updates to all three sets."""
+        """Apply incremental updates to all sets."""
         self._revealed_set.update(revealed_add)
 
         self._active_set.update(active_add)
         self._active_set.difference_update(active_remove)
+        
+        # Purge TO_VISUALIZE from active_set
+        self._active_set.difference_update(to_visualize)
 
         self._frontier_set.update(frontier_add)
         self._frontier_set.difference_update(frontier_remove)
@@ -64,3 +68,32 @@ class SetManager:
             if x_min <= x <= x_max and y_min <= y <= y_max:
                 result.add(coord)
         return result
+
+    # Individual set operations for incremental updates
+    def remove_from_all_sets(self, coord: Coord) -> None:
+        """Remove coord from all sets."""
+        self._revealed_set.discard(coord)
+        self._known_set.discard(coord)
+        self._active_set.discard(coord)
+        self._frontier_set.discard(coord)
+        # Note: to_visualize is only managed by solver, not removed here
+
+    def add_to_known(self, coord: Coord) -> None:
+        """Add coord to known_set."""
+        self._known_set.add(coord)
+
+    def add_to_revealed(self, coord: Coord) -> None:
+        """Add coord to revealed_set."""
+        self._revealed_set.add(coord)
+
+    def add_to_active(self, coord: Coord) -> None:
+        """Add coord to active_set."""
+        self._active_set.add(coord)
+
+    def add_to_frontier(self, coord: Coord) -> None:
+        """Add coord to frontier_set."""
+        self._frontier_set.add(coord)
+
+    def get_known(self) -> Set[Coord]:
+        """Return known coordinates."""
+        return set(self._known_set)

@@ -29,16 +29,18 @@ Ce que s2_vision ne fait pas :
 2. **Stride constant** : `cell_stride = 25 px` = 24 px contenu + 1 px bordure. Toute variation doit être signalée dans `VisionRequest`.
 3. **`grid_bounds` cohérents** : rectangle `[x_min, y_min, x_max, y_max]` couvrant exactement l’image recadrée (utilisé pour mapper les indices vision → storage).
 
-### Sorties
+### Sorties (et ce que Vision n’écrit PAS)
 - `matches`: liste ordonnée (ligne par ligne) de `MatchResult(symbol, distance, threshold, confidence, position)`.
-- Chaque `MatchResult` est converti en `raw_state` + `logical_state` et pose `topological_state = JUST_VISUALIZED` sur les cellules nouvellement observées (FLAGS compris), sans toucher aux sets `active/frontier`.
+- Vision pose un **topological_state temporaire = JUST_VISUALIZED** sur toute observation nouvelle (y compris `flag`/`exploded`). Le reclassement définitif (ACTIVE/FRONTIER/SOLVED) est fait par le **state analyzer** (s4), pas par Vision.
+- Vision n’a pas la charge de la frontière ni des focus : elle n’écrit ni `active/frontier`, ni `focus_level`, ni `zone_id`. Elle ne touche pas au set `to_visualize` (réservé au solver pour les SAFE) et **ne calcule aucune frontière topologique**.
+- **Note** : `matches_to_upsert` ne doit plus calculer de frontière opportuniste (voisins UNREVEALED). Toute frontière est déterminée côté solver/state analyzer.
 - `grid_overlay_path` (optionnel) : PNG généré par `s22_vision_overlay.py`.
 - `debug_json` (facultatif) : future extension pour stocker les distances et marges.
 
-Injection vers s3_storage :
-- Les `matches` sont transformés en `StorageUpsert` côté services/controller storage.
-- Vision n’écrit que l’observation et l’ajout `revealed_add` (les cellules désormais “déjà vues”).
-- Vision ne calcule pas la frontière : `active_set/frontier_set` sont maintenus par s4.
+### Injection vers s3_storage (via services)
+- Les `matches` sont transformés en `StorageUpsert` par `matches_to_upsert`.
+- Règle centrale : **Vision ignore le `known_set`** (revealed acquis) en input, mais n’écrase pas l’existant ; toute cellule non ignorée (≠ UNREVEALED, hors known_set) est considérée **nouvelle** et poussée avec `topological_state = JUST_VISUALIZED` + observation logique/valeur, puis ajoutée au set `known`. Aucune décision topologique/focus n’est appliquée ici.
+- La frontière (`active_set/frontier_set`) reste du ressort de s4 (state analyzer + solver).
 
 ## 3. Architecture interne
 

@@ -25,18 +25,23 @@ class GridStore:
     def apply_upsert(self, data: StorageUpsert) -> None:
         """Apply batch updates to grid and sets."""
         self._validate_cells(data.cells)
-        # Update cells
+        
+        # Update cells first
         self._cells.update(data.cells)
         
-        # Delegate set updates to SetManager
-        self._sets.apply_set_updates(
-            revealed_add=data.revealed_add,
-            active_add=data.active_add,
-            active_remove=data.active_remove,
-            frontier_add=data.frontier_add,
-            frontier_remove=data.frontier_remove,
-            to_visualize=data.to_visualize,
-        )
+        # Then recalculate sets based on updated cells
+        self._recalculate_sets(data.cells)
+        
+        # Apply explicit to_visualize additions (solver-only)
+        if data.to_visualize:
+            self._sets.apply_set_updates(
+                revealed_add=set(),
+                active_add=set(),
+                active_remove=set(),
+                frontier_add=set(),
+                frontier_remove=set(),
+                to_visualize=data.to_visualize,
+            )
 
     def get_frontier_slice(self) -> Set[Coord]:
         """Return frontier coordinates."""
@@ -77,6 +82,27 @@ class GridStore:
     # ------------------------------------------------------------------ #
     # Internal validation helpers                                        #
     # ------------------------------------------------------------------ #
+    def _recalculate_sets(self, modified_cells: Dict[Coord, GridCell]) -> None:
+        """Recalculate sets incrementally based on modified cells."""
+        # Remove modified coords from all sets first
+        for coord in modified_cells:
+            self._sets.remove_from_all_sets(coord)
+        
+        # Add coords to appropriate sets based on new solver_status
+        for coord, cell in modified_cells.items():
+            if cell.solver_status == SolverStatus.ACTIVE:
+                self._sets.add_to_active(coord)
+            elif cell.solver_status == SolverStatus.FRONTIER:
+                self._sets.add_to_frontier(coord)
+            
+            # Add to known_set if solver_status is not NONE
+            if cell.solver_status != SolverStatus.NONE:
+                self._sets.add_to_known(coord)
+            
+            # Add to revealed_set for OPEN_NUMBER or EMPTY
+            if cell.logical_state in (LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY):
+                self._sets.add_to_revealed(coord)
+
     def _validate_cells(self, cells: Dict[Coord, GridCell]) -> None:
         """
         Enforce consistency between solver_status and focus levels:

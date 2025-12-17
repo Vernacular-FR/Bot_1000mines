@@ -19,8 +19,8 @@ from src.lib.s2_vision.s21_template_matcher import MatchResult  # noqa: E402
 from src.lib.s3_storage.facade import GridCell, LogicalCellState  # noqa: E402
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert  # noqa: E402
 from src.lib.s4_solver.facade import SolverAction, SolverActionType  # noqa: E402
-from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
-from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
+from src.lib.s4_solver.s40_states_classifier.grid_classifier import FrontierClassifier  # noqa: E402
+from src.lib.s4_solver.s40_states_classifier.grid_extractor import SolverFrontierView  # noqa: E402
 from src.lib.s4_solver.s49_overlays.s491_states_overlay import render_states_overlay  # noqa: E402
 from src.lib.s4_solver.s49_overlays.s494_combined_overlay import render_combined_overlay  # noqa: E402
 from src.lib.s4_solver.s49_overlays.s493_actions_overlay import render_actions_overlay  # noqa: E402
@@ -177,7 +177,7 @@ def process_screenshot(screenshot: Path) -> None:
     iterative_refresh_result = iterative_refresh.solve_with_zones()
     
     # Extraire les zones depuis le résultat pour l'overlay des zones
-    from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier
+    from src.lib.s4_solver.s40_states_classifier.grid_classifier import FrontierClassifier
     classifier = FrontierClassifier(cells)
     overlay_path = render_states_overlay(
         screenshot,

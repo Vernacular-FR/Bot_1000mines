@@ -20,8 +20,8 @@ from src.lib.s2_vision.facade import VisionAPI, VisionControllerConfig  # noqa: 
 from src.lib.s2_vision.s21_template_matcher import MatchResult  # noqa: E402
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert  # noqa: E402
 from src.lib.s3_storage.facade import GridCell  # noqa: E402
-from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
-from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView  # noqa: E402
+from src.lib.s4_solver.s40_states_classifier.grid_classifier import FrontierClassifier  # noqa: E402
+from src.lib.s4_solver.s40_states_classifier.grid_extractor import SolverFrontierView  # noqa: E402
 from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (  # noqa: E402
     PropagatorPipeline,
     PropagatorPipelineResult,

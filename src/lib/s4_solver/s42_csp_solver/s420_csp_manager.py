@@ -12,8 +12,8 @@ from src.lib.s3_storage.facade import (
     SolverStatus,
     FrontierRelevance,
 )
-from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier
-from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView
+from src.lib.s4_solver.s40_states_classifier.grid_classifier import FrontierClassifier
+from src.lib.s4_solver.s40_states_classifier.grid_extractor import SolverFrontierView
 from src.lib.s4_solver.s41_propagator_solver.s410_propagator_pipeline import (
     PropagatorPipeline,
     PropagatorPipelineResult,

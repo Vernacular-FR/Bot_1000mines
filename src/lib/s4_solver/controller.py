@@ -4,12 +4,11 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from src.lib.s3_storage.facade import StorageControllerApi
 from src.lib.s4_solver.facade import SolverAction, SolverStats
-from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView
+from src.lib.s4_solver.s40_states_classifier.grid_extractor import SolverFrontierView
 from src.lib.s4_solver.s49_optimized_solver import (
     OptimizedSolver,
     SolverUpdate,
     compute_bounds,
-    compute_frontier_from_cells,
     compute_solver_update,
 )
 
@@ -41,18 +40,27 @@ class SolverController:
         bounds = compute_bounds(active_coords)
         cells = self._storage.get_cells(bounds)
 
-        frontier_coords = compute_frontier_from_cells(cells)
-        if not frontier_coords:
+        # Use frontier from storage instead of computing it
+        frontier_coords = set(self._storage.get_frontier().coords)
+        # Filter frontier within bounds
+        x_min, y_min, x_max, y_max = bounds
+        frontier_in_bounds = {
+            (x, y)
+            for (x, y) in frontier_coords
+            if x_min <= x <= x_max and y_min <= y <= y_max
+        }
+        
+        if not frontier_in_bounds:
             return None
 
-        view = SolverFrontierView(cells, frontier_coords)
+        view = SolverFrontierView(cells, frontier_in_bounds)
 
         solver = OptimizedSolver(view, cells)
         solver.solve(bypass_ratio=BYPASS_CSP_RATIO)
 
         self._solver = solver
 
-        update = self._build_update(cells, bounds, frontier_coords, solver)
+        update = self._build_update(cells, bounds, frontier_in_bounds, solver)
         self._stats = update.stats
         # Déclenche les overlays post-CSP (actions + cleanup) via le solver
         try:

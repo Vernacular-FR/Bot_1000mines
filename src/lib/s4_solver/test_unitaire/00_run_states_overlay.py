@@ -17,7 +17,7 @@ from src.lib.s2_vision.facade import VisionAPI, VisionControllerConfig  # noqa: 
 from src.lib.s2_vision.s21_template_matcher import MatchResult  # noqa: E402
 from src.lib.s3_storage.facade import GridCell  # noqa: E402
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert  # noqa: E402
-from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier  # noqa: E402
+from src.lib.s4_solver.s40_states_classifier.grid_classifier import FrontierClassifier  # noqa: E402
 from src.lib.s4_solver.s49_overlays.s491_states_overlay import render_states_overlay  # noqa: E402
 from src.lib.s1_capture.s10_overlay_utils import setup_overlay_context  # noqa: E402
 

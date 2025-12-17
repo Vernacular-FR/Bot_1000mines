@@ -30,6 +30,7 @@ Vision écrit :
 
 Vision a le droit de :
 - **ajouter** au set `revealed`
+- **ne touche pas** au set `known_set` : l’inclusion se fera automatiquement via `apply_upsert` en passant `topological_state=JUST_VISUALIZED`.
 
 Vision n’a pas le droit de :
 - calculer la frontière
@@ -57,7 +58,7 @@ Important : dans la stratégie actuelle, le **solver** est celui qui écrit `TO_
 
 ---
 
-## 1. Modèle de données (ce qui est stocké)
+## 1. Modèle de données (ce qui est stocké) – invariants à appliquer dans apply_upsert (pare-feu)
 
 ### 1.1 GridCell = observation + metadata
 
@@ -108,7 +109,8 @@ Cette spec formalise ce qu’on veut exprimer (TopologicalState / FocusLevel) : 
 - `solver_status == ACTIVE`  ⇒ `focus_level_active ∈ {TO_REDUCE, REDUCED}` et `focus_level_frontier is None`
 - `solver_status == FRONTIER` ⇒ `focus_level_frontier ∈ {TO_PROCESS, PROCESSED}` et `focus_level_active is None`
 - Tous les autres états (`SOLVED`, `TO_VISUALIZE`, `JUST_VISUALIZED`, `NONE`, `OUT_OF_SCOPE`) ⇒ `focus_level_active is None` et `focus_level_frontier is None`
-Toute violation lève une exception lors du `apply_upsert`.
+- **TO_VISUALIZE** peut être exclu de `active_set` (optionnel) pour éviter des faux positifs. Dans tous les cas, il reste hors `known_set` et sera reclassé par vision dès recapture.
+- Toute violation lève une exception lors du `apply_upsert`.
 
 ### 1.1.2 Invariant logique/valeur
 - `logical_state == OPEN_NUMBER` ⇒ `number_value` obligatoire (1..8)
@@ -177,10 +179,13 @@ OUT_OF_SCOPE,
 - **Vision** écrit `raw_state` + `logical_state` et pose `topological_state = JUST_VISUALIZED` pour toutes les nouvelles observations (FLAGS compris), en ignorant le revealed/known_set déjà acquis.
 - **Solver (actions SAFE)** : ne touche pas au `logical_state`, marque `topological_state = TO_VISUALIZE` (et ajoute la coordonnée dans `to_visualize`). Pas de focus_level actif ici.
 - **Solver (actions FLAG)** : `logical_state = CONFIRMED_MINE`, `topological_state = SOLVED`.
-- **State analyzer** (reclassement) : convertit `JUST_VISUALIZED` en `ACTIVE` ou `SOLVED`, calcule la frontière et applique les promotions de focus.
+- **State analyzer** (reclassement) : convertit `JUST_VISUALIZED` en `ACTIVE`/`SOLVED`/`FRONTIER` via `s40_states_analyzer/states_recluster.py`, puis déclenche la première repromotion des focus levels.
 
 ### 2.4 Triggers de promotion (voisinage)
-- Déclencheur : une case passe en topologie **ACTIVE**, **SOLVED** ou **TO_VISUALIZE**.
+- Déclencheur : une case change de topologie vers **ACTIVE**, **SOLVED** ou **TO_VISUALIZE**.
+- Deux points de repromotion dans le pipeline :
+  1. **Post-vision** : après le reclustering des états (`s40_states_analyzer/states_recluster.py`)
+  2. **Post-solver** : après les actions solver (safe/flag) dans `s49_optimized_solver.py`
 - Effets :
   - voisines **ACTIVE** : `focus_level_active REDUCED → TO_REDUCE`
   - voisines **FRONTIER** (zone entière) : `focus_level_frontier PROCESSED → TO_PROCESS`

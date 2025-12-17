@@ -17,7 +17,7 @@ from src.lib.s3_storage.facade import (
     StorageUpsert,
 )
 from src.lib.s4_solver.facade import SolverAction, SolverActionType, SolverStats
-from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView
+from src.lib.s4_solver.s40_states_classifier.grid_extractor import SolverFrontierView
 from src.lib.s4_solver.s42_csp_solver.s420_csp_manager import CspManager
 from src.lib.s4_solver.s49_cleanup import build_cleanup_actions
 from src.lib.s4_solver.s42_csp_solver.s422_segmentation import Segmentation
@@ -214,26 +214,6 @@ def build_metadata_updates(
     return updated
 
 
-def compute_frontier_from_cells(
-    cells: Dict[Coord, GridCell],
-) -> Set[Coord]:
-    frontier: Set[Coord] = set()
-    for (x, y), cell in cells.items():
-        if cell.logical_state not in {LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY}:
-            continue
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                if dx == 0 and dy == 0:
-                    continue
-                nb = (x + dx, y + dy)
-                nb_cell = cells.get(nb)
-                if not nb_cell:
-                    continue
-                if nb_cell.logical_state == LogicalCellState.UNREVEALED:
-                    frontier.add(nb)
-    return frontier
-
-
 def compute_active_remove(
     cells: Dict[Coord, GridCell],
 ) -> Set[Coord]:
@@ -313,10 +293,10 @@ def compute_solver_update(
 
     updated_cells = build_metadata_updates(cells, frontier_coords, safe_cells, flag_cells, solver.segmentation)
     active_remove = compute_active_remove(updated_cells or cells)
-    # Recalculer la frontière après mise à jour des états (flags/safe)
-    new_frontier = compute_frontier_from_cells(updated_cells or cells)
-    frontier_add = set(new_frontier) - current_frontier_in_bounds
-    frontier_remove = current_frontier_in_bounds - set(new_frontier)
+    # La frontière est maintenant gérée par storage, plus de recalcul local
+    new_frontier = current_frontier_in_bounds  # Utiliser la frontière existante
+    frontier_add = set()  # Pas d'ajout depuis storage ici
+    frontier_remove = set()  # Pas de retrait depuis storage ici
 
     # Déduplication (cell, type) pour éviter les double-exécutions (ex: flags) – uniquement sur actions solver
     dedup_actions: list[SolverAction] = []

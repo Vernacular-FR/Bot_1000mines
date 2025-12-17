@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Capture → Vision → Solver (reclustering + repromotions) – 2025-12-17
+- Reclustering JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED effectué côté state analyzer (s40), pas côté vision.
+- Introduction d’un module `focus_actualizer` (repromotions REDUCED→TO_REDUCE et PROCESSED→TO_PROCESS) appelé post state analyzer et post solver.
+- Suppression de tout calcul de frontière opportuniste dans `matches_to_upsert` (vision).
+- Invariants renforcés dans storage (`apply_upsert`) : focus_level cohérent avec solver_status ; number_value=None si logical_state != OPEN_NUMBER.
+- TO_VISUALIZE écrit par le solver, reste hors known_set ; peut être exclu de active_set pour éviter des faux positifs.
+- SessionContext enrichi avec `historical_canvas_path` pour alimenter les overlays combined/states/actions.
+
 ### Solver/Storage – reclustering + repromotion focus – 2025-12-17
 - **Fix reclustering** : les cellules `JUST_VISUALIZED` (issues de vision) sont maintenant reclassées et **écrites dans storage** (`ACTIVE/SOLVED/FRONTIER`) avant l’extraction du batch solver.
 - **Repromotion fiable** : la repromotion des focus levels (REDUCED→TO_REDUCE, PROCESSED→TO_PROCESS) est déclenchée :

@@ -6,11 +6,11 @@ Cette spécification décrit l’architecture cible du bot 1000mines après la s
 
 1. **s0_interface** – Pilote le navigateur/canvas (DOM, coordonnées). Expose conversion grille↔écran, navigation viewport, clics JS et lecture statut. Doit rester interchangeable (Selenium aujourd’hui, extension demain).
 2. **s1_capture** – Récupère l’image via capture directe du canvas (`canvas.toDataURL`) + découpe/capture de tuiles 512×512. L’assemblage aligné est délégué à `src/lib/s1_capture/s12_canvas_compositor.py`.
-3. **s2_vision** – Convertit l’image en grille brute via matching déterministe (CenterTemplateMatcher) + overlays PNG/JSON.
-4. **s3_storage** – Grille sparse unique `{(x,y) → GridCell}` + index `revealed_set/active_set/frontier_set` + ZoneDB (index dérivé). Couche passive.
-5. **s4_solver** – Calcule la topologie + pertinence (FocusLevel) et décide les actions (SAFE/FLAG/…); déclenche le CSP sur les zones `TO_PROCESS` quand nécessaire.
-6. **s5_actionplanner** – Planification minimale : ordonne et traduit les actions solver en actions exécutables. (Évolutions : double-clic SAFE, marquage `TO_VISUALIZE`.)
-7. **s6_action** – Applique les actions JS/DOM.
+3. **s2_vision** – Convertit l’image en grille brute via matching déterministe (CenterTemplateMatcher) + overlays PNG/JSON. Ne calcule pas la frontière topologique, marque uniquement `JUST_VISUALIZED` et pousse les révélées dans `known_set`.
+4. **s3_storage** – Grille sparse unique `{(x,y) → GridCell}` + index `known_set/active_set/frontier_set/to_visualize_set` + ZoneDB (index dérivé). Couche passive. `apply_upsert` impose les invariants (logical ↔ number_value, focus ↔ solver_status).
+5. **s4_solver** – Calcule la topologie (via state analyzer), applique focus_actualizer (repromotions post reclustering et post solver), puis réduit/CSP et décide les actions (SAFE/FLAG/GUESS). Écrit `TO_VISUALIZE` pour les SAFE. et réaplique focus_actualizer avant de détermioner les cases pour l'heurisituque de cleanup
+6. **s5_actionplanner** – Planification minimale : ordonne et traduit les actions solver en actions exécutables. (Évolutions : double-clic SAFE, marquage `TO_VISUALIZE`.) 
+7. **s6_action** – Applique les actions JS.
 
 ### Schéma pipeline
 

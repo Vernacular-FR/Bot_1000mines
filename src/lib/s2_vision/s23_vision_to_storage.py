@@ -58,9 +58,6 @@ def matches_to_upsert(
     start_x, start_y, _, _ = bounds
 
     cells: Dict[Coord, GridCell] = {}
-    revealed: set[Coord] = set()
-    frontier: set[Coord] = set()
-    active: set[Coord] = set()
 
     for (row, col), match in matches.items():
         x = start_x + col
@@ -85,32 +82,15 @@ def matches_to_upsert(
             solver_status=solver_status,
         )
         cells[(x, y)] = cell
-        if logical_state in (LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY):
-            revealed.add((x, y))
 
-    # Calcul rapide de la frontière : cases UNREVEALED adjacentes à des révélées
-    for (x, y), cell in cells.items():
-        if cell.logical_state not in (LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY):
-            continue
-        has_unrevealed = False
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                if dx == 0 and dy == 0:
-                    continue
-                nb = (x + dx, y + dy)
-                nb_cell = cells.get(nb)
-                if nb_cell and nb_cell.logical_state == LogicalCellState.UNREVEALED:
-                    frontier.add(nb)
-                    has_unrevealed = True
-        if cell.logical_state == LogicalCellState.OPEN_NUMBER and has_unrevealed:
-            active.add((x, y))
-
+    # Vision ne calcule plus frontier/active/known_set
+    # Ces sets seront reconstruits par storage lors de apply_upsert
     return StorageUpsert(
         cells=cells,
-        revealed_add=revealed,
-        active_add=active,
+        revealed_add=set(),
+        active_add=set(),
         active_remove=set(),
-        frontier_add=frontier,
+        frontier_add=set(),
         frontier_remove=set(),
         to_visualize=set(),
     )
