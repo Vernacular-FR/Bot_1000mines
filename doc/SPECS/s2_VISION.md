@@ -31,6 +31,7 @@ Ce que s2_vision ne fait pas :
 
 ### Sorties
 - `matches`: liste ordonnée (ligne par ligne) de `MatchResult(symbol, distance, threshold, confidence, position)`.
+- Chaque `MatchResult` est converti en `raw_state` + `logical_state` et pose `topological_state = JUST_VISUALIZED` sur les cellules nouvellement observées (FLAGS compris), sans toucher aux sets `active/frontier`.
 - `grid_overlay_path` (optionnel) : PNG généré par `s22_vision_overlay.py`.
 - `debug_json` (facultatif) : future extension pour stocker les distances et marges.
 

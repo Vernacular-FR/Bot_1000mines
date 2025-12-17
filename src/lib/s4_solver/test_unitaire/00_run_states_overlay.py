@@ -82,25 +82,15 @@ def process_screenshot(screenshot: Path) -> None:
     )
     upsert = matches_to_upsert(bounds, matches)
     cells = upsert.cells
-    classification = FrontierClassifier(cells).classify()
-    active = classification.active
-    frontier = classification.frontier
-    solved = classification.solved
     overlay_path = render_states_overlay(
         screenshot,
         bounds,
-        active=active,
-        frontier=frontier,
-        solved=solved,
+        cells=cells,
         stride=STRIDE,
         cell_size=CELL_SIZE,
         export_root=EXPORT_ROOT,
     )
-    print(
-        f"[ZONES] {screenshot.name}: "
-        f"active={len(active)}, frontier={len(frontier)}, solved={len(solved)} "
-        f"→ {overlay_path.name}"
-    )
+    print(f"[ZONES] {screenshot.name}: overlay → {overlay_path.name}")
 
 
 def main() -> None:

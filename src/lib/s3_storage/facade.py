@@ -59,9 +59,10 @@ class LogicalCellState(str, Enum):
 
 
 class SolverStatus(str, Enum):
-    """Lifecycle of a cell from the solver perspective."""
+    """Lifecycle of a cell from the solver perspective (topologie)."""
 
-    JUST_REVEALED = "JUST_REVEALED"
+    TO_VISUALIZE = "TO_VISUALIZE"
+    JUST_VISUALIZED = "JUST_VISUALIZED"
     ACTIVE = "ACTIVE"
     FRONTIER = "FRONTIER"
     SOLVED = "SOLVED"
@@ -78,6 +79,20 @@ class ActionStatus(str, Enum):
     LOOKUP = "LOOKUP"
 
 
+class ActiveRelevance(str, Enum):
+    """FocusLevel pour ACTIVE."""
+
+    TO_REDUCE = "TO_REDUCE"
+    REDUCED = "REDUCED"
+
+
+class FrontierRelevance(str, Enum):
+    """FocusLevel pour FRONTIER."""
+
+    TO_PROCESS = "TO_PROCESS"
+    PROCESSED = "PROCESSED"
+
+
 @dataclass(frozen=True)
 class GridCell:
     x: int
@@ -87,6 +102,9 @@ class GridCell:
     number_value: Optional[int] = None  # 1..8 for numbers
     source: CellSource = CellSource.VISION
     solver_status: SolverStatus = SolverStatus.NONE
+    topological_state: SolverStatus = SolverStatus.NONE
+    focus_level_active: Optional[ActiveRelevance] = None
+    focus_level_frontier: Optional[FrontierRelevance] = None
     action_status: ActionStatus = ActionStatus.NONE
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -124,16 +142,17 @@ class FrontierSlice:
 class StorageUpsert:
     cells: Dict[Coord, GridCell]
     revealed_add: Set[Coord] = field(default_factory=set)
-    unresolved_add: Set[Coord] = field(default_factory=set)
-    unresolved_remove: Set[Coord] = field(default_factory=set)
+    active_add: Set[Coord] = field(default_factory=set)
+    active_remove: Set[Coord] = field(default_factory=set)
     frontier_add: Set[Coord] = field(default_factory=set)
     frontier_remove: Set[Coord] = field(default_factory=set)
+    to_visualize: Set[Coord] = field(default_factory=set)
 
 
 class StorageControllerApi(Protocol):
     def upsert(self, data: StorageUpsert) -> None: ...
     def get_frontier(self) -> FrontierSlice: ...
     def get_revealed(self) -> Set[Coord]: ...
-    def get_unresolved(self) -> Set[Coord]: ...
+    def get_active(self) -> Set[Coord]: ...
     def get_cells(self, bounds: Bounds) -> Dict[Coord, GridCell]: ...
     def export_json(self, viewport_bounds: Bounds) -> Dict[str, object]: ...

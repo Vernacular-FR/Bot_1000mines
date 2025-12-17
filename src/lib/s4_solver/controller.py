@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from src.lib.s3_storage.facade import StorageControllerApi
 from src.lib.s4_solver.facade import SolverAction, SolverStats
@@ -12,6 +12,8 @@ from src.lib.s4_solver.s49_optimized_solver import (
     compute_frontier_from_cells,
     compute_solver_update,
 )
+
+BYPASS_CSP_RATIO: float | None = None
 
 
 class SolverController:
@@ -26,39 +28,46 @@ class SolverController:
         self._solver = None
 
     def solve(self) -> List[SolverAction]:
+        """Compat: renvoie uniquement les actions solver (sans cleanup)."""
+        update = self.solve_with_update()
+        return update.actions if update else []
 
-        unresolved_coords = set(self._storage.get_unresolved())
-        if not unresolved_coords:
-            return []
+    def solve_with_update(self) -> Optional[SolverUpdate]:
 
-        bounds = compute_bounds(unresolved_coords)
+        active_coords = set(self._storage.get_active())
+        if not active_coords:
+            return None
+
+        bounds = compute_bounds(active_coords)
         cells = self._storage.get_cells(bounds)
 
         frontier_coords = compute_frontier_from_cells(cells)
         if not frontier_coords:
-            return []
+            return None
 
         view = SolverFrontierView(cells, frontier_coords)
 
         solver = OptimizedSolver(view, cells)
-        solver.solve()
+        solver.solve(bypass_ratio=BYPASS_CSP_RATIO)
+
         self._solver = solver
 
         update = self._build_update(cells, bounds, frontier_coords, solver)
         self._stats = update.stats
-        # Déclenche les overlays post-CSP (actions + combiné) via le solver
+        # Déclenche les overlays post-CSP (actions + cleanup) via le solver
         try:
-            solver.emit_overlays(update.actions or [])
+            solver.emit_overlays((update.actions or []) + (update.cleanup_actions or []))
         except Exception:
             pass
         if (
             update.storage_upsert.cells
-            or update.storage_upsert.unresolved_remove
+            or update.storage_upsert.active_remove
             or update.storage_upsert.frontier_add
             or update.storage_upsert.frontier_remove
+            or update.storage_upsert.to_visualize
         ):
             self._storage.upsert(update.storage_upsert)
-        return update.actions
+        return update
 
     def _build_update(
         self,

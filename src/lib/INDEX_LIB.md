@@ -20,8 +20,8 @@ Modules techniques utilisés par les services runtime capture → vision → sol
 - `s22_vision_overlay.py` : overlay vision (question_mark blanc, decor gris/noir).
 - `s21_templates_analyzer/*` : outils de génération templates/variance.
 
-## s3 Storage (active)
-- `controller.py` + `facade.py` : StorageUpsert, GridCell, sets revealed/unresolved/frontier.
+## s3 Storage (active/frontier)
+- `controller.py` + `facade.py` : StorageUpsert, GridCell, sets revealed/active/frontier.
 - `s32_set_manager.py`, `s31_grid_store.py` : gestion des trois sets, grille sparse.
 
 ## s4 Solver (OptimizedSolver CSP-only)

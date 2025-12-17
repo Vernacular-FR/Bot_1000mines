@@ -22,7 +22,7 @@ class Minesweeper1000Bot:
         difficulty: str | None = None,
         *,
         overlay_enabled: bool = False,
-        max_iterations: int = 500,
+        max_iterations: int = 80,
         delay_between_iterations: float = 0.2,
     ) -> bool:
         """Pipeline principal : boucle via GameLoopService jusqu'à fin de partie (ou max_iterations)."""

@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional
+from typing import Dict, List, Optional, Set, Tuple
 
 from src.lib.s3_storage.facade import (
+    ActiveRelevance,
     Coord,
     GridCell,
     LogicalCellState,
     SolverStatus,
+    FrontierRelevance,
 )
 from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier
 from src.lib.s4_solver.s40_states_analyzer.grid_extractor import SolverFrontierView
@@ -70,7 +72,11 @@ class CspManager:
         self._reset_state()
         self._execute_csp(pipeline_result)
 
-    def run_with_frontier_reducer(self) -> None:
+    def run_with_frontier_reducer(
+        self,
+        *,
+        bypass_ratio: float | None = None,
+    ) -> None:
         """
         Pipeline complet : applique un FrontiereReducer minimal,
         met à jour les cells/view puis exécute le CSP pur.
@@ -80,6 +86,25 @@ class CspManager:
         reducer_result = reducer.solve_with_zones()
         self.reducer_result = reducer_result
         self._apply_reducer_actions(reducer_result)
+        # Toujours accumuler les actions du reducer
+        self.safe_cells.update(reducer_result.safe_cells)
+        self.flag_cells.update(reducer_result.flag_cells)
+
+        # Bypass CSP si le reducer produit déjà assez d’actions, selon un ratio vs TO_PROCESS
+        if bypass_ratio is not None:
+            total_reducer_actions = len(reducer_result.safe_cells) + len(reducer_result.flag_cells)
+            to_process_count = sum(
+                1
+                for cell in self.cells.values()
+                if cell.solver_status == SolverStatus.FRONTIER
+                and (cell.focus_level_frontier in (None, FrontierRelevance.TO_PROCESS))
+            )
+            if to_process_count == 0:
+                return
+            ratio = total_reducer_actions / to_process_count
+            if ratio >= bypass_ratio:
+                return
+
         pipeline_result = self._build_pipeline_stub(reducer_result)
         self._execute_csp(pipeline_result)
 
@@ -137,18 +162,37 @@ class CspManager:
     # Overlays (optionnels)
     # ------------------------------------------------------------------
     def emit_states_overlay(self) -> None:
-        classification = FrontierClassifier(self.cells).classify()
-        frontier = set(classification.frontier)
-        active = set(classification.active)
-        solved = set(classification.solved)
-
         try:
+            classification = FrontierClassifier(self.cells).classify()
+            overlay_cells: Dict[Coord, "GridCell"] = {}
+            for coord, cell in self.cells.items():
+                if coord in classification.active:
+                    overlay_cells[coord] = replace(
+                        cell,
+                        solver_status=SolverStatus.ACTIVE,
+                        focus_level_active=ActiveRelevance.TO_REDUCE,
+                        focus_level_frontier=None,
+                    )
+                elif coord in classification.frontier:
+                    overlay_cells[coord] = replace(
+                        cell,
+                        solver_status=SolverStatus.FRONTIER,
+                        focus_level_frontier=FrontierRelevance.TO_PROCESS,
+                        focus_level_active=None,
+                    )
+                elif coord in classification.solved:
+                    overlay_cells[coord] = replace(
+                        cell,
+                        solver_status=SolverStatus.SOLVED,
+                        focus_level_active=None,
+                        focus_level_frontier=None,
+                    )
+                else:
+                    overlay_cells[coord] = cell
             render_states_overlay(
                 None,
                 None,
-                active=active,
-                frontier=frontier,
-                solved=solved,
+                cells=overlay_cells,
                 stride=None,
                 cell_size=None,
                 export_root=None,

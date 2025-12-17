@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 from src.lib.s4_solver.s42_csp_solver.s422_segmentation import Segmentation
+from .s495_historical_canvas import build_historical_canvas_from_canvas, _parse_canvas_name
 
 Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
@@ -24,6 +25,7 @@ def render_segmentation_overlay(
     """
     Dessine un overlay coloré représentant les composantes/zonings issus de Segmentation.
     """
+    meta = None
     if not (screenshot and bounds and stride and cell_size and export_root):
         meta = build_overlay_metadata_from_session()
         if not meta:
@@ -33,6 +35,18 @@ def render_segmentation_overlay(
         stride = meta["stride"]
         cell_size = meta["cell_size"]
         export_root = Path(meta["export_root"])
+    else:
+        meta = build_overlay_metadata_from_session()
+
+    # Fond historique et bounds depuis le _hist
+    if meta:
+        current_canvas = Path(meta["screenshot_path"])
+        hist_path = build_historical_canvas_from_canvas(current_canvas, Path(meta["export_root"]))
+        if hist_path and hist_path.exists():
+            screenshot = hist_path
+            parsed = _parse_canvas_name(hist_path)
+            if parsed:
+                _, _, bounds = parsed
 
     image = Image.open(screenshot).convert("RGBA")
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
@@ -87,8 +101,28 @@ def render_segmentation_overlay(
 
     # Sauvegarder l'overlay
     composed = Image.alpha_composite(image, overlay)
-    out_dir = Path(export_root) / "s42_segmentation_overlay"
+    out_dir = Path(export_root) / "s4_solver/s42_segmentation_overlay"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{screenshot.stem}_segmentation_overlay.png"
     composed.save(out_path)
+
+    # JSON log
+    try:
+        json_dir = out_dir / "json"
+        json_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "bounds": bounds,
+            "stride": stride,
+            "cell_size": cell_size,
+            "components": len(segmentation.components),
+            "zones": len(segmentation.zones),
+        }
+        json_path = json_dir / f"{screenshot.stem}_segmentation_overlay.json"
+        import json
+
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
     return out_path

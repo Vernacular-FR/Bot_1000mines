@@ -8,7 +8,7 @@ Le solver transforme la frontière issue de s3_storage en actions sûres (clics/
 
 1. **s40_grid_analyzer** – prépare un snapshot exploitable (statuts + vues).
 2. **s41_propagator_solver** – applique les motifs déterministes (optionnel/futur dans le pipeline principal).
-3. **s42_csp_solver** – segmente la frontière et effectue la résolution exacte locale (CSP).
+3. **s42_csp_solver** – applique une réduction de frontière déterministe, puis (si nécessaire) segmente la frontière et effectue la résolution exacte locale (CSP).
 
 ## 1. Architecture
 
@@ -17,7 +17,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
 
 ### 1.2 Sous-modules
 - **s40_grid_analyzer/**
-  - `grid_classifier.py` : applique les transitions JUST_REVEALED → ACTIVE/FRONTIER/SOLVED en mémoire (sans relecture complète de storage).
+  - `grid_classifier.py` : applique les transitions JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED en mémoire (sans relecture complète de storage).
   - `grid_extractor.py` : expose `SolverFrontierView`, implémentant `FrontierViewProtocol` (segmentation) et `GridAnalyzerProtocol` (CSP).
   - Re-exporte les types essentiels (`Segmentation`, `CSPSolver`, `SolverFrontierView`) pour compatibilité ascendante.
 - **s41_propagator_solver/**
@@ -32,7 +32,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
 
 ### 1.3 Façade & orchestrateurs
 - `controller.py` : récupère `FrontierSlice` + `cells` via StorageController, instancie `OptimizedSolver`, renvoie `SolverAction`.
-- `s49_optimized_solver.py` : orchestrateur CSP-only (CspManager + reducer + segmentation + CSP + probabilités).
+- `s49_optimized_solver.py` : orchestrateur (CspManager + reducer + segmentation + CSP + probabilités), avec CSP optionnel selon la stratégie de bypass.
 - `facade.py` : définit `SolverAction`, `SolverStats`, `SolverApi`.
 
 ## 2. Flux de données
@@ -43,31 +43,47 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 Grid Analyzer ─▶ s41 Pattern Solv
    - `active_set`
    - `frontier_set`
    - `ZoneDB` (index dérivé par `zone_id` + contraintes) et, en pratique, une vue dérivée `frontier_to_process` = union des cellules FRONTIER dont `FrontierRelevance == TO_PROCESS` (homogène par zone)
-2. **s40 Grid Analyzer** (si utilisé) reclasse les `GridCell` (JUST_REVEALED→ACTIVE/FRONTIER/SOLVED) et construit `SolverFrontierView`.
-3. **OptimizedSolver** choisit la phase :
-   - boucle click-based sur ACTIVE (mode “dumb”)
-   - ou CSP sur la frontière marquée `TO_PROCESS`
+2. **s40 Grid Analyzer** (si utilisé) reclasse les `GridCell` (JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED) et construit `SolverFrontierView`.
+3. **OptimizedSolver** exécute la résolution dans l’ordre :
+   - **réduction de frontière systématique** (déterministe) uniquement sur les ACTIVE `TO_REDUCE` ; toutes les ACTIVE traitées passent `REDUCED`
+   - **bypass CSP** si la réduction a produit suffisamment d’actions
+   - sinon **CSP** sur la frontière marquée `TO_PROCESS`
 4. **ConstraintReducer** (s42) détecte immédiatement les safe/flag via contraintes locales.
-5. **Segmentation + CSP** (s42) résolvent les composantes restantes.
+5. **Segmentation + CSP** (s42) résolvent les composantes restantes (si exécuté).
    - Les **zones** sont persistées côté storage.
    - Les **components** sont éphémères (reconstruits au moment de la résolution).
 6. **Controller** publie :
-   - les décisions solver (SAFE/FLAG/GUESS) sous forme d’actions
+   - les décisions solver (SAFE/FLAG/GUESS) sous forme d’actions (sans cleanup)
    - un `StorageUpsert` qui met à jour :
      - `cells` (metadata solver)
      - `active_add/remove`, `frontier_add/remove`
      - `zone_upsert/zone_remove`
+7. Le **solver** marque `TO_VISUALIZE` (topological_state) sur les cellules qu’il annonce **SAFE** (le logical_state reste UNREVEALED tant que Vision n’a pas relu) et les pousse dans `to_visualize` (set maintenu par s3). L’ActionPlanner consomme ces infos pour recadrer la prochaine Vision.
+8. **Cleanup bonus** (activable via `enable_cleanup`, défaut ON) : une fois le solver terminé (réduction + CSP éventuel), un module séparé calcule des cibles de “cleanup” sur les `TO_VISUALIZE` et leurs voisines `ACTIVE`. Ces clics sont hors stats solver/CSP et traités en phase bonus (liste `cleanup_actions` séparée).
+9. **GUESS optionnel** (`allow_guess`, défaut ON) : si aucune action sûre n’est trouvée, le solver peut (ou non) produire un `GUESS`. Quand désactivé, aucune guess n’est renvoyée et seules les actions sûres/cleanup sont publiées.
 
-### 2.2 StorageUpsert émis par le solver
+Justification (stratégie actuelle) :
+
+- **Deux modes solver** :
+  - mode 1 = **réduction de frontière** (toujours) : règles locales de contrainte (saturation / égalité) très rapides, nécessaires de toute façon avant CSP.
+  - mode 2 = **CSP** (optionnel) : appelé uniquement si la réduction n’apporte pas assez d’actions.
+- Le solver publie seulement SAFE/FLAG/GUESS (GUESS off par défaut). Pas de priorité “SAFE-first” hors de la logique de réduction : dès qu’une case est déduite SAFE, elle passe en `TO_VISUALIZE` (plus `FRONTIER`) et sera cliquée par l’exécuteur.
+
+- **Heuristiques d’exécution hors solver** : le solver ne produit que des `SolverAction` (SAFE/FLAG/GUESS) ; toute astuce d’exécution (ex: double-clic SAFE, clics opportunistes sur des actives voisines) vit dans s5.
+
+### 2.2 StorageUpsert émis par le solver (actions solver uniquement)
+
 ```python
 StorageUpsert(
-    cells={coord: GridCell(..., solver_status=SolverStatus.SOLVED, action_status=ActionStatus.SAFE)},
+    cells={coord: GridCell(..., topological_state=SolverStatus.TO_VISUALIZE, action_status=ActionStatus.SAFE)},
     active_add={...}, active_remove={...},
-    frontier_add={...}, frontier_remove={...}
+    frontier_add={...}, frontier_remove={...},
+    to_visualize={safe_cells},
 )
+# Flags runtime :
+# - allow_guess (bool, défaut True) : autorise l’émission de GUESS si aucune action sûre.
+# - enable_cleanup (bool, défaut True) : génère la liste cleanup_actions (bonus).
 ```
-
-Note : la mise à jour ZoneDB est batchée dans le même `StorageUpsert` (zones upsert/remove).
 
 ## 3. Interfaces clés
 
@@ -108,8 +124,19 @@ Retourne `PatternResult` :
 6. **Threading contrôlé** (`02_run_solver_on_screenshots.py`) : solver exécuté dans un thread avec timeout (15s) pour éviter les blocages lors des tests.
 
 7. **ZoneDB comme vérité de traitement CSP** :
-   - une zone `BLOCKED` ne repasse pas au CSP tant que sa signature / son contenu ne change pas
+   - une zone `PROCESSED` est considérée implicitement comme bloquée 
    - toute zone impactée par une mise à jour (changement de `zone_id`, changement de contraintes) repasse `TO_PROCESS`
+
+8. **Relevance déterministe (FocusLevel)** :
+   - si une cellule devient **ACTIVE** (TopologicalState) ou si son voisinage change, alors `ActiveRelevance = TO_REDUCE`
+   - si une cellule devient **FRONTIER** (TopologicalState) ou si sa zone/contraintes change, alors `FrontierRelevance = TO_PROCESS` (propagé à toute la zone)
+   - une cellule ACTIVE passe `REDUCED` quand la réduction ne produit plus rien dans l’état courant
+   - une cellule FRONTIERE passe `PROCESSED` une fois la zone traitée par le csp (elle ne redevient to_processed qu'en cas de solution ou de changement effectué sur la zone, mais c'est un processus autonome du csp, le csp passe automatiquement les cases de zones qu'il traite en processed !!!! )
+   - **cohérence stricte** : `focus_level_active` n’est autorisé que si `solver_status == ACTIVE`; `focus_level_frontier` n’est autorisé que si `solver_status == FRONTIER`; tous les autres états exigent les deux focus à `None` (enforcé par s3 storage).
+
+9. **Actions publiées** :
+   - `actions` = SAFE/FLAG/GUESS (GUESS activable via `allow_guess`, défaut ON).
+   - `cleanup_actions` = clics bonus sur `TO_VISUALIZE` + voisines `ACTIVE`, séparés des stats solver/CSP, activables via `enable_cleanup` (défaut ON).
 
 ## 6. Performances cibles
 
@@ -143,7 +170,7 @@ Retourne `PatternResult` :
 Cette annexe conserve la description du plan historique (propagator + CSP hybride) issu de l’ancien `PLAN_S4_SOLVER.md`. Elle n’est pas implémentée dans la version actuelle (OptimizedSolver CSP-only), mais sert de référence si l’on souhaite réintroduire un moteur de motifs avancé.
 
 ### Étapes prévues (legacy)
-- **Étape 0 – Grid Analyzer (s40)** : `grid_classifier` applique JUST_REVEALED→ACTIVE/FRONTIER/SOLVED, `grid_extractor` construit `SolverFrontierView` pour les solveurs.
+- **Étape 0 – Grid Analyzer (s40)** : `grid_classifier` applique JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED, `grid_extractor` construit `SolverFrontierView` pour les solveurs.
 - **Phase 1 – Frontière Reducer** (`s411_frontiere_reducer.py`) : règles locales (effective_value=0 ⇒ SAFE, effective_value = nb_fermées ⇒ FLAG), boucle jusqu’à stabilisation, overlays propagator.
 - **Phase 2 – Subset Constraint Propagator** (`s412_subset_constraint_propagator.py`) : inclusion stricte C1⊆C2, déductions SAFE/FLAG sur les différences, boucle jusqu’à stabilité.
 - **Phase 3 – Advanced Constraint Engine** (`s413_advanced_constraint_engine.py`) : pairwise elimination, inclusion partielle bornée, génération d’actions supplémentaires avant CSP.

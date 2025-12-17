@@ -24,9 +24,13 @@ class StorageController(StorageControllerApi):
         """Return revealed coordinates."""
         return self._store.get_revealed()
 
-    def get_unresolved(self) -> Set[Coord]:
-        """Return unresolved coordinates."""
-        return self._store.get_unresolved()
+    def get_active(self) -> Set[Coord]:
+        """Return active coordinates."""
+        return set(self._store.get_active()) | set(self._store.get_to_visualize())
+
+    def get_to_visualize(self) -> Set[Coord]:
+        """Return coordinates flagged for re-capture."""
+        return self._store.get_to_visualize()
 
     def get_cells(self, bounds: Bounds) -> Dict[Coord, GridCell]:
         """Extract cells within rectangular bounds."""

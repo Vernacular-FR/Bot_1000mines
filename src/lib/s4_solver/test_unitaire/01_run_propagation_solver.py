@@ -179,14 +179,10 @@ def process_screenshot(screenshot: Path) -> None:
     # Extraire les zones depuis le résultat pour l'overlay des zones
     from src.lib.s4_solver.s40_states_analyzer.grid_classifier import FrontierClassifier
     classifier = FrontierClassifier(cells)
-    zones = classifier.classify()
-    
     overlay_path = render_states_overlay(
         screenshot,
         bounds,
-        active=zones.active,
-        frontier=zones.frontier,
-        solved=zones.solved,
+        cells=cells,
         stride=STRIDE,
         cell_size=CELL_SIZE,
         export_root=EXPORT_ROOT,

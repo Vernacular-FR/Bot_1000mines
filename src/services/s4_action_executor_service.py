@@ -6,11 +6,14 @@ Responsable de l'exécution des actions du solveur (clics, drapeaux) sur l'inter
 import time
 import sys
 import os
+import json
+from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Any
 
 from enum import Enum
 
 from src.lib.s5_actionplanner.facade import PathfinderPlan
+from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 
 # Imports du projet
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -147,6 +150,7 @@ class ActionExecutorService:
 
         print(f"[ACTION] Exécution de {len(actions)} actions...")
 
+        executed_log = []
         for i, action in enumerate(actions):
             try:
                 success = self._execute_single_action(action)
@@ -161,6 +165,17 @@ class ActionExecutorService:
                 else:
                     errors += 1
                     self.stats['errors'] += 1
+
+                executed_log.append(
+                    {
+                        "index": i,
+                        "type": action.action_type.value,
+                        "grid": [action.grid_x, action.grid_y],
+                        "description": action.description,
+                        "confidence": action.confidence,
+                        "success": success,
+                    }
+                )
 
                 # Délai entre les actions
                 if i < len(actions) - 1:  # Pas de délai après la dernière action
@@ -191,6 +206,19 @@ class ActionExecutorService:
             "errors": errors,
             "execution_time": execution_time
         }, f"Actions exécutées: {executed_count}/{len(actions)}", "action_execution")
+
+        # Trace JSON des actions exécutées (si overlay/export_root disponible)
+        try:
+            meta = build_overlay_metadata_from_session()
+            if meta and meta.get("export_root"):
+                out_dir = Path(meta["export_root"]) / "s6_actions_log"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                stem = Path(meta.get("screenshot_path", "iter")).stem
+                json_path = out_dir / f"{stem}_actions.json"
+                with open(json_path, "w", encoding="utf-8") as f:
+                    json.dump(executed_log, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
         return result
 

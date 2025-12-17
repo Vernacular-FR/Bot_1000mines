@@ -3,7 +3,6 @@ from typing import Optional
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 from src.config import CELL_SIZE, CELL_BORDER, WAIT_TIMES
@@ -241,6 +240,31 @@ class NavigationController:
 
         raise ValueError(f"Type d'action non supporté: {action_value}")
 
+    def _nudge_view_to_cell(self, grid_x: int, grid_y: int, coord_ref: CoordinateConverter):
+        """
+        Déplacement doux du viewport vers la cellule cible (esthétique uniquement).
+        Utilise move_view_js directement (pas de dépendance au viewport_mapper).
+        """
+        try:
+            center_x, center_y = coord_ref.grid_to_screen_centered(grid_x, grid_y)
+            rect = self.driver.execute_script(
+                """
+                const el = document.querySelector('div#control');
+                const r = el.getBoundingClientRect();
+                return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+                """
+            )
+            if not rect:
+                return
+            dx = (center_x - rect["cx"]) * 0.5  # nudge léger
+            dy = (center_y - rect["cy"]) * 0.5
+            if abs(dx) < 1 and abs(dy) < 1:
+                return
+            self.move_view_js(dx, dy)
+        except Exception:
+            # Pas bloquant : si le nudge échoue, on exécute quand même l'action.
+            return
+
     def click_cell(self, grid_x, grid_y, right_click=False):
         if self.converter is None:
             raise ValueError("CoordinateConverter requis pour cliquer sur une cellule")
@@ -284,12 +308,46 @@ class NavigationController:
             traceback.print_exc()
             return False
 
-    def _double_click_at(self, screen_x: float, screen_y: float, delay: float = 0.1) -> bool:
+    def _double_click_at(self, screen_x: float, screen_y: float, delay: float = 0.05) -> bool:
+        """Double-clic pur JS (évite ActionChains)."""
         try:
-            body = self.driver.find_element(By.CSS_SELECTOR, "body")
-            actions = ActionChains(self.driver)
-            actions.move_to_element_with_offset(body, screen_x, screen_y).double_click().perform()
-            time.sleep(delay)
+            try:
+                target = self.driver.find_element(By.CSS_SELECTOR, "div#control canvas")
+            except Exception:
+                target = self.driver.find_element(By.CSS_SELECTOR, "div#control")
+
+            js = """
+            const el = arguments[0];
+            const x = Math.round(arguments[1]);
+            const y = Math.round(arguments[2]);
+
+            function makeMouse(type, x, y, button=0) {
+                return new MouseEvent(type, {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: x,
+                    clientY: y,
+                    button,
+                });
+            }
+
+            // Deux clics successifs + événement dblclick final
+            el.dispatchEvent(makeMouse('mousemove', x, y));
+            el.dispatchEvent(makeMouse('mousedown', x, y));
+            el.dispatchEvent(makeMouse('mouseup', x, y));
+            el.dispatchEvent(makeMouse('click', x, y));
+
+            el.dispatchEvent(makeMouse('mousedown', x, y));
+            el.dispatchEvent(makeMouse('mouseup', x, y));
+            el.dispatchEvent(makeMouse('click', x, y));
+
+            el.dispatchEvent(makeMouse('dblclick', x, y));
+            return true;
+            """
+            self.driver.execute_script(js, target, screen_x, screen_y)
+            if delay:
+                time.sleep(delay)
             return True
         except Exception as e:
             print(f"[ERREUR] Double-clic échoué ({screen_x:.0f}, {screen_y:.0f}): {e}")

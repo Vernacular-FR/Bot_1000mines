@@ -134,9 +134,7 @@ def process_screenshot(screenshot: Path) -> None:
     overlay_path = render_states_overlay(
         screenshot,
         bounds,
-        active=zones.active,
-        frontier=zones.frontier,
-        solved=zones.solved,
+        cells=cells,
         stride=STRIDE,
         cell_size=CELL_SIZE,
         export_root=EXPORT_ROOT,

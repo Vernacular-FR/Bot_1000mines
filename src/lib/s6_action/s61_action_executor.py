@@ -13,18 +13,36 @@ def convert_pathfinder_plan_to_game_actions(plan: PathfinderPlan) -> List[GameAc
     """
     game_actions: List[GameAction] = []
     for action in plan.actions:
-        if action.type == "flag":
-            action_type = ActionType.CLICK_RIGHT
-        else:
-            action_type = ActionType.CLICK_LEFT
         x, y = action.cell
-        game_actions.append(
-            GameAction(
-                action_type=action_type,
-                grid_x=x,
-                grid_y=y,
-                confidence=action.confidence,
-                description=action.reasoning,
+        if action.type == "flag":
+            game_actions.append(
+                GameAction(
+                    action_type=ActionType.CLICK_RIGHT,
+                    grid_x=x,
+                    grid_y=y,
+                    confidence=action.confidence,
+                    description=action.reasoning,
+                )
             )
-        )
+        elif action.type == "double_click":
+            # Utilise le double-clic natif (géré en JS dans s0_interface)
+            game_actions.append(
+                GameAction(
+                    action_type=ActionType.DOUBLE_CLICK,
+                    grid_x=x,
+                    grid_y=y,
+                    confidence=action.confidence,
+                    description=action.reasoning,
+                )
+            )
+        else:
+            game_actions.append(
+                GameAction(
+                    action_type=ActionType.CLICK_LEFT,
+                    grid_x=x,
+                    grid_y=y,
+                    confidence=action.confidence,
+                    description=action.reasoning,
+                )
+            )
     return game_actions

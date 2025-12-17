@@ -254,9 +254,9 @@ class GameLoopService:
             upsert = matches_to_upsert(grid_capture.grid_bounds, analysis.matches)
             self.storage.upsert(upsert)
             # Debug stockage
-            unresolved = self.storage.get_unresolved()
+            active = self.storage.get_active()
             frontier = self.storage.get_frontier().coords
-            print(f"[STORAGE] cells={len(upsert.cells)} unresolved={len(unresolved)} frontier={len(frontier)}")
+            print(f"[STORAGE] cells={len(upsert.cells)} active={len(active)} frontier={len(frontier)}")
             # Log rapide des premiers symboles
             sample_cells = list(upsert.cells.items())[:10]
             sample_desc = ", ".join([f"{coord}:{cell.raw_state.name}" for coord, cell in sample_cells])
@@ -264,29 +264,31 @@ class GameLoopService:
 
             print("[SOLVEUR] Résolution du puzzle...")
             solve_result = self.solver_service.solve_snapshot()
-            solver_actions = solve_result.get("actions", [])
-            reducer_actions = solve_result.get("reducer_actions", [])
+            solver_actions = solve_result.get("actions", []) or []
+            cleanup_actions = solve_result.get("cleanup_actions", []) or []
+            reducer_actions = solve_result.get("reducer_actions", []) or []
             stats = solve_result.get("stats")
             segmentation = solve_result.get("segmentation")
             safe_cells = solve_result.get("safe_cells", [])
+            total_flags = getattr(stats, "flag_cells", 0)
+            total_safe = getattr(stats, "safe_cells", 0)
             print(
-                f"[SOLVEUR] actions={len(solver_actions)} "
-                f"(zones={getattr(stats, 'zones_analyzed', 0)}, comps={getattr(stats, 'components_solved', 0)}, "
-                f"safe={getattr(stats, 'safe_cells', 0)}, flags={getattr(stats, 'flag_cells', 0)})"
+                f"[SOLVEUR] reduc={len(reducer_actions)} solver_actions={len(solver_actions)} cleanup_bonus={len(cleanup_actions)} "
+                f"(safe={total_safe}, flags={total_flags}, "
+                f"zones={getattr(stats, 'zones_analyzed', 0)}, comps={getattr(stats, 'components_solved', 0)})"
             )
-            if solver_actions:
-                print(f"[SOLVEUR] actions détail: {solver_actions}")
-            if reducer_actions:
-                print(f"[SOLVEUR] reducer_actions: {reducer_actions}")
-            unresolved = set(self.storage.get_unresolved())
+            active_set = set(self.storage.get_active())
             frontier_set = set(self.storage.get_frontier().coords)
 
             if stats:
+                self.stats['total_actions_executed'] = self.total_actions_executed
+                # On ne compte pas les cleanups dans les métriques solver/CSP
+                self.stats['actions_per_iteration'].append(len(solver_actions) + len(reducer_actions))
                 self.stats['total_safe_actions'] += getattr(stats, "safe_cells", 0)
                 self.stats['total_flag_actions'] += getattr(stats, "flag_cells", 0)
 
             # Détection simple d'état : aucune action + aucune case non résolue => victoire
-            detected_state = self._detect_game_state(solver_actions, unresolved, frontier_set)
+            detected_state = self._detect_game_state(solver_actions, active_set, frontier_set)
             if detected_state != GameState.PLAYING:
                 self.current_game_state = detected_state
                 pass_result['game_state'] = detected_state.value
@@ -306,15 +308,37 @@ class GameLoopService:
                 all_actions.extend(reducer_actions)
             if solver_actions:
                 all_actions.extend(solver_actions)
-            deterministic_actions = [a for a in all_actions if a.type != SolverActionType.GUESS]
+            # Cleanups sont un bonus après flags/safes
+            all_actions.extend(cleanup_actions)
+            deterministic_actions = [a for a in (reducer_actions + solver_actions) if a.type != SolverActionType.GUESS]
+            deterministic_actions.extend(cleanup_actions)
             chosen_actions = deterministic_actions if deterministic_actions else all_actions
             print(
-                f"[PLAN] total_actions={len(all_actions)} deterministes={len(deterministic_actions)} "
-                f"chosens={len(chosen_actions)}"
+                f"[PLAN] total_actions={len(all_actions)} deterministes_sans_guess={len(deterministic_actions)} "
+                f"choisis={len(chosen_actions)}"
             )
 
             path_plan = self.action_planner.plan(chosen_actions) if chosen_actions else None
-            game_actions = convert_pathfinder_plan_to_game_actions(path_plan) if path_plan else []
+            game_actions = []
+            if path_plan:
+                flags_actions = [a for a in path_plan.actions if a.type == "flag"]
+                cleanup_actions = [a for a in path_plan.actions if a.type == "click" and "cleanup" in (a.reasoning or "")]
+                safe_actions = [
+                    a
+                    for a in path_plan.actions
+                    if a.type == "click" and "cleanup" not in (a.reasoning or "")
+                ]
+                # Comptes par cellule avant expansion
+                flags_cells = {a.cell for a in flags_actions}
+                cleanup_cells = {a.cell for a in cleanup_actions}
+                safe_cells_plan = {a.cell for a in safe_actions}
+                print(
+                    f"[PLAN] cells flags={len(flags_cells)} safes={len(safe_cells_plan)} cleanup={len(cleanup_cells)}"
+                )
+                print(
+                    f"[PLAN] actions expanded: flags={len(flags_actions)} safes={len(safe_actions)} cleanup={len(cleanup_actions)} total={len(path_plan.actions)}"
+                )
+                game_actions = convert_pathfinder_plan_to_game_actions(path_plan)
 
             if not game_actions:
                 self.current_game_state = GameState.NO_ACTIONS
@@ -412,7 +436,7 @@ class GameLoopService:
     def _detect_game_state(
         self,
         solver_actions: List[Any],
-        unresolved: set[tuple[int, int]],
+        active: set[tuple[int, int]],
         frontier: set[tuple[int, int]],
     ) -> GameState:
         """
@@ -421,7 +445,7 @@ class GameLoopService:
         """
         try:
             # Si aucune action n’est disponible, on signale NO_ACTIONS pour stopper proprement la boucle.
-            if not solver_actions and not unresolved and not frontier:
+            if not solver_actions and not active and not frontier:
                 return GameState.NO_ACTIONS
             return GameState.PLAYING
         except Exception:
@@ -450,5 +474,8 @@ class GameLoopService:
             'errors': [],
             'total_safe_actions': 0,
             'total_flag_actions': 0,
+            'actions_per_iteration': [],
+            'analysis_time_per_iteration': [],
+            'solver_time_per_iteration': [],
         }
         print("[INFO] Statistiques GameLoopService remises à zéro")

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Solver/Storage – reclustering + repromotion focus – 2025-12-17
+- **Fix reclustering** : les cellules `JUST_VISUALIZED` (issues de vision) sont maintenant reclassées et **écrites dans storage** (`ACTIVE/SOLVED/FRONTIER`) avant l’extraction du batch solver.
+- **Repromotion fiable** : la repromotion des focus levels (REDUCED→TO_REDUCE, PROCESSED→TO_PROCESS) est déclenchée :
+  - **post-vision** (après reclustering), pour réactiver le voisinage suite aux nouvelles infos vision
+  - **post-solver** (après décisions SAFE/FLAG), car ces décisions changent aussi la topologie (`TO_VISUALIZE`/`SOLVED`).
+- **Impact** : évite la perte d’information “une nouvelle topo doit réveiller les voisines”, et stabilise le cycle vision→solver sur les grosses grilles.
+
 ### Pipeline capture → vision → solver – 2025-12-16
 - **Fusion reducer + CSP** : `GameLoopService` fusionne maintenant `reducer_actions` et `solver_actions` avant planification
 - **Priorisation déterministe** : Actions CLICK/FLAG exécutées avant les GUESS
@@ -23,10 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation & SPECS (cohérence V2) – 2025-12-16
 - **S3 index** : clarification des sets `revealed_set / active_set / frontier_set` et de leurs rôles.
-- **Nomenclature FocusLevel** : renommage en `TO_TEST/TESTED/STERILE` (ACTIVE) et `TO_PROCESS/PROCESSED/BLOCKED` (FRONTIER).
+- **Nomenclature FocusLevel** : `TO_REDUCE/REDUCED` (ACTIVE) et `TO_PROCESS/PROCESSED` (FRONTIER).
+- **TO_VISUALIZE** : écrit par le solver lors des décisions `SAFE` (cases amenées à changer), consommé ensuite pour cadrer la re-capture.
 - **ZoneDB** : formalisée comme un index dérivé basé sur `zone_id`/contraintes (déclenchement CSP via zones `TO_PROCESS`).
 - **Docs harmonisées** : mise à jour en style didactique des SPECS `S0_INTERFACE`, `S1_CAPTURE`, `s2_VISION`, `s4_SOLVER`, `s5_ACTION_PLANNER`, `ARCHITECTURE`, `PIPELINE`.
-- **Dumb Solver Loop** : référence consolidée sur `src/services/s44_dumb_solver_loop.md` (suppression de duplications).
+- **Dumb Solver Loop** : référence consolidée sur `doc/FOLLOW_PLAN/s44_dumb_solver_loop.md` (suppression de duplications).
+- **Performance terrain** : le bot tourne correctement sans navigation auto/optimisation, mais à ~7000 de score la résolution ralentit fortement → demande d’optimisations lourdes à planifier.
 
 ### Solver – 2025-12-13
 - **Refonte s4** : séparation complète des responsabilités en trois sous-modules.

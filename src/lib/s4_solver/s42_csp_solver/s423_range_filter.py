@@ -9,7 +9,7 @@ from src.lib.s4_solver.s42_csp_solver.s422_segmentation import Segmentation
 
 @dataclass
 class ComponentRangeConfig:
-    max_component_size: int = 500
+    max_component_size: int = 80
     stability_threshold: int = 1
 
 

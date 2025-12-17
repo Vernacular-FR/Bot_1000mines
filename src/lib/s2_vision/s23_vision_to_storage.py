@@ -60,6 +60,7 @@ def matches_to_upsert(
     cells: Dict[Coord, GridCell] = {}
     revealed: set[Coord] = set()
     frontier: set[Coord] = set()
+    active: set[Coord] = set()
 
     for (row, col), match in matches.items():
         x = start_x + col
@@ -67,9 +68,9 @@ def matches_to_upsert(
         raw_state, logical_state, number_value = _symbol_to_states(match.symbol)
 
         if logical_state == LogicalCellState.OPEN_NUMBER:
-            solver_status = SolverStatus.JUST_REVEALED
+            solver_status = SolverStatus.JUST_VISUALIZED
         elif logical_state == LogicalCellState.EMPTY:
-            solver_status = SolverStatus.JUST_REVEALED
+            solver_status = SolverStatus.JUST_VISUALIZED
         elif logical_state == LogicalCellState.CONFIRMED_MINE:
             solver_status = SolverStatus.SOLVED
         else:
@@ -91,6 +92,7 @@ def matches_to_upsert(
     for (x, y), cell in cells.items():
         if cell.logical_state not in (LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY):
             continue
+        has_unrevealed = False
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 if dx == 0 and dy == 0:
@@ -99,15 +101,18 @@ def matches_to_upsert(
                 nb_cell = cells.get(nb)
                 if nb_cell and nb_cell.logical_state == LogicalCellState.UNREVEALED:
                     frontier.add(nb)
+                    has_unrevealed = True
+        if cell.logical_state == LogicalCellState.OPEN_NUMBER and has_unrevealed:
+            active.add((x, y))
 
     return StorageUpsert(
         cells=cells,
         revealed_add=revealed,
-        # Unresolved = cellules révélées (nombres/vides) pour le solver
-        unresolved_add=revealed.copy(),
-        unresolved_remove=set(),
+        active_add=active,
+        active_remove=set(),
         frontier_add=frontier,
         frontier_remove=set(),
+        to_visualize=set(),
     )
 
 

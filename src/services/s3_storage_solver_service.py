@@ -24,8 +24,25 @@ class StorageSolverService:
         Exécute le solver CSP sur l'état actuel de storage et retourne actions + stats.
         Overlays sont gérés côté solver via le contexte global (pas de préparation ici).
         """
-        actions = self.solver.solve()
-        stats = self.solver.get_stats()
+        update = self.solver.solve_with_update()
+        if not update:
+            return {
+                "success": True,
+                "actions": [],
+                "cleanup_actions": [],
+                "stats": self.solver.get_stats(),
+                "pathfinder_plan": None,
+                "segmentation": None,
+                "safe_cells": [],
+                "flag_cells": [],
+                "reducer_safe": [],
+                "reducer_flags": [],
+                "zone_probabilities": {},
+            }
+
+        actions = update.actions or []
+        cleanup_actions = update.cleanup_actions or []
+        stats = update.stats
 
         # Récupérer les artefacts internes pour le debug/overlays
         optimized_solver = getattr(self.solver, "_solver", None)
@@ -41,10 +58,11 @@ class StorageSolverService:
                 reducer_safe = list(getattr(reducer_result, "safe_cells", []) or [])
                 reducer_flags = list(getattr(reducer_result, "flag_cells", []) or [])
 
-        path_plan = self.pathfinder.plan_actions(actions)
+        path_plan = self.pathfinder.plan_actions(actions + cleanup_actions)
         return {
             "success": True,
             "actions": actions,
+            "cleanup_actions": cleanup_actions,
             "stats": stats,
             "pathfinder_plan": path_plan,
             "segmentation": segmentation,

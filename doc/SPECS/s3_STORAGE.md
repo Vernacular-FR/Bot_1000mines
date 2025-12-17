@@ -46,12 +46,14 @@ ActionPlanner a besoin d’un mécanisme persistant :
 
 Ce n’est pas une classification du jeu, c’est un **besoin de vision**.
 
+Important : dans la stratégie actuelle, le **solver** est celui qui écrit `TO_VISUALIZE` quand il décide qu’une cellule est **SAFE** (donc cliquable) et qu’elle doit impérativement être re-lue à l’itération suivante.
+
 ### 0.3 Solver (s4) – connaissance dérivée + mémoire de pertinence
 
  Le solver :
  - calcule la **topologie** (ACTIVE/FRONTIER/...) à partir de ce que Vision a écrit
  - maintient un niveau de **pertinence** (FocusLevel) pour éviter de retraiter inutilement
- - décide quand une zone frontière est "TO_PROCESS" vs "BLOCKED" (CSP) d’une itération à l’autre
+ - décide quand une zone frontière repasse à `TO_PROCESS` (ré-entrée CSP) d’une itération à l’autre
 
 ---
 
@@ -82,9 +84,9 @@ Schéma unifié (données + index + contexte de partie) :
  │   │        │   └─ number_value                                  │   │
  │   │        │  metadata (Solver/Planner)                         │   │
  │   │        │   ├─ topological_state                             │   │
- │   │        │   ├─ focus_level                                   │   │
- │   │        │   │  ├─ ActiveRelevance (si ACTIVE)                │   │
- │   │        │   │  └─ FrontierRelevance (si FRONTIER)            │   │
+ │   │        │   ├─ focus_level (cohérence stricte)               │   │
+ │   │        │   │  ├─ ActiveRelevance (uniquement si ACTIVE)     │   │
+ │   │        │   │  └─ FrontierRelevance (uniquement si FRONTIER) │   │
  │   │        │   └─ zone_id (si FRONTIER)                         │   │
  │   │        └────────────────────────────────────────────────────┘   │
  │   │                                                                 │
@@ -92,14 +94,26 @@ Schéma unifié (données + index + contexte de partie) :
  │   │    zone_db      : dict[ZoneId -> ZoneRecord] (dérivé/index)     │
  │   │                                                                 │
  │   └─ SetManager (index)                                             │
- │        revealed_set   : "déjà vu"                                   │
- │        active_set     : "OPEN_NUMBER avec voisins UNREVEALED"       │
+ │        known_set : "déjà vu"                         │
+ │        active_set     : "ACTIVE avec voisins UNREVEALED"            │
  │        frontier_set   : "UNREVEALED adjacent à une ACTIVE"          │
+ │        to_visualize   : "SAFE cliquées à re-capturer"               │
  └─────────────────────────────────────────────────────────────────────┘
 ```
 
 Note : l’implémentation actuelle expose déjà un `solver_status` et `action_status` dans `GridCell`.
 Cette spec formalise ce qu’on veut exprimer (TopologicalState / FocusLevel) : la représentation concrète peut passer par `solver_status/action_status` ou par des champs dédiés.
+
+### 1.1.1 Invariant de cohérence (enforcé par storage)
+- `solver_status == ACTIVE`  ⇒ `focus_level_active ∈ {TO_REDUCE, REDUCED}` et `focus_level_frontier is None`
+- `solver_status == FRONTIER` ⇒ `focus_level_frontier ∈ {TO_PROCESS, PROCESSED}` et `focus_level_active is None`
+- Tous les autres états (`SOLVED`, `TO_VISUALIZE`, `JUST_VISUALIZED`, `NONE`, `OUT_OF_SCOPE`) ⇒ `focus_level_active is None` et `focus_level_frontier is None`
+Toute violation lève une exception lors du `apply_upsert`.
+
+### 1.1.2 Invariant logique/valeur
+- `logical_state == OPEN_NUMBER` ⇒ `number_value` obligatoire (1..8)
+- `logical_state != OPEN_NUMBER` ⇒ `number_value` doit être `None`
+Violation ⇒ exception lors du `apply_upsert`.
 
 ### 1.2 SessionContext (contexte de partie)
 
@@ -147,17 +161,34 @@ OUT_OF_SCOPE,
 - **NONE** ⇔ `UNREVEALED` AND ∀ voisins ≠ **ACTIVE**
 - **SOLVED** ⇔ `EMPTY` OR `CONFIRMED_MINE` OR (`open_number` AND ∀ voisins ≠ `UNREVEALED`)
 
-`TO_VISUALIZE` / `JUST_VISUALIZED` sont des états de transition utiles :
-- `TO_VISUALIZE` : le bot pense que des infos sont apparues, mais il ne les a pas encore re-lues.
-- `JUST_VISUALIZED` : la vision vient de fournir l’observation, mais la classification topologique n’a pas encore été recalculée.
+`TO_VISUALIZE` / `JUST_VISUALIZED` sont des états de transition topologiques :
+- `TO_VISUALIZE` : la case a été cliquée (SAFE par le solver/planner) et doit être re-capturée. L’état logique/réel reste `UNREVEALED` tant que la vision n’a pas relu.
+- `JUST_VISUALIZED` : la vision vient de fournir l’observation (logical_state + raw_state) ; la topologie doit encore être recalculée par le state analyzer (ACTIVE / SOLVED / FRONTIER).
 
 ### 2.2 Transitions (topologie uniquement)
 
-- `TO_VISUALIZE → JUST_VISUALIZED` (vision recapture)
-- `JUST_VISUALIZED → ACTIVE | SOLVED` (states_analyzer)
+- `TO_VISUALIZE → JUST_VISUALIZED` (vision recapture avec new logical_state/raw_state)
+- `JUST_VISUALIZED → ACTIVE | SOLVED` (states_analyzer reclasse selon voisinage)
 - `ACTIVE → SOLVED` (plus de voisins `UNREVEALED`)
 - `NONE → FRONTIER` (un voisin devient **ACTIVE**)
 - `FRONTIER → JUST_VISUALIZED` (devient révélée par vision)
+
+### 2.3 Mapping états réels / logiques / topo (règles d’écriture)
+- **Vision** écrit `raw_state` + `logical_state` et pose `topological_state = JUST_VISUALIZED` pour toutes les nouvelles observations (FLAGS compris), en ignorant le revealed/known_set déjà acquis.
+- **Solver (actions SAFE)** : ne touche pas au `logical_state`, marque `topological_state = TO_VISUALIZE` (et ajoute la coordonnée dans `to_visualize`). Pas de focus_level actif ici.
+- **Solver (actions FLAG)** : `logical_state = CONFIRMED_MINE`, `topological_state = SOLVED`.
+- **State analyzer** (reclassement) : convertit `JUST_VISUALIZED` en `ACTIVE` ou `SOLVED`, calcule la frontière et applique les promotions de focus.
+
+### 2.4 Triggers de promotion (voisinage)
+- Déclencheur : une case passe en topologie **ACTIVE**, **SOLVED** ou **TO_VISUALIZE**.
+- Effets :
+  - voisines **ACTIVE** : `focus_level_active REDUCED → TO_REDUCE`
+  - voisines **FRONTIER** (zone entière) : `focus_level_frontier PROCESSED → TO_PROCESS`
+
+### 2.5 Sets exposés
+- `revealed_set` (a.k.a. known_set) : utilisé par Vision pour éviter de rescanner les cases déjà connues.
+- `active_set` : `ACTIVE` **∪ `TO_VISUALIZE`** (les cases à re-capturer sont considérées comme actives côté solver).
+- `frontier_set` : UNREVEALED adjacentes aux ACTIVE (selon la topologie recalculée).
 
 ---
 
@@ -168,39 +199,40 @@ Ici on encode la pertinence **réversible**. C’est ce qui évite de cliquer / 
 ### 3.1 ActiveRelevance
 
 ActiveRelevance ∈ {
-TO_TEST,
-TESTED,
-STERILE,
+TO_REDUCE,
+REDUCED,
 }
 
 Intuition :
-- `TO_TEST` : il faut la tester (clic-based) / l’exploiter dans l’itération.
-- `STERILE` : on a testé, ça ne produit rien dans l’état courant (mais ça peut redevenir pertinent si voisinage change).
+- `TO_REDUCE` : la cellule ACTIVE est éligible à la réduction de frontière déterministe (passes “simples”, pré-CSP).
+- `REDUCED` : la cellule a été exploitée via la réduction, mais aucune action supplémentaire n’est apparue dans l’état courant (elle peut redevenir pertinente si le voisinage change).
 
 Transitions typiques :
-- `TO_TEST → TESTED` (testée)
-- `TO_TEST → STERILE` (testée sans effet)
-- `STERILE → TO_TEST` (si un voisin change d'état)
-- `TESTED → TO_TEST` (si un voisin change d'état)
+- `TO_REDUCE → REDUCED` (aucune nouvelle action après réduction, et aucun changement de voisinage observé)
+- `REDUCED → TO_REDUCE` (si un voisin change d'état)
+
+Source d’écriture (déterministe) :
+- le solver remet une cellule `ACTIVE` à `TO_REDUCE` dès qu’il détecte un changement topologique ou un changement dans son voisinage local.
 
 ### 3.2 FrontierRelevance
 
 FrontierRelevance ∈ {
 TO_PROCESS,
 PROCESSED,
-BLOCKED,
 }
 
 Portée : statut stocké **sur la cellule FRONTIER** (GridCell) comme source de vérité, mais il est **homogène par zone**. Toutes les cellules qui partagent le même `zone_id` doivent avoir le même FrontierRelevance ; le regroupement par `zone_id` sert à propager le changement à tout le groupe.
 
 Intuition :
 - `TO_PROCESS` : la zone frontière a changé, CSP doit (re)passer.
-- `BLOCKED` : CSP est passé mais aucune déduction certaine n’est possible (sans guess) → on n’y revient que si la zone change.
+- `PROCESSED` : la zone a déjà été traitée par le CSP. Si elle reste `PROCESSED`, on considère implicitement qu’elle est “bloquée” tant qu’aucune information nouvelle n’arrive.
 
 Transitions typiques :
-- `TO_PROCESS → PROCESSED` (CSP a trouvé des actions)
-- `TO_PROCESS → BLOCKED` (CSP bloqué)
-- `BLOCKED → TO_PROCESS` (si la zone change)
+- `TO_PROCESS → PROCESSED` (CSP exécuté sur la zone)
+- `PROCESSED → TO_PROCESS` (si la zone change)
+
+Source d’écriture (déterministe) :
+- le solver remet une zone `FRONTIER` à `TO_PROCESS` dès qu’il détecte que la signature de la zone change (contraintes) ou que le voisinage/les contraintes sont impactés.
 
 ### 3.3 ZoneDB (mémoire CSP persistée / index dérivé)
 
@@ -230,7 +262,7 @@ Note : on n’a pas besoin de stocker `FrontierRelevance` dans ZoneDB si on le s
   - si `zone_id` change : l’**ancienne** zone et la **nouvelle** zone passent `TO_PROCESS` (propagation sur toutes leurs cellules)
 - Reconstituer ou maintenir l’index `zone_db` par **group-by `zone_id`** (ou via un `cell_to_zone` dérivé si besoin de performance).
 - Toute zone dont le contenu change (cells ajoutées/sorties) ou dont les contraintes changent (signature modifiée) entraîne la propagation du `FrontierRelevance = TO_PROCESS` sur **toutes les cellules** de cette zone.
-- Une zone traitée par CSP sans action certaine reste `BLOCKED` (homogène sur ses cellules).
+- Une zone traitée par CSP est marquée `PROCESSED` (homogène sur ses cellules). Tant qu’elle reste `PROCESSED`, on considère implicitement qu’elle n’apporte rien de déterministe (sans guess) dans l’état courant.
 - Une zone vide est supprimée de `zone_db`.
 
 Note : `TO_PROCESS` signifie seulement « la zone doit repasser au CSP *si/ quand* le solver décide de lancer le CSP ». Le déclenchement effectif du CSP (seuils, heuristiques, ordre des phases) est une logique **s4_solver**, pas **s3_storage**.
@@ -245,7 +277,8 @@ Règle centrale : **s3 stocke, s3 ne calcule pas**.
 
 Vision    : écrit observation (raw/logical/value) + revealed_add
 Solver    : écrit topological_state + focus_level + active_add/remove + frontier_add/remove
-Planner   : écrit TO_VISUALIZE (besoin de re-capture), et s’en sert pour recadrer la vision
+Solver    : peut aussi écrire TO_VISUALIZE (besoin de re-capture) lorsqu’il publie des actions SAFE (cases amenées à changer)
+Planner   : consomme TO_VISUALIZE et s’en sert pour recadrer la vision
 
 Table simplifiée :
 ┌──────────────┬───────────────────────────┬─────────────────────────────┐
@@ -257,8 +290,9 @@ Table simplifiée :
 │ Solver (s4)  │ active+/-, frontier+/-    │ revealed_set                │
 │              │ topologie, focus_level,   │ (sauf via vision)           │
 │              │ ZoneDB (zones+relevance)  │                             │
+│              │ TO_VISUALIZE, FLAG              │                             │
 ├──────────────┼───────────────────────────┼─────────────────────────────┤
-│ Planner (s5) │ TO_VISUALIZE              │ classification raw/logical  │
+│ Planner (s5) │                           │ classification raw/logical  │
 └──────────────┴───────────────────────────┴─────────────────────────────┘
 
 ---
@@ -304,8 +338,8 @@ Utilité & fonctionnement (active) :
 - Définition fonctionnelle : cellule `OPEN_NUMBER` qui a au moins un voisin `UNREVEALED`.
 - Écriture : maintenu de façon incrémentale par le solver (s4) via `active_add/active_remove` dans `StorageUpsert`.
 - Usage :
-  - base de la boucle click-based (“dumb solver”)
-  - le solver filtre ensuite via `GridCell.focus_level` (`ActiveRelevance=TO_TEST/TESTED/STERILE`) sans rescanner toute la grille
+  - base de la réduction de frontière déterministe (passes “simples”, pré-CSP)
+  - le solver filtre ensuite via `GridCell.focus_level` (`ActiveRelevance=TO_REDUCE/REDUCED`) sans rescanner toute la grille
 
 ---
 
@@ -313,7 +347,7 @@ Utilité & fonctionnement (active) :
 
 - Vision qui calcule la frontière (mauvaise séparation).
 - Un état “fourre-tout” : topologie et focus_level doivent rester orthogonaux.
-- Confondre mémoire inter-itérations (FocusLevel) et état interne d’un algo (to_process/processed/blocked d’un seul pass).
+- Confondre mémoire inter-itérations (FocusLevel) et état interne d’un algo (to_process/processed d’un seul pass).
 
 ---
 
@@ -321,5 +355,5 @@ Utilité & fonctionnement (active) :
 
 s2 Vision        : observe -> écrit cells + revealed
 s4 Solver        : calcule topologie + focus_level -> écrit active/frontier
-s5 ActionPlanner : exécute -> marque TO_VISUALIZE -> recadre vision
+s5 ActionPlanner : exécute -> consomme TO_VISUALIZE -> recadre vision
 s3 Storage       : conserve tout ça, sans logique

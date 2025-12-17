@@ -52,6 +52,9 @@ class Segmentation:
         self.zones: List[Zone] = []
         self.cell_to_zone: Dict[Tuple[int, int], Zone] = {}
         self.components: List[Component] = []
+        # Index auxiliaires : zone -> composante, composante -> ids de zones
+        self.zone_to_component: Dict[int, int] = {}
+        self.zone_ids_by_component: Dict[int, Set[int]] = {}
         self._run()
 
     def _run(self) -> None:
@@ -111,4 +114,10 @@ class Segmentation:
             for zone in zone_list:
                 all_constraints.update(zone.constraints)
             self.components.append(Component(comp_id, zone_list, all_constraints))
+            self.zone_ids_by_component[comp_id] = {z.id for z in zone_list}
+            for zone in zone_list:
+                self.zone_to_component[zone.id] = comp_id
             comp_id += 1
+
+    def zone_for_cell(self, coord: Tuple[int, int]) -> Zone | None:
+        return self.cell_to_zone.get(coord)

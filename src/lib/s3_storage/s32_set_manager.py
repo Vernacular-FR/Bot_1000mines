@@ -6,45 +6,54 @@ Coord = Tuple[int, int]
 
 
 class SetManager:
-    """Manages three sets: revealed, unresolved, frontier."""
+    """Manage three sets: revealed, active, frontier."""
 
     def __init__(self) -> None:
         self._revealed_set: Set[Coord] = set()
-        self._unresolved_set: Set[Coord] = set()
+        self._active_set: Set[Coord] = set()
         self._frontier_set: Set[Coord] = set()
+        self._to_visualize: Set[Coord] = set()
 
     def apply_set_updates(
         self,
         *,
         revealed_add: Set[Coord],
-        unresolved_add: Set[Coord],
-        unresolved_remove: Set[Coord],
+        active_add: Set[Coord],
+        active_remove: Set[Coord],
         frontier_add: Set[Coord],
         frontier_remove: Set[Coord],
+        to_visualize: Set[Coord],
     ) -> None:
         """Apply incremental updates to all three sets."""
         self._revealed_set.update(revealed_add)
-        
-        self._unresolved_set.update(unresolved_add)
-        self._unresolved_set.difference_update(unresolved_remove)
-        
+
+        self._active_set.update(active_add)
+        self._active_set.difference_update(active_remove)
+
         self._frontier_set.update(frontier_add)
         self._frontier_set.difference_update(frontier_remove)
 
-        self._unresolved_set.intersection_update(self._revealed_set)
+        # Frontière ne doit pas contenir de cases révélées
         self._frontier_set.difference_update(self._revealed_set)
+
+        # TO_VISUALIZE est une pile (coords à recapturer) maintenue en add only par s4
+        self._to_visualize.update(to_visualize)
 
     def get_revealed(self) -> Set[Coord]:
         """Return revealed coordinates."""
         return set(self._revealed_set)
 
-    def get_unresolved(self) -> Set[Coord]:
-        """Return unresolved coordinates."""
-        return set(self._unresolved_set)
+    def get_active(self) -> Set[Coord]:
+        """Return active coordinates."""
+        return set(self._active_set)
 
     def get_frontier(self) -> Set[Coord]:
         """Return frontier coordinates."""
         return set(self._frontier_set)
+
+    def get_to_visualize(self) -> Set[Coord]:
+        """Return coordinates to re-capture."""
+        return set(self._to_visualize)
 
     def iter_frontier_in_bounds(self, bounds: Tuple[int, int, int, int]) -> Set[Coord]:
         """Iterate frontier coordinates within bounds."""

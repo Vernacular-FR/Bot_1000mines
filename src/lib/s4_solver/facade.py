@@ -30,7 +30,7 @@ class SolverStats:
 
 
 class SolverApi(Protocol):
-    def solve(self, frontier_coords: List[Coord], unresolved_coords: List[Coord]) -> List[SolverAction]:
+    def solve(self, frontier_coords: List[Coord], active_coords: List[Coord]) -> List[SolverAction]:
         ...
 
     def get_stats(self) -> SolverStats:
