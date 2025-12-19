@@ -103,3 +103,73 @@ Et côté exécution, je verrouille un principe de bon sens : la fin de session 
 
 À partir de là, V2 n’est plus juste “une version plus propre”.
 C’est une base stable sur laquelle je peux empiler des améliorations (pattern solver, extension navigateur) sans revenir au chaos.
+
+---
+
+## 18 décembre 2025 – Refactoring Architectural Complet
+
+Après 3 semaines de développement intensif, le codebase avait accumulé de la complexité technique. J'ai lancé une opération de nettoyage et refactoring en deux phases pour assurer la maintenabilité à long terme.
+
+### Phase 1 – Nettoyage Drastique
+
+**Suppressions (7 éléments)**
+- Overlays debug : `s49_overlays/` (34KB de visualisations)
+- Tests dispersés : `test_unitaire/` dans chaque module
+- Code mort : `s49_cleanup.py`, `s6_action/facade.py` (0 bytes)
+- Services doublons : `s3_storage_solver_service.py`
+
+**Nettoyages de code**
+- Imports overlay supprimés dans 4 fichiers du solver
+- Méthodes `emit_overlays()`, `emit_states_overlay()` éliminées
+- Enums `CellSource` et `ActionStatus.LOOKUP` purgés
+- Doublons unifiés : `ViewportState`, `CanvasDescriptor`, `ScreenshotManager`
+
+### Phase 2 – Refactoring Architectural
+
+**Unification StateManager**
+```python
+# AVANT : 2 classes dupliquées
+class StateManager:        # Gestion ACTIVE/SOLVED
+class FrontierClassifier:  # Détection frontières
+
+# APRÈS : 1 classe unifiée
+class StatusClassifier:    # Gestion complète des états
+```
+
+**Division GameLoopService**
+```python
+# AVANT : Service monolithique (400 lignes)
+class GameLoopService:
+    # Capture + Vision + Storage + Solver + Action + Loop
+
+# APRÈS : 2 services spécialisés
+class SingleIterationService:  # 1 passe complète (200 lignes)
+class GameLoopService:         # Orchestrateur simple (100 lignes)
+```
+
+### Résultats
+
+- **Bot 100% fonctionnel** : Pipeline complet opérationnel, 112 actions exécutées
+- **Codebase optimisé** : -8 fichiers supprimés, +3 fichiers modulaires
+- **Architecture propre** : Faible couplage, haute cohésion, zéro doublons
+
+### Leçons apprises
+
+1. **Purger tôt** : Le code mort s'accumule vite et coûte cher à maintenir
+2. **Unifier les doublons** : 2 classes similaires = 1 bug garanti à terme
+3. **Séparer les responsabilités** : Services monolithiques = difficile à tester
+4. **Documenter les décisions** : `PHASE1_DECISIONS.md` a guidé le refactoring
+
+---
+
+## État Actuel de V2 (déc 2025)
+
+Le refactoring architectural a transformé V2 en une base solide :
+- **Modules autonomes** : `lib/*` = logique pure, `services/*` = orchestration
+- **Documentation unique** : `SPECS/` comme référence technique
+- **Tests centralisés** : `tests/` (pas de dispersion)
+
+V2 est maintenant prête pour les prochaines étapes :
+- **V3-PERFORMANCES** : Optimisations algorithmiques
+- **V4-FEATURES** : Nouvelles fonctionnalités
+- **V5-TESTS** : Suite de tests automatisée

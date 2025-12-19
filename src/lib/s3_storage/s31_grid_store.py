@@ -59,6 +59,10 @@ class GridStore:
         """Return coordinates flagged for re-capture."""
         return self._sets.get_to_visualize()
 
+    def get_known(self) -> Set[Coord]:
+        """Return known coordinates."""
+        return self._sets.get_known()
+
     def get_cells_in_bounds(self, bounds: Bounds) -> Dict[Coord, GridCell]:
         """Extract cells within rectangular bounds."""
         x_min, y_min, x_max, y_max = bounds
@@ -84,9 +88,9 @@ class GridStore:
     # ------------------------------------------------------------------ #
     def _recalculate_sets(self, modified_cells: Dict[Coord, GridCell]) -> None:
         """Recalculate sets incrementally based on modified cells."""
-        # Remove modified coords from all sets first
+        # Remove modified coords from mutable sets (revealed/active/frontier) but keep known_set
         for coord in modified_cells:
-            self._sets.remove_from_all_sets(coord)
+            self._sets.remove_from_state_sets(coord)
         
         # Add coords to appropriate sets based on new solver_status
         for coord, cell in modified_cells.items():
@@ -95,8 +99,8 @@ class GridStore:
             elif cell.solver_status == SolverStatus.FRONTIER:
                 self._sets.add_to_frontier(coord)
             
-            # Add to known_set if solver_status is not NONE
-            if cell.solver_status != SolverStatus.NONE:
+            # Add to known_set pour toutes les cellules qui viennent d'être visualisées par vision
+            if cell.solver_status == SolverStatus.JUST_VISUALIZED:
                 self._sets.add_to_known(coord)
             
             # Add to revealed_set for OPEN_NUMBER or EMPTY

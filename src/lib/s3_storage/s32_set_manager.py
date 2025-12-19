@@ -70,10 +70,12 @@ class SetManager:
         return result
 
     # Individual set operations for incremental updates
-    def remove_from_all_sets(self, coord: Coord) -> None:
-        """Remove coord from all sets."""
+    def remove_from_state_sets(self, coord: Coord) -> None:
+        """
+        Remove coord from mutable state sets (revealed/active/frontier) but keep known_set intact.
+        known_set est append-only (une cellule reste connue une fois vue).
+        """
         self._revealed_set.discard(coord)
-        self._known_set.discard(coord)
         self._active_set.discard(coord)
         self._frontier_set.discard(coord)
         # Note: to_visualize is only managed by solver, not removed here

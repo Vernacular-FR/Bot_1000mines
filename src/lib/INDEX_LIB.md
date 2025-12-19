@@ -1,48 +1,62 @@
-# Bibliothèque `lib/` – Index des modules actifs (pipeline live)
+# Bibliothèque `lib/` – Index des modules (Architecture Alternative A)
 
 ## Vue d'ensemble
-Modules techniques utilisés par les services runtime capture → vision → solver. Les dossiers legacy restent pour historique mais ne sont plus dans le chemin critique. La logique (chemins overlay, suffixes, calculs) vit dans ces modules ; les services/controllers ne sont que des passe-plats qui transmettent `export_root` et les données métier.
+
+Architecture **"Modular Pipeline"** avec modules purs découplés. Chaque module a une responsabilité claire et des contrats I/O explicites. Pipeline unidirectionnel : `capture → vision → storage → solver → planner → executor`.
 
 ---
 
-## s0 Interface
-- `s00_browser_manager.py` : gestion navigateur (start/stop, exec_script).
-- `controller.py`, `s03_game_controller.py` : façade jeu (status, sélection mode).
-- `s03_Coordonate_system.py` : `CoordinateConverter`, `CanvasLocator`, `ViewportMapper` (coordonnées CSS/grid).
+## s0_browser – Gestion Navigateur
+- `browser.py` : `BrowserManager`, `start_browser()`, `stop_browser()`, `navigate_to()`
+- `types.py` : `BrowserConfig`, `BrowserHandle`
 
-## s1 Capture
-- `s11_canvas_capture.py` : capture JS `canvas.toDataURL`, helpers fallback.
-- `s12_canvas_compositor.py` : assemblage tuiles → `full_grid_*.png`, recalcul `grid_bounds`.
-- `s1_capture/s10_overlay_utils.py` : helper SessionContext (export_root, bounds, stride, screenshot) pour les overlays.
+## s0_coordinates – Conversion Coordonnées
+- `converter.py` : `CoordinateConverter`, `grid_to_screen()`, `screen_to_grid()`
+- `viewport.py` : `ViewportMapper`, `get_viewport_bounds()`
+- `canvas_locator.py` : `CanvasLocator`, localisation des canvas 512×512
+- `types.py` : `Coord`, `ScreenPoint`, `CanvasPoint`, `GridBounds`, `ViewportInfo`
 
-## s2 Vision (actif)
-- `s21_template_matcher.py` (CenterTemplateMatcher), manifest central templates.
-- `s22_vision_overlay.py` : overlay vision (question_mark blanc, decor gris/noir).
-- `s21_templates_analyzer/*` : outils de génération templates/variance.
+## s1_capture – Capture Canvas
+- `capture.py` : `CanvasCaptureBackend`, `capture_canvas()`, `capture_zone()`
+- `types.py` : `CaptureInput`, `CaptureResult`
 
-## s3 Storage (active/frontier)
-- `controller.py` + `facade.py` : StorageUpsert, GridCell, sets revealed/active/frontier.
-- `s32_set_manager.py`, `s31_grid_store.py` : gestion des trois sets, grille sparse.
+## s2_vision – Reconnaissance Visuelle
+- `vision.py` : `VisionAnalyzer`, `analyze()`, `analyze_grid()`
+- `matcher.py` : `CenterTemplateMatcher`, classification par templates centraux
+- `types.py` : `VisionInput`, `VisionResult`, `CellMatch`, `MatchResult`
 
-## s4 Solver (OptimizedSolver CSP-only)
-- `s40_grid_analyzer` : `grid_classifier`, `grid_extractor`, `FrontierClassifier`.
-- `s42_csp_solver` : `CspManager`, segmentation, reducer, CSP exact, best guess.
-- `s49_optimized_solver.py` : orchestrateur CSP-only.
-- `s49_overlays/` : `s491_states_overlay`, `s492_segmentation_overlay`, `s493_actions_overlay` (guesses croix blanche, reducer + CSP opaques), `s494_combined_overlay` (zones + actions, applique reducer + CSP).
+## s3_storage – État du Jeu (inchangé)
+- `controller.py` + `facade.py` : StorageUpsert, GridCell
+- `s32_set_manager.py`, `s31_grid_store.py` : grille sparse, sets revealed/active/frontier
 
-## Overlays & sorties (par partie)
-- export_root = `{base}` (SessionStorage.build_game_paths → clé `solver`) publié via SessionContext (capture/loop).
-- Vision overlay : `{base}/s2_vision_overlay/{stem}_vision_overlay.png` (via `VisionOverlay.save`)
-- Solver overlays (générés par les modules) :
-  - `s40_states_overlays/{stem}_{suffix}.png`
-  - `s42_segmentation_overlay/{stem}_segmentation_overlay.png`
-  - `s42_solver_overlay/{stem}_solver_overlay.png`
-  - `s43_csp_combined_overlay/{stem}_combined_solver.png`
+## s4_solver – Résolution (Reducer + CSP)
+- `solver.py` : `Solver`, `solve()` – orchestrateur principal
+- `reducer.py` : `FrontierReducer` – déduction logique simple
+- `csp.py` : `CspSolver` – résolution par contraintes
+- `types.py` : `SolverInput`, `SolverOutput`, `SolverAction`, `ActionType`
 
-## Legacy (référence uniquement)
-- `lib/s2_recognition/*`, `lib/recognition/*` : anciens matchers/overlays couleur.
-- `s3_tensor/*` : ancienne base d’état (remplacée par s3_storage).
+## s5_planner – Planification Actions (module métier)
+- `planner.py` : `Planner`, `plan()` – ordonnancement FLAG > CLICK > GUESS
+- `types.py` : `PlannerInput`, `ExecutionPlan`, `PlannedAction`
+
+## s6_executor – Exécution Actions
+- `executor.py` : `Executor`, `execute()` – exécution via JavaScript
+- `types.py` : `ExecutorInput`, `ExecutionResult`
+
+## s7_debug – Debug & Overlays
+- `overlays.py` : `OverlayRenderer`, `render_vision_overlay()`, `render_solver_overlay()`
+- `logger.py` : `DebugLogger`, `log_iteration()`, `log_action()`
 
 ---
 
-Dernière mise à jour : 15 Décembre 2025 – pipeline live capture→vision→solver aligné sur services et overlays s4_solver.
+## Legacy (*_old) – Référence uniquement
+- `s0_interface/` : ancienne façade interface
+- `s1_capture_old/` : ancienne capture
+- `s2_vision_old/` : ancien vision (contient templates_analyzer)
+- `s4_solver_old/` : ancien solver CSP
+- `s5_actionplanner_old/` : ancien planner
+- `s6_action_old/` : ancien executor
+
+---
+
+Dernière mise à jour : 18 Décembre 2025 – Refactoring Alternative A (Modules Purs Découplés)

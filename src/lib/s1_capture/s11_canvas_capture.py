@@ -200,13 +200,3 @@ class CanvasCaptureBackend:
     @staticmethod
     def _build_filename(prefix: str = "capture") -> str:
         return f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
-
-
-class ScreenshotManager(CanvasCaptureBackend):
-    """
-    Alias de compatibilité. La capture plein écran est supprimée ; toute
-    utilisation doit migrer vers CanvasCaptureBackend.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)

@@ -38,3 +38,29 @@ En pratique, ça fait gagner du temps : quand une déduction est étrange, je re
 Je clarifie l’interface avec le reste du pipeline : la vision ne “devine” pas quand recapturer.
 Quand le solver annonce des cellules `SAFE`, il les marque `TO_VISUALIZE` pour forcer une relecture, et la boucle recapture une zone pertinente avant de relancer une analyse.
 La vision reste volontairement déterministe : elle observe une image, elle produit une classification, et elle laisse la topologie/les décisions au solver.
+
+## 17 décembre 2025 — Le bug fantôme du `known_set`
+
+Problème fondamental : j’avais introduit un mécanisme simple (et indispensable) : **dire à la vision “ne re-scanne pas les cellules déjà connues”**.
+En théorie, c’est juste un `known_set` (ensemble de coordonnées) passé au template matcher pour ignorer ces cases.
+
+En pratique, ça ne marchait pas — ou pire, ça “marchait” mais de travers — parce qu’il y avait **deux pièges simultanés** :
+
+- **Le `known_set` était toujours vide**
+  La vision récupérait son `known_set` via une nouvelle instance de `StorageController()` à chaque analyse. Donc même si le storage du jeu (celui utilisé par le solver) s’enrichissait, la vision consultait un autre storage, vierge.
+
+- **Confusion de repères (coords)**
+  La capture est recadrée (image dont le coin haut-gauche est `(0,0)` en pixels), mais le `known_set` est en coordonnées absolues de grille.
+  Sans conversion explicite, on filtre “au mauvais endroit”, ce qui peut donner l’impression que la vision perd des cases, que le solver n’a plus d’actions, ou que l’overlay est décalé.
+
+Pourquoi c’était si difficile à déceler :
+
+- **Symptômes trompeurs** : “le solver ne trouve plus d’actions” pouvait venir du filtre, du fait que la partie n’avait pas démarré (aucun clic initial), ou d’un simple problème d’overlay.
+- **Le bug était silencieux** : un `known_set` vide ne déclenche aucune exception et ressemble à un comportement normal (“la vision analyse tout”).
+- **Deux bugs qui se masquent** : le partage du storage (vide) et le repère de coordonnées (décalé) donnaient des résultats contradictoires selon les runs.
+
+Ce qu’on a corrigé :
+
+- **Storage partagé** : `VisionAnalysisService` reçoit l’instance de storage du game loop (donc le `known_set` est réel).
+- **Conversion de coordonnées** : séparation nette entre coordonnées pixels (dans l’image recadrée) et coordonnées grille absolues (pour comparer au `known_set`).
+- **Statut “observé” cohérent** : vision marque toute case observée (y compris flags/exploded) en `JUST_VISUALIZED`, et le storage n’ajoute au `known_set` que ces cases-là.

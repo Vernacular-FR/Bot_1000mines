@@ -183,14 +183,28 @@ class CenterTemplateMatcher:
         grid_size: Tuple[int, int],
         stride: int = CELL_SIZE,
         allowed_symbols: Optional[Iterable[str]] = None,
+        known_set: Optional[set[Tuple[int, int]]] = None,
+        bounds_offset: Optional[Tuple[int, int]] = None,
     ) -> Dict[Tuple[int, int], MatchResult]:
         start_x, start_y = grid_top_left
         cols, rows = grid_size
         image_np = np.array(image.convert("RGB"))
         results: Dict[Tuple[int, int], MatchResult] = {}
 
+        # Use bounds_offset for coordinate conversion if provided (for known_set filtering)
+        offset_x, offset_y = bounds_offset if bounds_offset else (start_x, start_y)
+
+        # Skip cells already known if known_set is provided
         for row in range(rows):
             for col in range(cols):
+                # Convert to absolute grid coordinates for known_set checking
+                abs_x = offset_x + col
+                abs_y = offset_y + row
+                
+                # Skip if cell is already known
+                if known_set is not None and (abs_x, abs_y) in known_set:
+                    continue
+                    
                 x0 = start_x + col * stride
                 y0 = start_y + row * stride
                 cell = image_np[y0 : y0 + CELL_SIZE, x0 : x0 + CELL_SIZE]
@@ -357,182 +371,3 @@ class CenterTemplateMatcher:
         if guard * 2 >= arr.shape[0] or guard * 2 >= arr.shape[1]:
             return arr
         return arr[guard : arr.shape[0] - guard, guard : arr.shape[1] - guard, :]
-        
-        if zone_bounds:
-            start_x, start_y, end_x, end_y = zone_bounds
-            print(f"[DEBUG] Utilisation coordonnées fournies: {zone_bounds}")
-        else:
-            # Parser le nom du fichier (format legacy)
-            parts = filename.replace('zone_', '').split('_')
-            if len(parts) < 5:
-                print(f"[ERREUR] Format de fichier non reconnu: {filename}")
-                return {}
-            
-            try:
-                start_x = int(parts[0])
-                start_y = int(parts[1])
-                end_x = int(parts[2])
-                end_y = int(parts[3])
-            except ValueError:
-                print(f"[ERREUR] Coordonnées invalides dans: {filename}")
-                return {}
-        
-        # Reconnaître chaque cellule
-        results = {}
-        cell_count = 0
-        stats = {"UNKNOWN": 0, "unrevealed": 0, "empty": 0}
-        
-        for x in range(start_x, end_x + 1):
-            for y in range(start_y, end_y + 1):
-                # Calculer les coordonnées pixel de la cellule
-                pixel_x = (x - start_x) * (CELL_SIZE + CELL_BORDER)
-                pixel_y = (y - start_y) * (CELL_SIZE + CELL_BORDER)
-                
-                # Extraire la cellule
-                cell_image = image_np[pixel_y:pixel_y+CELL_SIZE, pixel_x:pixel_x+CELL_SIZE]
-                
-                if cell_image.size == 0:
-                    continue
-                
-                # Reconnaître la cellule
-                symbol, confidence = self.match_cell(cell_image)
-                results[(x, y)] = (symbol, confidence)
-                cell_count += 1
-                
-                # Statistiques
-                stats[symbol] = stats.get(symbol, 0) + 1
-        
-        print(f"[SUCCES] {cell_count} cellules analysées")
-        print(f"[STATS] {stats}")
-        return results
-
-def build_grid_analysis_from_results(
-    image_path: str,
-    results: Dict[Tuple[int, int], Tuple[str, float]],
-    zone_bounds: Optional[Tuple[int, int, int, int]] = None
-) -> GridAnalysis:
-    """Construit un GridAnalysis compatible à partir des résultats de template matching."""
-    filename = os.path.basename(image_path)
-    
-    if zone_bounds:
-        start_x, start_y, end_x, end_y = zone_bounds
-    else:
-        # Parser le nom du fichier (format legacy)
-        parts = filename.replace("zone_", "").split("_")
-        start_x = int(parts[0])
-        start_y = int(parts[1])
-        end_x = int(parts[2])
-        end_y = int(parts[3])
-
-    cells: Dict[Tuple[int, int], CellAnalysis] = {}
-
-    def to_cell_type(symbol: str) -> CellType:
-        mapping = {
-            'empty': CellType.EMPTY,
-            'unrevealed': CellType.UNREVEALED,
-            'flag': CellType.FLAG,
-            'mine': CellType.MINE,
-            'exploded': CellType.MINE,
-            'number_1': CellType.NUMBER_1,
-            'number_2': CellType.NUMBER_2,
-            'number_3': CellType.NUMBER_3,
-            'number_4': CellType.NUMBER_4,
-            'number_5': CellType.NUMBER_5,
-            'number_6': CellType.NUMBER_6,
-            'number_7': CellType.NUMBER_7,
-            'number_8': CellType.NUMBER_8,
-        }
-        return mapping.get(symbol, CellType.UNKNOWN)
-
-    for (x, y), (symbol, confidence) in results.items():
-        cell_type = to_cell_type(symbol)
-        analysis = CellAnalysis(
-            coordinates=(x, y),
-            cell_type=cell_type,
-            confidence=float(confidence),
-            colors=[],
-            raw_image=None,
-        )
-        cells[(x, y)] = analysis
-
-    grid_bounds = (start_x, start_y, end_x, end_y)
-    return GridAnalysis(grid_bounds=grid_bounds, cells=cells)
-
-def main():
-    """Fonction principale de démonstration"""
-    print("=" * 60)
-    print("DEMO TEMPLATE MATCHING CORRIGÉ")
-    print("=" * 60)
-    
-    # Vérifier les dossiers
-    if not os.path.exists(SCREENSHOTS_DIR):
-        print(f"[ERREUR] Dossier screenshots non trouvé: {SCREENSHOTS_DIR}")
-        return
-    
-    if not os.path.exists(TEMPLATES_DIR):
-        print(f"[ERREUR] Dossier templates non trouvé: {TEMPLATES_DIR}")
-        return
-    
-    # Initialiser les composants
-    matcher = FixedTemplateMatcher(TEMPLATES_DIR)
-    # overlay_gen = OptimizedOverlayGenerator(cell_size=CELL_SIZE, output_dir=OVERLAYS_DIR) # Plus utilisé
-    
-    if not matcher.template_images:
-        print("[ERREUR] Aucun template chargé, impossible de continuer")
-        return
-    
-    # Lister les screenshots
-    screenshots = [f for f in os.listdir(SCREENSHOTS_DIR) if f.endswith('.png')]
-    print(f"[INFO] {len(screenshots)} screenshots trouvés")
-    
-    # Analyser chaque screenshot (limité pour la démo pour éviter les runs trop longs)
-    MAX_SCREENSHOTS = 5
-    total_cells = 0
-    total_time = 0
-
-    for screenshot in screenshots[:MAX_SCREENSHOTS]:
-        screenshot_path = os.path.join(SCREENSHOTS_DIR, screenshot)
-
-        start_time = time.time()
-        
-        # Charger l'image couleur pour l'overlay
-        grid_image_color = Image.open(screenshot_path).convert('RGB')
-
-        # Reconnaissance (travaille en niveaux de gris en interne)
-        results = matcher.recognize_grid(screenshot_path)
-
-        # Construire un GridAnalysis et générer l'overlay optimisé
-        if results:
-            grid_analysis = build_grid_analysis_from_results(screenshot_path, results)
-            # overlay_path = overlay_gen.generate_recognition_overlay_optimized(
-            #     grid_image_color, grid_analysis, screenshot_file=screenshot
-            # ) # Plus utilisé
-            total_cells += len(results)
-        
-        elapsed = time.time() - start_time
-        total_time += elapsed
-        
-        print(f"[TEMPS] {screenshot}: {elapsed:.2f}s ({len(results)} cellules)")
-        
-        # Afficher quelques résultats avec confiance
-        if results:
-            sample_results = list(results.items())[:5]
-            print(f"[EXEMPLES] {sample_results}")
-    
-    # Statistiques finales
-    print("\n" + "=" * 60)
-    print("STATISTIQUES")
-    print("=" * 60)
-    print(f"Cellules analysées: {total_cells}")
-    print(f"Temps total: {total_time:.2f}s")
-    if total_cells > 0:
-        print(f"Vitesse: {total_cells/total_time:.1f} cellules/seconde")
-    # print(f"Overlays générés: {len(os.listdir(OVERLAYS_DIR))}") # Plus utilisé
-    
-    # Comparaison avec méthode actuelle
-    print(f"\n[COMPARAISON] Vitesse actuelle: ~20 cellules/seconde")
-    print(f"[COMPARAISON] Template matching corrigé: {total_cells/total_time:.1f} cellules/seconde")
-    print(f"[AMÉLIORATION] {(total_cells/total_time)/20:.1f}x plus rapide")
-
-if __name__ == "__main__":
-    main()

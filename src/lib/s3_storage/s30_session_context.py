@@ -14,6 +14,7 @@ class SessionContext:
     capture_bounds: Optional[tuple[int, int, int, int]] = None
     capture_stride: Optional[int] = None
     historical_canvas_path: Optional[str] = None
+    known_set: Optional[set[tuple[int, int]]] = None
 
 
 _SESSION_CONTEXT = SessionContext()
@@ -42,6 +43,11 @@ def update_capture_metadata(saved_path: str, bounds: tuple[int, int, int, int], 
     _SESSION_CONTEXT.capture_saved_path = saved_path
     _SESSION_CONTEXT.capture_bounds = bounds
     _SESSION_CONTEXT.capture_stride = stride
+
+
+def update_known_set(known_set: set[tuple[int, int]]) -> None:
+    """Expose known_set courant pour vision/overlays."""
+    _SESSION_CONTEXT.known_set = set(known_set)
 
 
 def get_session_context() -> SessionContext:

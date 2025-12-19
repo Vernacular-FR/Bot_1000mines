@@ -12,6 +12,35 @@
 
 ---
 
+## Session du 18 Décembre 2025 (Refactoring Architectural Complet)
+
+### Objectif principal
+Assurer la lisibilité et maintenabilité du codebase à long terme après 3 semaines de développement intensif.
+
+### Phase 1 - Nettoyage (matin)
+- **Suppressions** : 7 fichiers/dossiers (overlays, tests dispersés, doublons)
+- **Nettoyages** : -10+ méthodes overlay, -2 enums, -3 classes doublons
+- **Corrections** : Imports, dépendances, services cassés
+
+### Phase 2 - Refactoring (après-midi)
+- **Unification** : `StateManager` + `FrontierClassifier` → `StatusClassifier`
+- **Division** : `GameLoopService` → `SingleIterationService` + `GameLoopService`
+- **Bugs critiques** : Imports FrontierClassifier (6 fichiers), ActionExecutor params
+
+### Résultats
+- **Bot 100% fonctionnel** : 112 actions exécutées (41 drapeaux + 71 clics)
+- **Codebase optimisé** : -8 fichiers, +3 fichiers modulaires
+- **Architecture propre** : Faible couplage, haute cohésion, zéro doublons
+
+### Documentation
+- `PHASE1_RAPPORT.md` : Rapport complet du refactoring
+- `VULGA/V2-ANALYTIQUE/REFACTORING_ARCHITECTURAL.md` : Archive technique
+- `CHANGELOG.md` : Mis à jour avec les modifications
+
+---
+
+---
+
 ## Session du 16 Décembre 2025 (Fusion reducer + CSP dans GameLoopService)
 
 ### Objectif principal

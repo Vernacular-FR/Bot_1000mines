@@ -192,8 +192,10 @@ class ActionExecutorService:
         result = {
             'success': errors == 0,
             'executed_count': executed_count,
+            'executed': executed_count,  # Clé pour compatibilité
             'errors': errors,
             'execution_time': execution_time,
+            'duration': execution_time,  # Clé pour compatibilité
             'actions_per_second': executed_count / execution_time if execution_time > 0 else 0
         }
 

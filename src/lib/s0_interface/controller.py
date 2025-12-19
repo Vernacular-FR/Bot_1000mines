@@ -15,25 +15,7 @@ from .s03_Coordonate_system import CoordinateConverter, CanvasLocator
 from .s03_game_controller import NavigationController
 from .s04_viewport_mapper import ViewportMapper
 from .s05_status_reader import StatusReader
-from .facade import GameStatus
-
-
-@dataclass
-class ViewportState:
-    anchor_position: Tuple[float, float]
-    viewport_bounds: Optional[Dict] = None
-
-
-@dataclass
-class CanvasDescriptor:
-    id: str
-    tile: Tuple[int, int]
-    screen_left: float
-    screen_top: float
-    width: float
-    height: float
-    relative_left: float
-    relative_top: float
+from .facade import GameStatus, ViewportState, CanvasDescriptor
 
 
 class InterfaceController:

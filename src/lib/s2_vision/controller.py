@@ -42,7 +42,13 @@ class VisionController:
         stride: Optional[int] = None,
         allowed_symbols: Optional[Tuple[str, ...]] = None,
         overlay: bool = False,
+        bounds_offset: Optional[Tuple[int, int]] = None,
     ) -> Dict[Tuple[int, int], MatchResult]:
+        # Récupérer known_set depuis SessionContext
+        from src.lib.s3_storage.s30_session_context import get_session_context
+        ctx = get_session_context()
+        known_set = ctx.known_set if ctx.known_set else set()
+        
         image = Image.open(screenshot_path).convert("RGB")
         stride_px = stride if stride is not None else self.cell_stride
         results = self.matcher.classify_grid(
@@ -51,17 +57,21 @@ class VisionController:
             grid_size=grid_size,
             stride=stride_px,
             allowed_symbols=allowed_symbols,
+            known_set=known_set,
+            bounds_offset=bounds_offset,
         )
 
         if overlay:
+            # Image is already cropped, so overlay positioning starts at (0,0)
             overlay_img = self.overlay.render(
                 base_image=image,
-                grid_top_left=grid_top_left,
+                grid_top_left=(0, 0),
                 grid_size=grid_size,
                 results=results,
                 stride=stride_px,
             )
             self.overlay.save(overlay_img, screenshot_path, self.config.overlay_output_dir)
+            # JSON sauvegardé après upsert storage dans s5_game_loop_service pour known_set à jour
 
         return results
 

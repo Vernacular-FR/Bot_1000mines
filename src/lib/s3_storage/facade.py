@@ -23,13 +23,6 @@ class CellState(str, Enum):
         return self in {CellState.OPEN_NUMBER, CellState.OPEN_EMPTY}
 
 
-class CellSource(str, Enum):
-    """Origin of the latest information for a cell."""
-
-    VISION = "VISION"
-    SOLVER = "SOLVER"
-
-
 class RawCellState(str, Enum):
     """Raw symbol classification straight from vision."""
 
@@ -76,7 +69,6 @@ class ActionStatus(str, Enum):
     NONE = "NONE"
     SAFE = "SAFE"
     FLAG = "FLAG"
-    LOOKUP = "LOOKUP"
 
 
 class ActiveRelevance(str, Enum):
@@ -100,7 +92,6 @@ class GridCell:
     raw_state: RawCellState
     logical_state: LogicalCellState
     number_value: Optional[int] = None  # 1..8 for numbers
-    source: CellSource = CellSource.VISION
     solver_status: SolverStatus = SolverStatus.NONE
     topological_state: SolverStatus = SolverStatus.NONE
     focus_level_active: Optional[ActiveRelevance] = None

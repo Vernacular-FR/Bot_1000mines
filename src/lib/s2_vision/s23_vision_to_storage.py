@@ -14,19 +14,12 @@ from src.lib.s3_storage.facade import (
     LogicalCellState,
     SolverStatus,
 )
-from src.lib.s4_solver.facade import SolverAction, SolverActionType
-from src.lib.s4_solver.s49_overlays.s493_actions_overlay import render_actions_overlay
+from src.lib.s4_solver.s40_states_manager.status_classifier import StatusClassifier
 
 Coord = Tuple[int, int]
 Bounds = Tuple[int, int, int, int]
 
 STRIDE = CELL_SIZE + CELL_BORDER
-
-ACTIONS_COLORS = {
-    SolverActionType.CLICK: (0, 200, 0, 160),
-    SolverActionType.FLAG: (255, 0, 0, 160),
-    SolverActionType.GUESS: (255, 165, 0, 160),
-}
 
 
 def _symbol_to_states(symbol: str) -> Tuple[RawCellState, LogicalCellState, Optional[int]]:
@@ -69,7 +62,7 @@ def matches_to_upsert(
         elif logical_state == LogicalCellState.EMPTY:
             solver_status = SolverStatus.JUST_VISUALIZED
         elif logical_state == LogicalCellState.CONFIRMED_MINE:
-            solver_status = SolverStatus.SOLVED
+            solver_status = SolverStatus.JUST_VISUALIZED  # Vision observe, donc JUST_VISUALIZED
         else:
             solver_status = SolverStatus.NONE
 
@@ -85,7 +78,7 @@ def matches_to_upsert(
 
     # Vision ne calcule plus frontier/active/known_set
     # Ces sets seront reconstruits par storage lors de apply_upsert
-    return StorageUpsert(
+    upsert = StorageUpsert(
         cells=cells,
         revealed_add=set(),
         active_add=set(),
@@ -94,23 +87,7 @@ def matches_to_upsert(
         frontier_remove=set(),
         to_visualize=set(),
     )
-
-
-def render_solver_overlay(
-    base_image_path: Path,
-    bounds: Bounds,
-    actions: List[SolverAction],
-    export_root: Path,
-) -> Optional[Path]:
-    if not actions:
-        return None
-        
-    return render_actions_overlay(
-        base_image_path,
-        bounds,
-        reducer_actions=[],
-        csp_actions=actions,
-        stride=STRIDE,
-        cell_size=CELL_SIZE,
-        export_root=export_root,
-    )
+    # Classification initiale + Classification solver via StatusClassifier
+    solver_upsert = StatusClassifier.classify_grid(cells)
+    upsert.cells.update(solver_upsert.cells)
+    return upsert

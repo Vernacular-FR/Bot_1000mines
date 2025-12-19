@@ -2,8 +2,8 @@ from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 import re
 
-from src.services.s3_storage_solver_service import StorageSolverService
 from src.lib.s3_storage.controller import StorageController
+from src.lib.s4_solver.controller import SolverController
 from src.lib.s2_vision.facade import VisionAPI, VisionControllerConfig
 from src.lib.s2_vision.s23_vision_to_storage import matches_to_upsert
 from src.config import CELL_BORDER, CELL_SIZE
@@ -17,7 +17,7 @@ class GameSolverServiceV2:
 
     def __init__(self, storage: StorageController | None = None):
         self.storage = storage or StorageController()
-        self.solver = StorageSolverService(storage=self.storage)
+        self.solver = SolverController(storage=self.storage)
         self._bounds_pattern = re.compile(r"zone_(?P<sx>-?\d+)_(?P<sy>-?\d+)_(?P<ex>-?\d+)_(?P<ey>-?\d+)")
 
     def solve_snapshot(self) -> Dict[str, Any]:
@@ -25,7 +25,15 @@ class GameSolverServiceV2:
         Exécute le solver CSP sur l'état actuel de storage et retourne actions + stats.
         Overlays sont gérés côté solver via le contexte global.
         """
-        return self.solver.solve_snapshot_with_reducer_actions()
+        update = self.solver.solve_with_update()
+        if not update:
+            return {'success': False, 'actions': [], 'stats': None}
+        return {
+            'success': True,
+            'actions': update.actions,
+            'stats': update.stats,
+            'storage_upsert': update.storage_upsert,
+        }
 
     def solve_from_file_with_vision(
         self,
@@ -50,12 +58,15 @@ class GameSolverServiceV2:
         export_root = Path(export_root) if export_root else None
 
         vision = VisionAPI(VisionControllerConfig(overlay_output_dir=export_root))
+        known_set = set(self.storage.get_known()) if self.storage else set()
         matches = vision.analyze_screenshot(
             screenshot_path=str(screenshot),
             grid_top_left=(0, 0),
             grid_size=(grid_width, grid_height),
             stride=stride,
             overlay=bool(export_root),
+            known_set=known_set,
+            bounds_offset=(start_x, start_y),
         )
 
         analysis_result = {
@@ -96,7 +107,7 @@ class GameSolverServiceV2:
         upsert = matches_to_upsert(bounds, matches)
         self.storage.upsert(upsert)
 
-        result = self.solver.solve_snapshot(overlay_config=None)
+        result = self.solve_snapshot()
         result.update({
             "bounds": bounds,
             "stride": stride,

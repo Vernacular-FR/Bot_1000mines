@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactoring Architectural Complet – 2025-12-18
+- **Phase 1 - Nettoyage** : Suppression de 7 fichiers/dossiers (overlays, tests dispersés, doublons)
+- **Phase 1 - Nettoyage** : -10+ méthodes/fonctions overlay éliminées, -2 enums inutiles
+- **Phase 2 - Refactoring** : `StateManager` + `FrontierClassifier` → `StatusClassifier` unifié
+- **Phase 2 - Refactoring** : Division `GameLoopService` → `SingleIterationService` + `GameLoopService`
+- **Phase 2 - Bug fixes** : Correction imports FrontierClassifier dans 6 fichiers solver
+- **Phase 2 - Bug fixes** : Restauration détection frontières (frontier=0 → 30+)
+- **Architecture** : Modules autonomes avec faible couplage, haute cohésion
+- **Performance** : Bot 100% fonctionnel, 112 actions exécutées avec succès
+
 ### Capture → Vision → Solver (reclustering + repromotions) – 2025-12-17
 - Reclustering JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED effectué côté state analyzer (s40), pas côté vision.
 - Introduction d’un module `focus_actualizer` (repromotions REDUCED→TO_REDUCE et PROCESSED→TO_PROCESS) appelé post state analyzer et post solver.

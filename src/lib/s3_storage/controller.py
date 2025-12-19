@@ -4,6 +4,7 @@ from typing import Dict, Set, Tuple
 
 from .facade import Bounds, Coord, FrontierSlice, GridCell, StorageControllerApi, StorageUpsert
 from .s31_grid_store import GridStore
+from .s30_session_context import update_known_set
 
 
 class StorageController(StorageControllerApi):
@@ -15,6 +16,8 @@ class StorageController(StorageControllerApi):
     def upsert(self, data: StorageUpsert) -> None:
         """Apply batch updates to grid and sets."""
         self._store.apply_upsert(data)
+        # Expose known_set pour les overlays vision
+        update_known_set(self._store.get_known())
 
     def get_frontier(self) -> FrontierSlice:
         """Return frontier slice (coordinates only)."""
@@ -31,6 +34,10 @@ class StorageController(StorageControllerApi):
     def get_to_visualize(self) -> Set[Coord]:
         """Return coordinates flagged for re-capture."""
         return self._store.get_to_visualize()
+
+    def get_known(self) -> Set[Coord]:
+        """Return known coordinates."""
+        return self._store.get_known()
 
     def get_cells(self, bounds: Bounds) -> Dict[Coord, GridCell]:
         """Extract cells within rectangular bounds."""

@@ -7,6 +7,7 @@ remplissage semi-transparent et affichage de la confiance.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Tuple
@@ -16,6 +17,8 @@ from PIL import Image, ImageDraw, ImageFont
 from src.config import CELL_SIZE, CELL_BORDER
 from src.lib.s1_capture.s10_overlay_utils import build_overlay_metadata_from_session
 from src.lib.s2_vision.s21_template_matcher import MatchResult
+from src.lib.s2_vision.s23_vision_to_storage import _symbol_to_states, matches_to_upsert
+from src.lib.s3_storage.facade import LogicalCellState, SolverStatus
 
 
 @dataclass
@@ -155,7 +158,7 @@ class VisionOverlay:
         return Image.alpha_composite(base_image.convert("RGBA"), overlay)
 
     def save(self, overlay_img: Image.Image, screenshot_path: str | Path, export_root: Path | None) -> Path | None:
-        """Enregistre l'overlay dans le sous-dossier officiel s2_vision_overlay sous export_root."""
+        """Enregistre l'overlay PNG et un JSON (matches + known_set) dans s2_vision_overlay."""
         if not export_root:
             meta = build_overlay_metadata_from_session()
             if meta:
@@ -164,10 +167,108 @@ class VisionOverlay:
                 return None
         out_dir = Path(export_root) / "s2_vision_overlay"
         out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / f"{Path(screenshot_path).stem}_vision_overlay.png"
+        base_name = f"{Path(screenshot_path).stem}_vision_overlay"
+        out_path = out_dir / f"{base_name}.png"
         overlay_img.save(out_path)
+        return out_path
+
+    def save_json(
+        self,
+        results: Dict[Tuple[int, int], MatchResult],
+        screenshot_path: str | Path,
+        export_root: Path | None,
+        *,
+        grid_top_left: Tuple[int, int],
+        grid_size: Tuple[int, int],
+        stride: int,
+        bounds_offset: Tuple[int, int] | None = None,
+    ) -> Path | None:
+        """Enregistre un JSON (matches exacts passés à l'overlay + known_set)."""
+        from src.lib.s3_storage.s30_session_context import get_session_context
+
+        if not export_root:
+            meta = build_overlay_metadata_from_session()
+            if meta:
+                export_root = Path(meta["export_root"])
+            else:
+                return None
+        out_dir = Path(export_root) / "s2_vision_overlay" / "json"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        base_name = f"{Path(screenshot_path).stem}_vision_overlay"
+        out_path = out_dir / f"{base_name}.json"
+
+        ctx = get_session_context()
+        known = list(ctx.known_set) if ctx.known_set else []
+
+        payload = {
+            "screenshot": str(screenshot_path),
+            "grid_top_left": bounds_offset if bounds_offset else (0, 0),  # Coordonnées absolues pour cohérence
+            "grid_size": grid_size,
+            "stride": stride,
+            "bounds_offset": bounds_offset,
+            "known_set": known,
+            "matches": {
+                f"{r}:{c}": self._serialize_match(
+                    r,
+                    c,
+                    m,
+                    bounds_offset=bounds_offset,
+                )
+                for (r, c), m in results.items()
+            },
+            "storage_cells": self._serialize_upsert_cells(results, bounds_offset, grid_size),
+        }
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
         return out_path
 
     def _fill_color(self, result: MatchResult) -> Tuple[int, int, int, int]:
         base_color = self.TYPE_COLORS.get(result.symbol, (255, 255, 0))
         return (*base_color, self.config.opacity)
+
+    def _serialize_match(
+        self,
+        row: int,
+        col: int,
+        match: MatchResult,
+        *,
+        bounds_offset: Tuple[int, int] | None,
+    ) -> Dict:
+        raw_state, logical_state, _ = _symbol_to_states(match.symbol)
+        # Align with matches_to_upsert: JUST_VISUALIZED pour les cases révélées, NONE sinon
+        solver_status = (
+            SolverStatus.JUST_VISUALIZED.value
+            if logical_state in (LogicalCellState.OPEN_NUMBER, LogicalCellState.EMPTY, LogicalCellState.CONFIRMED_MINE)
+            else SolverStatus.NONE.value
+        )
+        offset_x, offset_y = bounds_offset if bounds_offset else (0, 0)
+        abs_pos = (offset_x + col, offset_y + row)
+        return {
+            "symbol": match.symbol,
+            "confidence": match.confidence,
+            "position": (row, col),
+            "abs_position": abs_pos,
+            "logical_state": logical_state.value,
+            "solver_status": solver_status,
+        }
+
+    def _serialize_upsert_cells(
+        self,
+        results: Dict[Tuple[int, int], MatchResult],
+        bounds_offset: Tuple[int, int] | None,
+        grid_size: Tuple[int, int],
+    ) -> Dict[str, Dict]:
+        """Reflète la sortie exact de matches_to_upsert (états mappés vision → storage)."""
+        offset_x, offset_y = bounds_offset if bounds_offset else (0, 0)
+        cols, rows = grid_size
+        bounds = (offset_x, offset_y, offset_x + cols - 1, offset_y + rows - 1)
+        upsert = matches_to_upsert(bounds, results)
+        serialized = {}
+        for coord, cell in upsert.cells.items():
+            serialized[f"{coord[0]}:{coord[1]}"] = {
+                "solver_status": cell.solver_status.value,
+                "logical_state": cell.logical_state.value if hasattr(cell, "logical_state") else None,
+                "raw_state": cell.raw_state.value if hasattr(cell, "raw_state") else None,
+                "number_value": getattr(cell, "number_value", None),
+            }
+        return serialized

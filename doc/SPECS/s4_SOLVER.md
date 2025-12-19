@@ -13,13 +13,14 @@ Le solver transforme la frontière issue de s3_storage en actions sûres (clics/
 ## 1. Architecture
 
 ### 1.1 Vue d'ensemble
-Vision (s2) ─▶ Storage (s3) ─▶ s40 State Analyzer (reclustering JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED + repromotions voisines via **focus_actualizer**) ─▶ s42 frontiere reductor + CSP Solver (optionnal) ─▶ cleanup ─▶ Actions (s5/s6)
+Vision (s2) ─▶ Storage (s3) ─▶ s40 State Analyzer (reclustering JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED + repromotions voisines via **FocusActualizer**) ─▶ s42 frontiere_reducer (ACTIVE→REDUCED) + CSP Solver (FRONTIER→PROCESSED) ─▶ cleanup ─▶ Actions (s5/s6)
 
 ### 1.2 Sous-modules
 - **s40_grid_analyzer/**
-  - `grid_classifier.py` : applique les transitions JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED en mémoire (sans relecture complète de storage).
-- `grid_extractor.py` : expose `SolverFrontierView`, implémentant `FrontierViewProtocol` (segmentation) et `GridAnalyzerProtocol` (CSP).
-- Re-exporte les types essentiels (`Segmentation`, `CSPSolver`, `SolverFrontierView`) pour compatibilité ascendante.
+  - `state_analyzer.py` : applique les transitions JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED en mémoire (sans relecture complète de storage) et initialise les focus levels (TO_REDUCE/TO_PROCESS).
+  - `grid_classifier.py` : classification topologique des cellules (ACTIVE/FRONTIER/SOLVED/UNREVEALED).
+  - `frontier_view_factory.py` : construit SolverFrontierView depuis le snapshot storage.
+- **s45_focus_actualizer.py** : module stateless qui réveille les voisins des cellules nouvellement ACTIVE/SOLVED (ACTIVE→TO_REDUCE, FRONTIER→TO_PROCESS). Appelé avec explicitement les coordonnées des cellules qui viennent de changer.
 > Alerte (hors champ de vision) : si la capture ne couvre pas toutes les voisines UNREVEALED d’une ACTIVE, la frontière est incomplète. Seule la vision peut injecter ces UNREVEALED en storage. Recentrer/capturer à nouveau pour compléter la frontière.
 
 - **s41_propagator_solver/**
@@ -46,7 +47,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 State Analyzer (reclustering JUST_VIS
    - `frontier_set`
    - `ZoneDB` (index dérivé par `zone_id` + contraintes) et, en pratique, une vue dérivée `frontier_to_process` = union des cellules FRONTIER dont `FrontierRelevance == TO_PROCESS` (homogène par zone)
 2. **s40 state Analyzer** reclasse les `GridCell` (JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED) et met à jour topo/focus dans storage (il ne construit pas de vue solver).
-3. **focus_actualizer (post state analyzer)** : repromotions voisines (REDUCED→TO_REDUCE, PROCESSED→TO_PROCESS) selon les changements topo détectés.
+3. **focus_actualizer (post state analyzer)** : réveille les voisines des cellules nouvellement ACTIVE/SOLVED (voisines ACTIVE→TO_REDUCE, FRONTIER→TO_PROCESS). Appelé avec explicitement les coordonnées des cellules qui viennent de changer.
 
 4. **OptimizedSolver** exécute la résolution dans l’ordre (en consommant la frontière préparée dans storage) :
    - **réduction de frontière systématique** (déterministe) uniquement sur les ACTIVE `TO_REDUCE` ; toutes les ACTIVE traitées passent `REDUCED`
@@ -64,7 +65,7 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 State Analyzer (reclustering JUST_VIS
    - un `StorageUpsert` qui met à jour :
      - `cells` (metadata solver)
      - `active_add/remove`, `frontier_add/remove`
-8. **focus_actualizer (post solver)** : repromotions voisines déclenchées par les actions SAFE/FLAG/GUESS/cleanup.
+8. **focus_actualizer (post solver)** : réveille les voisines des cellules nouvellement ACTIVE/SOLVED après actions solver (même comportement que post-vision).
 9. Le **solver** marque `TO_VISUALIZE` (topological_state) sur les cellules qu’il annonce **SAFE** (le logical_state reste UNREVEALED tant que Vision n’a pas relu) et les pousse dans `to_visualize` (set maintenu par s3). L’ActionPlanner consomme ces infos pour recadrer la prochaine Vision.
 10. **Cleanup bonus** (activable via `enable_cleanup`, défaut ON) : une fois le solver terminé (réduction + CSP éventuel), un module séparé calcule des cibles de “cleanup” sur les `TO_VISUALIZE` et leurs voisines `ACTIVE`. Ces clics sont hors stats solver/CSP et traités en phase bonus (liste `cleanup_actions` séparée).
 11. **GUESS optionnel** (`allow_guess`, défaut ON) : si aucune action sûre n’est trouvée, le solver peut (ou non) produire un `GUESS`. Quand désactivé, aucune guess n’est renvoyée et seules les actions sûres/cleanup sont publiées.
@@ -137,9 +138,9 @@ Retourne `PatternResult` :
 8. **Relevance déterministe (FocusLevel)** :
    - si une cellule devient **ACTIVE** (TopologicalState) ou si son voisinage change, alors `ActiveRelevance = TO_REDUCE`
    - si une cellule devient **FRONTIER** (TopologicalState) ou si sa zone/contraintes change, alors `FrontierRelevance = TO_PROCESS` (propagé à toute la zone)
-   - une cellule ACTIVE passe `REDUCED` quand la réduction ne produit plus rien dans l’état courant
-   - une cellule FRONTIERE passe `PROCESSED` une fois la zone traitée par le csp (elle ne redevient to_processed qu'en cas de solution ou de changement effectué sur la zone, mais c'est un processus autonome du csp, le csp passe automatiquement les cases de zones qu'il traite en processed !!!! )
-   - **Repromotion des focus levels (centralisée dans s45_focus_refresher)**
+   - une cellule ACTIVE passe `REDUCED` quand la réduction ne produit plus rien dans l’état courant (et peut repasser `TO_REDUCE` si un voisin devient ACTIVE/SOLVED)
+   - une cellule FRONTIERE passe `PROCESSED` une fois la zone traitée par le csp (et peut repasser `TO_PROCESS` si un voisin devient ACTIVE/SOLVED ; option envisagée : réactiver toute la zone associée)
+   - **Repromotion des focus levels (centralisée dans s45_focus_refresher / focus_actualizer)**
 
 La repromotion des focus levels est déclenchée par les changements topologiques vers :
 - `TO_VISUALIZE` (safe à cliquer)
