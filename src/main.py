@@ -23,6 +23,11 @@ def main() -> None:
         help="Activer les overlays vision/solver (désactivé par défaut)",
     )
     parser.add_argument(
+        "--debug-vision",
+        action="store_true",
+        help="Exporter les résultats de vision en JSON pour debug (dans temp/debug_vision/)",
+    )
+    parser.add_argument(
         "--max-iterations",
         type=int,
         default=500,
@@ -43,6 +48,7 @@ def main() -> None:
         max_iterations=args.max_iterations,
         delay_between_iterations=args.delay,
     )
+
     bot.cleanup()
 
     print("[FIN] Succès" if success else "[FIN] Échec")

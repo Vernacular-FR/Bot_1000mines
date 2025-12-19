@@ -1,12 +1,12 @@
 """Conversion de coordonnées grille ↔ canvas ↔ écran."""
 
 import math
-from typing import Tuple, Optional, Any
+from typing import Tuple, Optional
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from .types import Coord, ScreenPoint, CanvasPoint, GridBounds
+from .types import Coord, ScreenPoint, GridBounds
+from src.config import GRID_REFERENCE_POINT
 
-# Constantes par défaut (peuvent être overridées via config)
 DEFAULT_CELL_SIZE = 24
 DEFAULT_CELL_BORDER = 1
 
@@ -27,6 +27,9 @@ class CoordinateConverter:
         self.driver = driver
         self._anchor_element = None
         self._anchor_cache = None
+        # Appliquer le point de référence de la grille
+        self.grid_reference = GRID_REFERENCE_POINT
+        self.ref_x, self.ref_y = self.grid_reference
 
     def set_driver(self, driver: WebDriver) -> None:
         """Configure le driver et reset le cache."""
@@ -65,8 +68,6 @@ class CoordinateConverter:
         if self._anchor_element:
             self.setup_anchor()
 
-    # === Conversions Canvas ↔ Screen ===
-
     def canvas_to_screen(self, canvas_x: float, canvas_y: float) -> Tuple[float, float]:
         """Convertit coordonnées canvas → écran."""
         anchor = self._get_anchor_position()
@@ -77,10 +78,9 @@ class CoordinateConverter:
         anchor = self._get_anchor_position()
         return (screen_x - anchor['x'], screen_y - anchor['y'])
 
-    # === Conversions Grid ↔ Canvas ===
-
     def grid_to_canvas(self, row: int, col: int) -> Tuple[float, float]:
         """Convertit coordonnées grille → canvas."""
+        # Formule simple comme dans le legacy - PAS de grid_reference_point ici
         canvas_x = col * self.cell_total
         canvas_y = row * self.cell_total
         return (canvas_x, canvas_y)
@@ -90,8 +90,6 @@ class CoordinateConverter:
         grid_col = canvas_x / self.cell_total
         grid_row = canvas_y / self.cell_total
         return (grid_row, grid_col)
-
-    # === Conversions Grid ↔ Screen ===
 
     def grid_to_screen(self, row: int, col: int) -> Tuple[float, float]:
         """Convertit coordonnées grille → écran."""
@@ -108,8 +106,6 @@ class CoordinateConverter:
         screen_x, screen_y = self.grid_to_screen(row, col)
         return (screen_x + self.cell_center_offset, screen_y + self.cell_center_offset)
 
-    # === Helpers Coord/ScreenPoint ===
-
     def coord_to_screen(self, coord: Coord) -> ScreenPoint:
         """Convertit un Coord en ScreenPoint."""
         x, y = self.grid_to_screen(coord.row, coord.col)
@@ -120,8 +116,6 @@ class CoordinateConverter:
         x, y = self.grid_to_screen_centered(coord.row, coord.col)
         return ScreenPoint(x=x, y=y)
 
-
-# === Fonctions standalone (API fonctionnelle) ===
 
 _default_converter: Optional[CoordinateConverter] = None
 

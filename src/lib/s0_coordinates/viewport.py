@@ -47,7 +47,6 @@ class ViewportMapper:
             right = left + width
             bottom = top + height
 
-            # Calcul des bornes grille (cellules entièrement visibles)
             grid_row_top, grid_col_left = self.converter.screen_to_grid(left, top)
             grid_row_bottom, grid_col_right = self.converter.screen_to_grid(right, bottom)
 
@@ -94,31 +93,6 @@ class ViewportMapper:
         bottom_right = self.converter.grid_to_screen(bounds.max_row + 1, bounds.max_col + 1)
         return (top_left[0], top_left[1], bottom_right[0], bottom_right[1])
 
-    def get_zone_bounds_contained(
-        self, left: float, top: float, right: float, bottom: float
-    ) -> Optional[Dict[str, Any]]:
-        """Bornes grille/écran d'une zone entièrement contenue."""
-        try:
-            grid_row_top, grid_col_left = self.converter.screen_to_grid(left, top)
-            grid_row_bottom, grid_col_right = self.converter.screen_to_grid(right, bottom)
-
-            grid_bounds = GridBounds(
-                min_row=math.ceil(grid_row_top),
-                min_col=math.ceil(grid_col_left),
-                max_row=math.floor(grid_row_bottom) - 1,
-                max_col=math.floor(grid_col_right) - 1,
-            )
-
-            return {
-                "grid_bounds": grid_bounds,
-                "screen_bounds": (left, top, right, bottom),
-            }
-        except Exception as e:
-            print(f"[ERREUR] Zone bounds: {e}")
-            return None
-
-
-# === Fonctions standalone ===
 
 _default_mapper: Optional[ViewportMapper] = None
 

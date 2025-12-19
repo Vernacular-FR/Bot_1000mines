@@ -1,7 +1,7 @@
 """Types pour le module s0_coordinates."""
 
 from dataclasses import dataclass
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional
 
 
 @dataclass(frozen=True)

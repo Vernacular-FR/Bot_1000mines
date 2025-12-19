@@ -91,3 +91,42 @@ Conséquence : le mécanisme qui rend le solver efficace sur la durée (la **re-
 Fix :
 - j’écris désormais le reclustering **dans storage** juste après l’upsert vision (donc avant extraction du batch solver)
 - je conserve un second point de repromotion après les décisions du solver (SAFE/FLAG), parce que ces décisions changent aussi la topologie (`TO_VISUALIZE` / `SOLVED`) et doivent relancer le voisinage.
+
+---
+
+## 19 décembre 2025 — Retour au concret : l’étape 0 rebranchée dans le pipeline minimal
+
+Sur le pipeline “minimal” (services simplifiés), j’ai retrouvé exactement le même symptôme qu’en V2 historique :
+
+- la vision détecte parfaitement des nombres/vides/drapeaux,
+- mais le solver n’a aucune action, parce que `active_set/frontier_set` restent vides.
+
+La cause est structurante :
+
+- La vision produit une observation brute (cases vues),
+- mais **personne ne dérive la topologie** avant d’interroger le solver.
+
+Donc j’ai réintroduit une **étape 0** explicite côté solver :
+
+- `StateAnalyzer` (classification topologique) :
+  - `OPEN_NUMBER` + voisin `UNREVEALED` → `ACTIVE`
+  - `UNREVEALED` adjacent à une `ACTIVE` → `FRONTIER`
+  - le reste → `SOLVED/UNREVEALED`
+
+Et surtout :
+
+- cette classification est **écrite dans storage** juste après la vision,
+- puis seulement après on extrait `active_set/frontier_set` pour alimenter `solve()`.
+
+Ce qui reste à faire (pour retomber sur le design complet décrit dans les analyses) :
+
+- **FocusActualizer** : repromotions (réveiller les voisins) après reclustering post-vision et après les décisions solver.
+- **TO_VISUALIZE** : quand une cellule est annoncée `SAFE`, elle doit passer en `TO_VISUALIZE` pour forcer la recapture.
+- **Invariants storage** : centraliser une validation stricte (cohérence `solver_status` / focus levels / `number_value`).
+
+
+
+
+
+
+

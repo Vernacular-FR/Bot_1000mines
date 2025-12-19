@@ -4,34 +4,37 @@ description: Spécification technique de la couche s4_solver (Grid Analyzer + Pa
 
 # S04 SOLVER – Spécification technique
 
-Le solver transforme la frontière issue de s3_storage en actions sûres (clics/drapeaux) en trois étapes successives :
+Le solver transforme un snapshot issu de s3_storage en actions (`SAFE/FLAG/GUESS`) via un pipeline en 3 temps :
 
-1. **s40_grid_analyzer** – prépare un snapshot exploitable (statuts + vues).
-2. **s41_propagator_solver** – applique les motifs déterministes (optionnel/futur dans le pipeline principal).
-3. **s42_csp_solver** – applique une réduction de frontière déterministe, puis (si nécessaire) segmente la frontière et effectue la résolution exacte locale (CSP).
+1. **s4a_status_analyzer** (post-vision) : reclassement topologique `JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED/MINE` et overlays de statut.
+2. **s4b_csp_solver** : réduction déterministe + CSP/segmentation si nécessaire (décisions `SAFE/FLAG/GUESS`).
+3. **s4d_post_solver_sweep** : actions bonus de “sweep” (clics `SAFE`) sur les voisines `ACTIVE` des cellules `TO_VISUALIZE`.
 
 ## 1. Architecture
 
 ### 1.1 Vue d'ensemble
-Vision (s2) ─▶ Storage (s3) ─▶ s40 State Analyzer (reclustering JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED + repromotions voisines via **FocusActualizer**) ─▶ s42 frontiere_reducer (ACTIVE→REDUCED) + CSP Solver (FRONTIER→PROCESSED) ─▶ cleanup ─▶ Actions (s5/s6)
+Vision (s2) ─▶ Storage (s3) ─▶ s4a_status_analyzer (classification + focus) ─▶ s4b_csp_solver (reducer+CSP) ─▶ s4d_post_solver_sweep (bonus) ─▶ Actions (s5/s6)
 
 ### 1.2 Sous-modules
-- **s40_grid_analyzer/**
-  - `state_analyzer.py` : applique les transitions JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED en mémoire (sans relecture complète de storage) et initialise les focus levels (TO_REDUCE/TO_PROCESS).
-  - `grid_classifier.py` : classification topologique des cellules (ACTIVE/FRONTIER/SOLVED/UNREVEALED).
-  - `frontier_view_factory.py` : construit SolverFrontierView depuis le snapshot storage.
-- **s45_focus_actualizer.py** : module stateless qui réveille les voisins des cellules nouvellement ACTIVE/SOLVED (ACTIVE→TO_REDUCE, FRONTIER→TO_PROCESS). Appelé avec explicitement les coordonnées des cellules qui viennent de changer.
+- **s4a_status_analyzer/**
+  - `status_analyzer.py` : classification topologique (reclustering) et génération de l’overlay status.
+  - `focus_actualizer.py` : promotion des focus levels autour des cellules qui viennent de changer de statut.
+  - `action_mapper.py` : mapping des actions solver vers des mises à jour storage (et rétrogradations REDUCED/PROCESSED).
+- **s4b_csp_solver/**
+  - `csp_manager.py` : orchestre reducer + segmentation + CSP.
+  - `reducer.py` : propagation contrainte déterministe (safe/flag) sur actives.
+  - `segmentation.py` : segmentation de la frontière en zones/composantes.
+- **s4c_overlays/**
+  - `overlay_status.py` : rendu des zones par statut.
+  - `overlay_combined.py` : rendu zones + actions (symboles blancs sans fond).
+- **s4d_post_solver_sweep/**
+  - `sweep_builder.py` : génération d’actions `SAFE` bonus ciblées.
+
 > Alerte (hors champ de vision) : si la capture ne couvre pas toutes les voisines UNREVEALED d’une ACTIVE, la frontière est incomplète. Seule la vision peut injecter ces UNREVEALED en storage. Recentrer/capturer à nouveau pour compléter la frontière.
 
 - **s41_propagator_solver/**
   - `pattern_engine.py` : moteur de motifs 3×3/5×5, lookup base 16, propagation tant que des actions sont trouvées.
   - `s410_propagator_pipeline.py` : chaîne "Iterative → Subset → Advanced → Iterative refresh". La reprise finale d’Iterative s’assure d’absorber les cellules triviales débloquées par la phase 3 (cas typique : pairwise révèle toutes les mines sauf une cellule encore marquée FRONTIER).
-  - Consomme `self.cells` + flags déterminés par s40 (just revealed, inferred flags).
-- **s42_csp_solver/**
-  - `s422_segmentation.py` : partition de la frontière en zones/composantes.
-  - `s424_csp_solver.py` : backtracking exact (≤15 variables) + calcul de probabilités pondérées (best guess sinon).
-  - `s421_frontiere_reducer.py` : réduction déterministe avant segmentation/CSP.
-  - `s423_range_filter.py` : filtrage des composantes par taille (`max_component_size=500`).
 
 ### 1.3 Façade & orchestrateurs
 - `controller.py` : récupère `FrontierSlice` + `cells` via StorageController, instancie `OptimizedSolver`, renvoie `SolverAction`.
@@ -41,34 +44,16 @@ Vision (s2) ─▶ Storage (s3) ─▶ s40 State Analyzer (reclustering JUST_VIS
 ## 2. Flux de données
 
 ### 2.1 Cycle typique (séquentiel, sans parallélisation)
-1. **Storage** fournit :
-   - `cells` (bounds)
-   - `active_set`
-   - `frontier_set`
-   - `ZoneDB` (index dérivé par `zone_id` + contraintes) et, en pratique, une vue dérivée `frontier_to_process` = union des cellules FRONTIER dont `FrontierRelevance == TO_PROCESS` (homogène par zone)
-2. **s40 state Analyzer** reclasse les `GridCell` (JUST_VISUALIZED→ACTIVE/FRONTIER/SOLVED) et met à jour topo/focus dans storage (il ne construit pas de vue solver).
-3. **focus_actualizer (post state analyzer)** : réveille les voisines des cellules nouvellement ACTIVE/SOLVED (voisines ACTIVE→TO_REDUCE, FRONTIER→TO_PROCESS). Appelé avec explicitement les coordonnées des cellules qui viennent de changer.
-
-4. **OptimizedSolver** exécute la résolution dans l’ordre (en consommant la frontière préparée dans storage) :
-   - **réduction de frontière systématique** (déterministe) uniquement sur les ACTIVE `TO_REDUCE` ; toutes les ACTIVE traitées passent `REDUCED`
-   - **bypass CSP** si la réduction a produit suffisamment d’actions
-   - sinon **CSP** sur la frontière marquée `TO_PROCESS`, tout les zones traitées passent en `PROCESSED`
-
-5. **ConstraintReducer** (s42) détecte immédiatement les safe/flag via contraintes locales.
-6. **Segmentation + CSP** (s42) résolvent les composantes restantes (si exécuté).
-   - Les **zones** sont persistées côté storage.
-   - Les **components** sont éphémères (reconstruits au moment de la résolution).
-> Note à traiter : le recalcul de frontière côté solver (compute_frontier_from_cells) peut être commenté si l’on consomme directement `frontier_set`/`frontier_to_process` maintenus par s40 + focus_actualizer. Garder le code en archive pour rollback rapide.
-
-7. **Controller** publie :
-   - les décisions solver (SAFE/FLAG/GUESS) sous forme d’actions (sans cleanup)
-   - un `StorageUpsert` qui met à jour :
-     - `cells` (metadata solver)
-     - `active_add/remove`, `frontier_add/remove`
-8. **focus_actualizer (post solver)** : réveille les voisines des cellules nouvellement ACTIVE/SOLVED après actions solver (même comportement que post-vision).
-9. Le **solver** marque `TO_VISUALIZE` (topological_state) sur les cellules qu’il annonce **SAFE** (le logical_state reste UNREVEALED tant que Vision n’a pas relu) et les pousse dans `to_visualize` (set maintenu par s3). L’ActionPlanner consomme ces infos pour recadrer la prochaine Vision.
-10. **Cleanup bonus** (activable via `enable_cleanup`, défaut ON) : une fois le solver terminé (réduction + CSP éventuel), un module séparé calcule des cibles de “cleanup” sur les `TO_VISUALIZE` et leurs voisines `ACTIVE`. Ces clics sont hors stats solver/CSP et traités en phase bonus (liste `cleanup_actions` séparée).
-11. **GUESS optionnel** (`allow_guess`, défaut ON) : si aucune action sûre n’est trouvée, le solver peut (ou non) produire un `GUESS`. Quand désactivé, aucune guess n’est renvoyée et seules les actions sûres/cleanup sont publiées.
+1. **Vision → Storage** : `storage.update_from_vision()` écrit les cellules en `JUST_VISUALIZED` avec `raw_state` et `logical_state`.
+2. **Pipeline 1 (post-vision)** : `StatusManager.pipeline_post_vision()`
+   - `StatusAnalyzer.analyze()` : reclasse `JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED/MINE` (selon `logical_state` et voisinage).
+   - `FocusActualizer.promote_focus()` : réveille les voisines des cellules qui viennent de changer (focus `TO_REDUCE/TO_PROCESS`).
+3. **Pipeline solver** : `CspManager.run()` produit des ensembles `safe_cells/flag_cells` + éventuellement `best_guess`.
+4. **Pipeline 2 (post-solver)** : `ActionMapper.map_actions()`
+   - `FLAG` → `logical_state=CONFIRMED_MINE`, `solver_status=MINE`
+   - `SAFE/GUESS` → `solver_status=TO_VISUALIZE` (le `logical_state` reste `UNREVEALED` tant que la vision n’a pas relu)
+   - rétrograde les anciennes `ACTIVE/FRONTIER` non résolues en `REDUCED/PROCESSED`.
+5. **Sweep bonus** : `build_sweep_actions()` génère des `SAFE` uniquement pour les voisines `ACTIVE` des cellules `TO_VISUALIZE`.
 
 Justification (stratégie actuelle) :
 
@@ -83,15 +68,23 @@ Justification (stratégie actuelle) :
 
 ```python
 StorageUpsert(
-    cells={coord: GridCell(..., topological_state=SolverStatus.TO_VISUALIZE, action_status=ActionStatus.SAFE)},
+    cells={coord: GridCell(..., solver_status=SolverStatus.TO_VISUALIZE)},
     active_add={...}, active_remove={...},
     frontier_add={...}, frontier_remove={...},
-    to_visualize={safe_cells},
+    to_visualize={...},
 )
-# Flags runtime :
-# - allow_guess (bool, défaut True) : autorise l’émission de GUESS si aucune action sûre.
-# - enable_cleanup (bool, défaut True) : génère la liste cleanup_actions (bonus).
 ```
+
+## 4. Runtime interne (SolverRuntime) – snapshot mutable + dirty flags
+
+- Le solver utilise un **SolverRuntime** interne (snapshot mutable + dirty flags) au lieu de chaîner des `get_snapshot()`/`apply_upsert()` sur le storage.
+- Pipeline exécuté **sur un seul état partagé** :
+  1. **Post-vision** : `StatusManager.pipeline_post_vision()` produit un `StorageUpsert` appliqué immédiatement au runtime.
+  2. **CSP** : le reducer/CSP consomme le snapshot courant, produit un upsert appliqué au runtime.
+  3. **Post-solver** : `ActionMapper` produit un upsert (FLAG → MINE, SAFE/GUESS → TO_VISUALIZE, rétrogradations) appliqué au runtime.
+  4. **Sweep** : lit le snapshot final, génère des actions SAFE bonus (ne mute pas le runtime).
+- **Dirty flags** : chaque cellule modifiée est marquée dirty lors de l’application d’un upsert. À la fin du pipeline, un upsert unique est émis vers le storage (cellules dirty uniquement). Le storage réel n’est mis à jour qu’une seule fois.
+- **Overlays** : calculés à partir du snapshot final du runtime (post-sweep) sans resnapshot intermédiaire.
 
 ## 3. Interfaces clés
 
@@ -121,7 +114,7 @@ Retourne `PatternResult` :
 
 1. **Lecture seule storage** : s4 lit `active_set`, `frontier_set`, `cells` mais ne modifie pas directement les sets. Les modifications passent via `StorageUpsert`.
 
-2. **Classifier unique** : toute logique JUST_REVEALED→ACTIVE/FRONTIER/SOLVED doit résider dans `grid_classifier`. Les scripts/tests doivent l’utiliser (pas de duplication).
+2. **Classifier unique** : toute logique `JUST_VISUALIZED → ACTIVE/FRONTIER/SOLVED/MINE` doit résider dans `StatusAnalyzer` (pas de duplication).
 
 3. **Motifs avant CSP** : PatternEngine tourne tant que des actions sont trouvées pour maximiser le coverage sans coût exponentiel.
 
@@ -136,33 +129,34 @@ Retourne `PatternResult` :
    - toute zone impactée par une mise à jour (changement de `zone_id`, changement de contraintes) repasse `TO_PROCESS`
 
 8. **Relevance déterministe (FocusLevel)** :
-   - si une cellule devient **ACTIVE** (TopologicalState) ou si son voisinage change, alors `ActiveRelevance = TO_REDUCE`
-   - si une cellule devient **FRONTIER** (TopologicalState) ou si sa zone/contraintes change, alors `FrontierRelevance = TO_PROCESS` (propagé à toute la zone)
+   - si une cellule devient **ACTIVE** (SolverStatus) ou si son voisinage change, alors `ActiveRelevance = TO_REDUCE`
+   - si une cellule devient **FRONTIER** (SolverStatus) ou si sa zone/contraintes change, alors `FrontierRelevance = TO_PROCESS` (propagé à toute la zone)
    - une cellule ACTIVE passe `REDUCED` quand la réduction ne produit plus rien dans l’état courant (et peut repasser `TO_REDUCE` si un voisin devient ACTIVE/SOLVED)
    - une cellule FRONTIERE passe `PROCESSED` une fois la zone traitée par le csp (et peut repasser `TO_PROCESS` si un voisin devient ACTIVE/SOLVED ; option envisagée : réactiver toute la zone associée)
    - **Repromotion des focus levels (centralisée dans s45_focus_refresher / focus_actualizer)**
 
 La repromotion des focus levels est déclenchée par les changements topologiques vers :
 - `TO_VISUALIZE` (safe à cliquer)
-- `SOLVED` (mine confirmée ou nombre résolu)  
+- `SOLVED` (case opennumber décor et vide)  
+- `MINE` (mine confirmée)  
 - `ACTIVE` (nouvelle information)
 
 **Deux points de repromotion dans le pipeline :**
 
 1. **Post-vision** : Après le reclustering des états dans `s40_states_analyzer/states_recluster.py`
-   - Gère les changements topologiques issus de la vision (JUST_VISUALIZED → ACTIVE/SOLVED/FRONTIER)
+   - Gère les changements topologiques issus de la vision (JUST_VISUALIZED → ACTIVE/SOLVED/MINE/FRONTIER)
    - Repromotion des voisines ACTIVES et zones FRONTIER impactées
    - `segmentation=None` (pas de zones disponibles à ce stade)
 
 2. **Post-solver** : Après les actions solver (safe/flag) dans `s49_optimized_solver.py`
-   - Gère les changements topologiques issus des résolutions (TO_VISUALIZE/SOLVED)
+   - Gère les changements topologiques issus des résolutions (TO_VISUALIZE/SOLVED/MINE)
    - Repromotion avec `segmentation` disponible pour les zones FRONTIERes
 
    - **cohérence stricte** : `focus_level_active` n’est autorisé que si `solver_status == ACTIVE`; `focus_level_frontier` n’est autorisé que si `solver_status == FRONTIER`; tous les autres états exigent les deux focus à `None` (enforcé par s3 storage).
 
 9. **Actions publiées** :
-   - `actions` = SAFE/FLAG/GUESS (GUESS activable via `allow_guess`, défaut ON).
-   - `cleanup_actions` = clics bonus sur `TO_VISUALIZE` + voisines `ACTIVE`, séparés des stats solver/CSP, activables via `enable_cleanup` (défaut ON).
+   - `actions` = SAFE/FLAG/GUESS.
+   - `sweep_actions` = clics bonus `SAFE` sur les voisines `ACTIVE` des cellules `TO_VISUALIZE`.
 
 ## 6. Performances cibles
 

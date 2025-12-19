@@ -38,7 +38,8 @@ BROWSER_CONFIG = {
 GAME_CONFIG = {
     'url': 'https://www.1000mines.com/',  # URL du jeu
     'max_retries': 3,                        # Nombre de tentatives en cas d'échec
-    'debug': True                            # Mode débogage (affiche plus d'informations)
+    'debug': True,                            # Mode débogage (affiche plus d'informations)
+    'grid_reference_point': GRID_REFERENCE_POINT  # Configuration du point de référence de la grille
 }
 
 # Configuration des difficultés
@@ -67,6 +68,9 @@ DIFFICULTY_CONFIG = {
 
 # Configuration par défaut
 DEFAULT_DIFFICULTY = 'impossible'
+
+# Paramètres du solver CSP
+CSP_CONFIG = {'max_zones_per_component':30} # Limite de zones par composante pour éviter explosion backtracking
 
 # Chemins des fichiers (un niveau = un chemin)
 # NOTE: Ces chemins sont les valeurs par défaut.

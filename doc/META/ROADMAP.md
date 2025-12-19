@@ -12,6 +12,29 @@
 
 ---
 
+## Session du 19 Décembre 2025 (Stabilisation pipeline minimal V2)
+
+### Objectif principal
+Revenir à un pipeline minimal **fiable** (capture → vision → storage → solver → planner → executor) et corriger les problèmes de repères/bounds qui empêchaient le solver d'entrer en action.
+
+### Corrections clés
+- **Initialisation session** : sélection du mode **Infinite** + sélection difficulté fiabilisées (attente explicite des contrôles, clic direct comme dans le legacy).
+- **Vision sur composite** : consommation du composite aligné avec des `GridBounds` **absolus** (les coordonnées de grille peuvent être négatives selon la fenêtre visible).
+- **Accès composite** : `CaptureResult` expose maintenant `composite_path`, `composite_bytes`, `composite_image` pour éviter les bricolages dans la boucle.
+- **Étape manquante solver** : ajout d'un `StateAnalyzer` (phase 0) qui reclasse les cellules observées en `ACTIVE/FRONTIER/SOLVED` et écrit le reclustering dans le storage juste après la vision.
+- **Logs** : purge d'un debug arbitraire (échantillon de cellules imprimées) qui polluait les runs.
+
+### Résultats
+- **Vision** : stable et rapide (analyse complète 122×81 = 9760 cellules).
+- **Topologie** : `active_set` et `frontier_set` non vides (ex. 48 ACTIVE / 70 FRONTIER) → le solver retrouve des actions.
+- **Boucle** : exécution rapide, itérations enchaînées.
+
+### Prochaines étapes (hors overlays)
+- **Storage invariants** : créer `s3_storage/invariants.py` pour verrouiller la cohérence (focus levels / états / number_value).
+- **FocusActualizer** : implémenter/brancher `s4_solver/focus_actualizer.py` pour repromotions après changements topo.
+- **TO_VISUALIZE** : propager correctement les cellules SAFE vers `TO_VISUALIZE` pour cadrer la re-capture.
+- **Monitoring JSON** : si besoin (préparation UI JS) via un module dédié, sans recoupler le runtime.
+
 ## Session du 18 Décembre 2025 (Refactoring Architectural Complet)
 
 ### Objectif principal

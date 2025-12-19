@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### SolverRuntime (snapshot mutable, dirty flags) – 2025-12-19
+- **Solver** : introduction d’un `SolverRuntime` interne (snapshot mutable + dirty flags). Tous les sous-modules appliquent leurs `StorageUpsert` au runtime immédiatement ; le storage réel n’est mis à jour qu’une seule fois en fin de pipeline.
+- **Pipeline** : séquence stricte post-vision → CSP → post-solver → sweep, tous sur l’état partagé du runtime (plus de `get_snapshot()` intermédiaire).
+- **Sweep** : importe `LogicalCellState` et exclut les cellules déjà résolues (effective_value=0).
+- **Game loop** : suppression de l’appel erroné à `update_capture_metadata()` (overlay vision).
+- **Storage** : `update_from_vision` lit le snapshot via `self.get_snapshot()` (et non `_store`).
+
+### Stabilisation pipeline minimal (V2) – 2025-12-19
+- **Session (init jeu)** : sélection du mode **Infinite** et de la difficulté fiabilisée (attente explicite + clic sur `a[href='/#infinite'] button`, puis clic sur `#new-game-*`).
+- **Vision (composite + bounds)** : analyse du composite aligné avec des `GridBounds` absolus (plus de tentative de réécriture des coordonnées après analyse).
+- **CaptureResult** : ajout d'accesseurs `composite_path`, `composite_bytes`, `composite_image` pour exposer proprement le composite aux modules aval.
+- **Solver (phase 0)** : réimplémentation d'un `StateAnalyzer` minimal dans `src/lib/s4_solver/state_analyzer.py` (classification ACTIVE/FRONTIER/SOLVED) et intégration post-vision dans `services/game_loop.py`.
+- **Qualité/Debug** : purge des logs de debug arbitraires (échantillon de cellules imprimées) pour alléger la boucle.
+
+### Solver/Storage/Overlays – correctifs runtime (V2) – 2025-12-19
+- **Storage types** : restauration de `src/lib/s3_storage/types.py` (types manquants) + `GridCell` en dataclass pour supporter `dataclasses.replace()`.
+- **Topological state** : suppression complète des références à `topological_state` (non supporté par `GridCell`) dans les pipelines solver (`status_analyzer`, `action_mapper`, `csp_manager`).
+- **Sweep (ex-cleanup)** : génération d'actions bonus `SAFE` sur les voisines `ACTIVE` des cellules `TO_VISUALIZE` (exclut les `SOLVED`).
+- **Overlay combined** : actions rendues en symboles blancs sans fond ; filtre pour ne pas afficher de sweep sur des cellules non `ACTIVE`.
+- **Game loop** : prompt de fin de partie `Relancer une partie ? (y/N)` et boucle de relance via recréation de session.
+
 ### Refactoring Architectural Complet – 2025-12-18
 - **Phase 1 - Nettoyage** : Suppression de 7 fichiers/dossiers (overlays, tests dispersés, doublons)
 - **Phase 1 - Nettoyage** : -10+ méthodes/fonctions overlay éliminées, -2 enums inutiles

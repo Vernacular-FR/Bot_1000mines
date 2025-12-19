@@ -1,54 +1,48 @@
+"""Bot 1000mines - Alternative A refactorisée."""
+
 from __future__ import annotations
 
-from typing import Dict, List
-from pathlib import Path
+from typing import Optional
 
-from src.services.s1_session_setup_service import SessionSetupService
-from src.services.s5_game_loop_service import GameLoopService
+from src.services import create_session, close_session, run_game, Session
 
 
 class Minesweeper1000Bot:
-    """
-    Scénario minimal : session → boucle unique via GameLoopService (capture → vision → storage → solver → action).
-    """
+    """Bot de démineur avec architecture modulaire Alternative A."""
 
     def __init__(self):
-        self.session_service = SessionSetupService(auto_close_browser=True)
-        # La fermeture effective est pilotée par le script principal (main/loop).
-        self.session_service.auto_close_browser = False
+        self.session: Optional[Session] = None
 
     def run_minimal_pipeline(
         self,
-        difficulty: str | None = None,
+        difficulty: str = "impossible",
         *,
         overlay_enabled: bool = False,
-        max_iterations: int = 80,
+        max_iterations: int = 500,
         delay_between_iterations: float = 0.2,
     ) -> bool:
-        """Pipeline principal : boucle via GameLoopService jusqu'à fin de partie (ou max_iterations)."""
-        init = self.session_service.setup_session(difficulty)
-        if not init.get("success"):
-            print(f"[SESSION] Échec init: {init.get('message')}")
+        """Pipeline principal : capture → vision → solver → executor."""
+        try:
+            # Une seule session/navigateur ; le restart clique sur le bouton du jeu
+            self.session = create_session(difficulty=difficulty)
+            result = run_game(
+                self.session,
+                max_iterations=max_iterations,
+                delay=delay_between_iterations,
+                overlay_enabled=overlay_enabled,
+            )
+            print(f"[GAME] iterations={result['iterations']} actions={result['total_actions']}")
+            return result.get("success", False)
+        except Exception as e:
+            print(f"[ERREUR] {e}")
+            # Fermer en cas d'erreur
+            if self.session:
+                close_session(self.session)
+                self.session = None
             return False
 
-        loop = GameLoopService(
-            session_service=self.session_service,
-            max_iterations=max_iterations,
-            iteration_timeout=60.0,
-            delay_between_iterations=delay_between_iterations,
-            overlay_enabled=overlay_enabled,
-            execute_actions=True,
-        )
-        result = loop.play_game()
-        print(
-            f"[GAME] success={result.success} final_state={getattr(result.final_state, 'value', result.final_state)} "
-            f"iterations={result.iterations} actions_executed={result.actions_executed}"
-        )
-        return bool(result.success)
-
     def cleanup(self) -> None:
-        """Ferme proprement la session/navigateur (demande Entrée)."""
-        try:
-            self.session_service.cleanup_session()
-        except Exception as exc:  # pylint: disable=broad-except
-            print(f"[CLEANUP] Erreur lors du cleanup de session: {exc}")
+        """Ferme proprement la session."""
+        if self.session:
+            close_session(self.session)
+            self.session = None

@@ -1,6 +1,6 @@
 """Types pour le module s0_browser."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Any
 from selenium.webdriver.remote.webdriver import WebDriver
 
