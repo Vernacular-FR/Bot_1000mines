@@ -13,6 +13,17 @@ Le moteur groupe les actions par type (FLAG / CLICK / GUESS), conserve l’ordre
 
 ---
 
-## Et la suite
+## Implémentation V3 (Agent Actif)
 
-La V2 vise un s5 plus ambitieux (heatmap/frontier, déplacement du viewport), mais cette couche minimaliste est déjà utile : tant que le bot boucle, elle garantit que l’ordre d’exécution reste logique et prévisible.
+Le planner n'est plus un simple "secrétaire" qui fait des listes. C'est le **bras armé** du bot :
+
+1.  **Ordonnancement** : Il trie toujours les actions (Drapeaux d'abord, puis Safes).
+2.  **Exécution Directe** : Il possède le driver Selenium et clique lui-même sur les cases.
+3.  **Surveillance** : Il regarde le score et les vies. S'il y a une explosion, il gère la pause de 2s tout seul.
+4.  **Précision Chirurgicale** : Il utilise des coordonnées relatives à l'anchor, ce qui le rend insensible aux mouvements du viewport.
+
+---
+
+## Conclusion V3
+
+La couche s5 est maintenant le centre névralgique de l'interaction. Elle garantit que les décisions du solver sont appliquées avec une fiabilité maximale, peu importe les conditions de navigation.

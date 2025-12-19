@@ -220,17 +220,27 @@ def capture_all_canvases(
 
     captures: List[CanvasCaptureResult] = []
     for info in canvas_infos:
-        try:
-            result = backend.capture_tile(
-                canvas_id=info.id,
-                save=False,
-                save_dir=None,
-                filename=None,
-                metadata={"canvas_info": info},
-            )
-            captures.append(result)
-        except Exception as exc:
-            print(f"[CANVAS] Erreur {info.id}: {exc}")
+        # Tentative de capture avec retry (le DOM peut changer pendant la boucle)
+        success = False
+        for attempt in range(3):
+            try:
+                result = backend.capture_tile(
+                    canvas_id=info.id,
+                    save=False,
+                    save_dir=None,
+                    filename=None,
+                    metadata={"canvas_info": info},
+                )
+                captures.append(result)
+                success = True
+                break
+            except Exception:
+                if attempt < 2:
+                    time.sleep(0.05) # Petite pause avant retry
+                continue
+        
+        if not success:
+            print(f"[CANVAS] Échec capture définitive pour {info.id} après 3 tentatives.")
 
     composite_result, grid_bounds = _compose_aligned_grid(
         captures=captures,

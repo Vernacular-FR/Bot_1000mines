@@ -70,3 +70,12 @@ Donc j’ai rebranché la **dérivation topologique** juste après la vision (av
 ✔ **Pragmatique** : aucune refonte d'API, modules existants inchangés  
 ✔ **Lisible** : pipeline clair et maintenable  
 ✔ **Extensible** : dirty flags prêts pour optimisations futures  
+
+### 21 décembre 2025 — Focus, overlays, CSP borné (péripéties)
+
+- **Le stress (frontières “qui rouillent”)** : à chaque itération, toutes les FRONTIER repassaient en `TO_PROCESS`, même sans changement. Résultat : surcharge cognitive et visuelle, overlays menteurs, et un solver qui moulinait sur des zones pourtant stables. On a isolé la cause : `StatusAnalyzer` reclassait tout le monde au lieu de ne toucher que les `JUST_VISUALIZED`.
+- **Remède côté topo** : `StatusAnalyzer` ne touche plus qu’aux `JUST_VISUALIZED`. Les FRONTIER/ACTIVE déjà en place gardent leurs focus levels, donc la carte ne “rouille” plus entre deux tours.
+- **Remède côté storage** : `storage.update_from_vision` préserve les `focus_level_active/frontier` des cellules inchangées. Les couleurs transparentes (REDUCED/PROCESSED) restent visibles dans les overlays d’une itération à l’autre.
+- **Overlays qui disent la vérité** : `overlay_combined` ne fabrique plus de transitions manuelles. Il reflète strictement l’état du snapshot runtime (pas de “surcorrection” flatteuse).
+- **CSP sous contrôle** : borne configurable `CSP_CONFIG['max_zones_per_component']=50` pour éviter l’explosion du backtracking sur les très grosses composantes (skip au-delà).
+- **Leçon apprise** : la fidélité des overlays dépend directement de la persistance du focus et de la cohérence du snapshot runtime. Si on perd les focus ou si on resnapshot mal, l’overlay “ment” et on débug à l’aveugle.

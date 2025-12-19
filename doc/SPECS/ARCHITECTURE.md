@@ -9,13 +9,18 @@ Cette spécification décrit l'architecture du bot 1000mines après la refonte V
 3. **s2_vision** – Convertit l'image en grille brute via matching déterministe (CenterTemplateMatcher) + overlays PNG/JSON. **Ne calcule pas la frontière topologique**, marque uniquement `JUST_VISUALIZED` et pousse les révélées dans `known_set`.
 4. **s3_storage** – Grille sparse unique `{(x,y) → GridCell}` + index `known_set/revealed_set/active_set/frontier_set/to_visualize_set`. Couche passive qui **impose les invariants** (logical ↔ number_value, focus ↔ solver_status) et **recalcule les sets incrémentalement**.
 5. **s4_solver** – Calcule la topologie (via StateAnalyzer), applique FocusActualizer (stateless), puis réduit/CSP et décide les actions (SAFE/FLAG/GUESS). **Consomme la frontière depuis storage**, ne la recalcule plus localement.
-6. **s5_actionplanner** – Planification minimale : ordonne et traduit les actions solver en actions exécutables.
-7. **s6_action** – Applique les actions JS.
+6. **s5_actionplanner** – Agent actif d'exécution : ordonne, traduit et **exécute** les actions en temps-réel. Gère les vérifications de vies et les délais de stabilisation post-explosion.
+
+> Mise à jour 2025-12-21 (solver/runtime) :
+> - Le solver travaille sur un **snapshot runtime unique** (mutable + dirty flags) et n’écrit dans le storage qu’en fin de pipeline.
+> - `StatusAnalyzer` ne reclasse que les `JUST_VISUALIZED`; les focus des FRONTIER/ACTIVE existantes sont préservés.
+> - `storage.update_from_vision` conserve les focus levels des cellules inchangées (plus de perte de `REDUCED/PROCESSED`).
+> - Overlays reflètent le snapshot runtime réel (suppression des transitions manuelles) ; CSP borné via `CSP_CONFIG['max_zones_per_component']=50` pour éviter l’explosion.
 
 ### Schéma pipeline V2
 
 ```
-capture → vision → storage → state_analyzer → solver → executor → recapture
+capture → vision → storage → state_analyzer → solver → planner (execution) → recapture
 ```
 
 ```text
@@ -32,9 +37,7 @@ capture → vision → storage → state_analyzer → solver → executor → re
 ├─────────────────┤
 │ s4 Solver       │ ← décisions SAFE/FLAG/GUESS (lit frontier depuis storage)
 ├─────────────────┤
-│ s5 ActionPlanner│ ← ordonne / convertit
-├─────────────────┤
-│ s6 Action       │ ← exécute clics/scroll
+│ s5 ActionPlanner│ ← Agent actif : ordonne / convertit / exécute
 └─────────────────┘
 ```
 
@@ -68,9 +71,11 @@ capture → vision → storage → state_analyzer → solver → executor → re
 - **Ne recalcule plus la frontière localement**
 - `compute_frontier_from_cells()` supprimé
 
-### Étape 6 - Executor
-- Exécute les actions (flags, clics)
-- Met à jour l'état du jeu
+### Étape 6 - Action Planner (s5)
+- Ordonne les actions (Flags > Safes > Guess)
+- Calcule les coordonnées **relatives à l'anchor**
+- Exécute les clics via JS (recalcul de l'absolute en temps-réel)
+- Vérifie les vies et applique les délais de stabilisation (2s)
 
 ## 3. Modules clés V2
 
@@ -180,6 +185,9 @@ Itération 8 : Extension-ready (interfaces isolées, proto Native Messaging).
 ```
 src/
 ├─ app/                      # points d'entrée (cli / scripts)
+│   ├─ session_service.py
+│   └─ game_loop.py
+├─ config.py
 ├─ services/                 # orchestrateurs (session, boucle…)
 └─ lib/
     ├─ s0_interface/
@@ -215,10 +223,6 @@ src/
     ├─ s5_actionplanner/
     │  ├─ facade.py / controller.py
     │  ├─ s51_*, s52_* …
-    │  └─ __init__.py
-    ├─ s6_action/
-    │  ├─ facade.py / controller.py
-    │  ├─ s61_*, s62_* …
     │  └─ __init__.py
     └─ main_simple.py                 # boucle while simple (entry prototype)
 ```

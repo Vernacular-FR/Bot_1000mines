@@ -86,6 +86,12 @@ StorageUpsert(
 - **Dirty flags** : chaque cellule modifiée est marquée dirty lors de l’application d’un upsert. À la fin du pipeline, un upsert unique est émis vers le storage (cellules dirty uniquement). Le storage réel n’est mis à jour qu’une seule fois.
 - **Overlays** : calculés à partir du snapshot final du runtime (post-sweep) sans resnapshot intermédiaire.
 
+### 4.1 Correctifs récents (focus, overlays, CSP)
+- **Classification** : `StatusAnalyzer` ne reclasse plus que les `JUST_VISUALIZED`; les cellules FRONTIER/ACTIVE existantes conservent leurs focus levels.
+- **Persistance focus** : `storage.update_from_vision` préserve `focus_level_active` et `focus_level_frontier` des cellules inchangées; plus de perte de `REDUCED/PROCESSED` entre deux itérations.
+- **Overlay fidélité** : `overlay_combined` n’applique plus de transitions manuelles ; les overlays reflètent strictement l’état du snapshot (runtime).
+- **CSP borné** : limite configurable `CSP_CONFIG['max_zones_per_component']=50` (config.py) pour éviter l’explosion du backtracking sur les grandes frontières.
+
 ## 3. Interfaces clés
 
 ### 3.1 `SolverFrontierView`

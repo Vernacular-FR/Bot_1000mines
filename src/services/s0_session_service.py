@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.lib.s0_browser import BrowserConfig, BrowserHandle, start_browser, stop_browser, navigate_to
+from src.lib.s0_browser.game_info import GameInfoExtractor
 from src.lib.s0_coordinates import CoordinateConverter, ViewportMapper, CanvasLocator
 from src.lib.s3_storage import StorageController
 from src.config import DIFFICULTY_CONFIG
@@ -23,8 +24,13 @@ class Session:
     converter: CoordinateConverter
     viewport: ViewportMapper
     canvas_locator: CanvasLocator
+    extractor: GameInfoExtractor
     game_id: Optional[str] = None
     difficulty: Optional[str] = None
+    is_exploring: bool = False
+    exploration_start_lives: int = 0
+    last_state: Optional[int] = None
+    same_state_count: int = 0
 
     @property
     def driver(self):
@@ -85,6 +91,7 @@ def create_session(
     viewport = ViewportMapper(converter, browser.driver)
     canvas_locator = CanvasLocator(driver=browser.driver)
     storage = StorageController()
+    extractor = GameInfoExtractor(driver=browser.driver)
     
     # 4. Créer la session
     session = Session(
@@ -93,6 +100,7 @@ def create_session(
         converter=converter,
         viewport=viewport,
         canvas_locator=canvas_locator,
+        extractor=extractor,
         difficulty=difficulty,
     )
     

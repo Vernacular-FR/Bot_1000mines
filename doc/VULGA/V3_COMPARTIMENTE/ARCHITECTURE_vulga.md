@@ -91,19 +91,6 @@ Concrètement, on a verrouillé 3 points :
 
 Résultat attendu :
 
-- `active_set` et `frontier_set` deviennent non vides (donc le solver retrouve des actions).
-
-Ce qui reste à faire (hors overlays) :
-
-- **Invariants storage** : formaliser/centraliser la validation dans `s3_storage/invariants.py`.
-- **FocusActualizer** : repromotions (réveiller les voisins) après reclustering post-vision et après décisions solver.
-- **TO_VISUALIZE** : propagation des cases SAFE pour cadrer la recapture.
-
-## État actuel (fin 2025)
-
-Le refactoring architectural a transformé le projet en une base solide :
-- **Modules autonomes** : `lib/*` = logique pure, `services/*` = orchestration
-- **Documentation unique** : `SPECS/` comme référence technique
 - **Tests centralisés** : `tests/` (pas de dispersion)
 
 La V3 est maintenant prête pour les prochaines étapes :

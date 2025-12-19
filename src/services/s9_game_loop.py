@@ -14,13 +14,13 @@ import time
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 from pathlib import Path
+from selenium.common.exceptions import StaleElementReferenceException
 
 from src.lib.s1_capture import capture_all_canvases
 from src.lib.s2_vision import analyze_image, VisionOverlay, vision_result_to_matches
-from src.lib.s3_storage import LogicalCellState
+from src.lib.s3_storage import LogicalCellState, SolverStatus
 from src.lib.s4_solver import solve
 from src.lib.s5_planner import plan, PlannerInput
-from src.lib.s6_executor import execute, ExecutorInput
 from src.lib.s0_browser.export_context import ExportContext
 from .s0_session_service import restart_game
 from src.config import CELL_SIZE, CELL_BORDER
@@ -47,6 +47,9 @@ def run_iteration(
     
     if export_ctx:
         export_ctx.iteration = iteration
+
+    # Rafraîchir la position de l'anchor pour gérer les mouvements du viewport
+    session.converter.refresh_anchor()
 
     try:
         # 1. CAPTURE (boîte noire)
@@ -101,24 +104,108 @@ def run_iteration(
         )
         print(f"[SOLVER] {len(solver_output.actions)} actions")
 
-        if not solver_output.actions:
-            return IterationResult(True, 0, time.time() - start_time, {"no_actions": True})
-
         # 5. PLANNER (boîte noire)
-        execution_plan = plan(PlannerInput(actions=solver_output.actions))
+        # 5.1 Extraction des infos de jeu (score, vies) pour la boucle
+        game_info = session.extractor.get_game_info()
+        print(f"[GAME INFO] Score: {game_info.score}, Lives: {game_info.lives}")
 
-        # 6. EXECUTOR (boîte noire)
-        exec_result = execute(ExecutorInput(plan=execution_plan, driver=session.driver))
-        print(f"[EXECUTOR] {exec_result.executed_count} actions")
+        # 5.2 Gestion de l'état d'exploration
+        from src.config import EXPLORATION_CONFIG
         
+        # Déclenchement standard (si on a des vies en rab)
+        if game_info.lives > 1:
+            # Déclenchement si peu d'actions
+            if not session.is_exploring and len(solver_output.actions) < EXPLORATION_CONFIG['min_safe_actions']:
+                session.is_exploring = True
+                session.exploration_start_lives = game_info.lives
+                print(f"[GAME] Mode exploration activé (actions={len(solver_output.actions)} < {EXPLORATION_CONFIG['min_safe_actions']}, lives={game_info.lives})")
+            
+            # Arrêt si on a perdu une vie
+            if session.is_exploring and game_info.lives < session.exploration_start_lives:
+                session.is_exploring = False
+                print(f"[GAME] Mode exploration désactivé (vie perdue, lives={game_info.lives})")
+        else:
+            session.is_exploring = False
+
+        # Détection état bloqué (stuck) -> Force exploration
+        force_exploration = False
+        snapshot = session.storage.get_snapshot()
+        if snapshot:
+            # On considère comme progrès : les cellules révélées ET les drapeaux
+            revealed_count = sum(1 for c in snapshot.values() if c.logical_state != LogicalCellState.UNREVEALED)
+            flag_count = sum(1 for c in snapshot.values() if c.logical_state == LogicalCellState.UNREVEALED and c.solver_status == SolverStatus.MINE)
+            current_state = revealed_count + flag_count
+            
+            if session.last_state == current_state:
+                session.same_state_count += 1
+                if session.same_state_count >= 2: # Seuil à 2 itérations sans progrès
+                    print(f"[GAME] Bloqué depuis {session.same_state_count} itérations (état inchangé) -> FORCE EXPLORATION")
+                    force_exploration = True
+            else:
+                session.same_state_count = 0
+            session.last_state = current_state
+
+        # Arrêt si plus de vies (seule condition d'échec critique)
+        if game_info.lives == 0:
+            print("[GAME] Perdu (0 vies)")
+            return IterationResult(
+                success=False,
+                actions_executed=0,
+                duration=time.time() - start_time,
+                metadata={"game_over": True}
+            )
+
+        execution_plan = plan(
+            input=PlannerInput(
+                actions=solver_output.actions,
+                game_info=game_info,
+                snapshot=session.storage.get_snapshot(),
+                is_exploring=session.is_exploring,
+                force_exploration=force_exploration
+            ),
+            converter=session.converter,
+            driver=session.driver,
+            extractor=session.extractor
+        )
+
+        # 5.3 Synchronisation des actions d'exploration avec le storage (To_visualize)
+        # Note: Les actions ont déjà été exécutées par le planner
+        from src.lib.s4_solver.types import ActionType as SolverActionType
+        exploration_actions = [
+            a for a in execution_plan.actions 
+            if a.action == SolverActionType.GUESS and a.coord not in [sa.coord for sa in solver_output.actions]
+        ]
+        if exploration_actions:
+            from src.lib.s4_solver.types import SolverAction, ActionType as SolverActionType
+            from src.lib.s4_solver.s4a_status_analyzer.action_mapper import ActionMapper
+            
+            mapper = ActionMapper()
+            # Convertir PlannedAction en SolverAction pour le mapper
+            solver_guesses = [
+                SolverAction(coord=a.coord, action=SolverActionType.GUESS, confidence=a.confidence, reasoning=a.reasoning)
+                for a in exploration_actions
+            ]
+            upsert = mapper.map_actions(session.storage.get_snapshot(), solver_guesses)
+            session.storage.apply_upsert(upsert)
+            print(f"[STORAGE] {len(exploration_actions)} actions d'exploration ajoutées à To_visualize")
+
         return IterationResult(
-            success=exec_result.success,
-            actions_executed=exec_result.executed_count,
+            success=True, # L'exécution est maintenant intégrée au planner
+            actions_executed=len(execution_plan.actions),
             duration=time.time() - start_time,
             metadata={
                 "vision_count": vision_result.cell_count,
                 "solver_actions": len(solver_output.actions),
             },
+        )
+
+    except StaleElementReferenceException:
+        print("[WARNING] Viewport instable (mouvement manuel ?), capture ignorée.")
+        return IterationResult(
+            success=True, # On considère ça comme un succès vide pour ne pas arrêter la boucle
+            actions_executed=0,
+            duration=time.time() - start_time,
+            metadata={"warning": "stale_element_reference"},
         )
 
     except Exception as e:
@@ -160,6 +247,8 @@ def run_game(
             total_actions += result.actions_executed
             
             if not result.success:
+                if result.metadata.get("game_over"):
+                    break
                 if result.actions_executed > 0:
                     print(f"[GAME] Attention itération {i+1} : erreurs partielles, mais {result.actions_executed} actions exécutées. Continuation.")
                 else:
@@ -167,21 +256,7 @@ def run_game(
                     break
             
             if result.actions_executed == 0:
-                print(f"[GAME] Fin itération {i+1}")
-                break
-            
-            # Détection état bloqué
-            snapshot = session.storage.get_snapshot()
-            if snapshot:
-                current_state = sum(1 for c in snapshot.values() if c.logical_state != LogicalCellState.UNREVEALED)
-                if last_state == current_state and result.actions_executed > 0:
-                    same_state_count += 1
-                    if same_state_count >= 3:
-                        print(f"[GAME] Bloqué depuis {same_state_count} itérations")
-                        break
-                else:
-                    same_state_count = 0
-                last_state = current_state
+                print(f"[GAME] Attention itération {i+1} : 0 actions exécutées.")
             
             time.sleep(delay)
         

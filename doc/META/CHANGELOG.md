@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Architecture Refactoring & Robust Clicks – 2025-12-20
+- **Exécution temps-réel** : Le `planner` (`s5`) devient l'agent actif. Il exécute les actions au fur et à mesure de la planification si le driver est fourni.
+- **Gestion des explosions** : Le `planner` vérifie les vies après chaque clic et applique un délai de stabilisation de 2s en cas d'explosion.
+- **Clics Robustes (Anchor-Relative)** : Les clics sont désormais calculés par rapport à l'élément `#anchor` en JavaScript au moment précis de l'exécution. Immunité totale aux mouvements du viewport pendant l'exécution.
+- **Simplification Game Loop** : Suppression du module `s6_executor` et de la logique de délai réactif dans `s9_game_loop.py`.
+- **Stabilité Viewport** : Appel systématique à `refresh_anchor()` à chaque itération pour garantir la cohérence vision/coordonnées.
+
+### Solver – focus, overlays, CSP borné – 2025-12-19
+- **Classification** : `StatusAnalyzer` ne reclasse plus que les `JUST_VISUALIZED`, préservant les focus des FRONTIER/ACTIVE existantes.
+- **Persistance focus** : `storage.update_from_vision` conserve `focus_level_active/frontier` pour les cellules inchangées (plus de perte de `REDUCED/PROCESSED` entre itérations).
+- **Overlays** : `overlay_combined` reflète strictement le snapshot (plus de transition manuelle). Les overlays utilisent le snapshot runtime final.
+- **CSP** : limite configurable `CSP_CONFIG['max_zones_per_component']=50` pour éviter l’explosion sur les grandes composantes.
+- **Runtime unique** : pipeline complet sur `SolverRuntime` (snapshot mutable + dirty flags), upsert unique vers le storage.
+
 ### SolverRuntime (snapshot mutable, dirty flags) – 2025-12-19
 - **Solver** : introduction d’un `SolverRuntime` interne (snapshot mutable + dirty flags). Tous les sous-modules appliquent leurs `StorageUpsert` au runtime immédiatement ; le storage réel n’est mis à jour qu’une seule fois en fin de pipeline.
 - **Pipeline** : séquence stricte post-vision → CSP → post-solver → sweep, tous sur l’état partagé du runtime (plus de `get_snapshot()` intermédiaire).

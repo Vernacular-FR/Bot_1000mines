@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from src.lib.s0_coordinates.types import Coord, ScreenPoint, GridBounds
+from src.lib.s3_storage.types import Coord, GridCell
+from src.lib.s0_coordinates.types import ScreenPoint, GridBounds
 from src.lib.s4_solver.types import SolverAction, ActionType
+from src.lib.s0_browser.game_info import GameInfo
 
 
 @dataclass
@@ -24,7 +26,11 @@ class PlannedAction:
 class PlannerInput:
     """Input pour le planner."""
     actions: List[SolverAction]
+    game_info: Optional[GameInfo] = None
+    snapshot: Optional[Dict[Coord, GridCell]] = None
     grid_bounds: Optional[GridBounds] = None
+    is_exploring: bool = False
+    force_exploration: bool = False
 
 
 @dataclass
@@ -32,6 +38,7 @@ class ExecutionPlan:
     """Plan d'exécution."""
     actions: List[PlannedAction]
     estimated_time: float = 0.0
+    post_delay: float = 0.0
     
     @property
     def action_count(self) -> int:

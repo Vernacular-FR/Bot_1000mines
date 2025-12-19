@@ -72,6 +72,13 @@ DEFAULT_DIFFICULTY = 'impossible'
 # Paramètres du solver CSP
 CSP_CONFIG = {'max_zones_per_component':30} # Limite de zones par composante pour éviter explosion backtracking
 
+# Configuration de l'exploration
+EXPLORATION_CONFIG = {
+    'min_safe_actions': 5,      # Seuil d'actions sûres pour déclencher l'exploration
+    'distance_min': 5,          # Distance minimale à la frontière pour l'exploration
+    'distance_max': 10,         # Distance maximale à la frontière pour l'exploration
+}
+
 # Chemins des fichiers (un niveau = un chemin)
 # NOTE: Ces chemins sont les valeurs par défaut.
 # Le GameLoopService génère dynamiquement des chemins par partie dans temp/games/{game_id}/
