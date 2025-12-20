@@ -1,8 +1,31 @@
 """
-Module d'overlay UI pour afficher les informations du solver en live sur le canvas.
+Overlay UI pour le bot 1000mines.
 """
 
-from .overlay_injector import OverlayInjector
-from .types import OverlayType, OverlayData
+from .overlay_injector import OverlayInjector, create_overlay_injector
+from .types import OverlayType, OverlayData, CellOverlayData, ActionOverlayData
 
-__all__ = ['OverlayInjector', 'OverlayType', 'OverlayData']
+# Nouveau système UI temps réel
+from .ui_controller import (
+    UIController,
+    UIOverlayType,
+    StatusCellData,
+    ActionCellData,
+    ProbabilityCellData,
+    get_ui_controller,
+)
+
+__all__ = [
+    'OverlayInjector',
+    'OverlayType',
+    'OverlayData',
+    'CellOverlayData',
+    'ActionOverlayData',
+    'UIController',
+    'UIOverlayType',
+    'StatusCellData',
+    'ActionCellData',
+    'ProbabilityCellData',
+    'get_ui_controller',
+    'create_overlay_injector',
+]

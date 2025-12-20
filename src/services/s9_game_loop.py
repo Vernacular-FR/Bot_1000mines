@@ -22,10 +22,51 @@ from src.lib.s3_storage import LogicalCellState, SolverStatus
 from src.lib.s4_solver import solve
 from src.lib.s5_planner import plan, PlannerInput
 from src.lib.s0_browser.export_context import ExportContext
+from src.lib.s0_interface.s07_overlay import StatusCellData, ActionCellData
 from .s0_session_service import restart_game
 from src.config import CELL_SIZE, CELL_BORDER
 
 from .s0_session_service import Session
+
+
+def _update_ui_overlay(session: Session, bounds, solver_output) -> None:
+    """Met à jour les overlays UI temps réel avec les données du solver."""
+    if not session.ui_controller:
+        return
+    
+    try:
+        snapshot = session.storage.get_snapshot()
+        
+        # Convertir snapshot en StatusCellData (filtrer seulement ACTIVE/FRONTIER/TO_VISUALIZE)
+        # Les coordonnées doivent être ABSOLUES (grille globale) car le canvas est ancré sur #anchor
+        status_cells = []
+        for (col, row), cell in snapshot.items():
+            status = cell.solver_status.name if hasattr(cell.solver_status, 'name') else str(cell.solver_status)
+            if status in ('ACTIVE', 'FRONTIER', 'TO_VISUALIZE', 'JUST_VISUALIZED', 'MINE'):
+                status_cells.append(StatusCellData(
+                    col=col,  # Coordonnée absolue
+                    row=row,  # Coordonnée absolue
+                    status=status.replace('JUST_VISUALIZED', 'TO_VISUALIZE'),
+                ))
+        
+        # Convertir actions en ActionCellData
+        action_cells = []
+        for action in solver_output.actions:
+            col, row = action.coord
+            action_type = action.action.name if hasattr(action.action, 'name') else str(action.action)
+            action_cells.append(ActionCellData(
+                col=col,  # Coordonnée absolue
+                row=row,  # Coordonnée absolue
+                type=action_type,
+                confidence=getattr(action, 'confidence', 1.0),
+            ))
+        
+        # Mettre à jour les données UI
+        session.ui_controller.update_status(session.driver, status_cells)
+        session.ui_controller.update_actions(session.driver, action_cells)
+        
+    except Exception as e:
+        pass  # Silencieux pour ne pas interrompre le pipeline
 
 
 @dataclass
@@ -105,6 +146,10 @@ def run_iteration(
             base_image=capture_result.composite_image,
         )
         print(f"[SOLVER] {len(solver_output.actions)} actions")
+        
+        # --- 4.5. UI OVERLAY (temps réel) ---
+        if session.ui_controller:
+            _update_ui_overlay(session, bounds, solver_output)
 
         # --- 5. PLANNER ---
         # 5.1 Extraction des infos de jeu (score, vies) pour la boucle
@@ -157,7 +202,6 @@ def run_iteration(
                 metadata={"game_over": True}
             )
 
-        print(f"[DEBUG] Calling planner with iteration={iteration}")
         execution_plan = plan(
             input=PlannerInput(
                 actions=solver_output.actions,
@@ -192,6 +236,9 @@ def run_iteration(
             upsert = mapper.map_actions(session.storage.get_snapshot(), solver_guesses)
             session.storage.apply_upsert(upsert)
             print(f"[STORAGE] {len(exploration_actions)} actions d'exploration ajoutées à To_visualize")
+
+        # Affichage du score final de l'itération
+        print(f"[ITERATION {iteration+1}] Final Score: {game_info.score}")
 
         return IterationResult(
             success=True, # L'exécution est maintenant intégrée au planner
@@ -230,12 +277,10 @@ def run_game(
     delay: float = 1,
     overlay_enabled: bool = False,
 ) -> Dict[str, Any]:
-    """Exécute la boucle de jeu complète, avec relance via bouton restart sans recréer la session."""
+    """Exécute la boucle de jeu complète, avec contrôles UI (pause/restart)."""
     while True:
         total_actions = 0
         iterations = 0
-        last_state = None
-        same_state_count = 0
         
         export_ctx = None
         if overlay_enabled:
@@ -246,10 +291,44 @@ def run_game(
             print(f"[OVERLAY] Export: {export_ctx.export_root}")
         
         for i in range(max_iterations):
+            # Vérifier si restart demandé via UI
+            if session.ui_controller and session.ui_controller.is_restart_requested(session.driver):
+                print("[BOT] Restart demandé via UI, nouvelle partie...")
+                restart_game(session)
+                session.game_id = None
+                break  # Sortir de la boucle d'itérations pour restart
+            
+            # Vérifier si redémarrage manuel détecté (clic bouton restart/difficulté)
+            if session.ui_controller and session.ui_controller.is_manual_restart_requested(session.driver):
+                print("[BOT] Redémarrage manuel détecté! Nouvelle partie...")
+                # Redémarrer complètement la partie
+                restart_game(session)
+                session.game_id = None
+                break  # Sortir de la boucle d'itérations pour restart
+            
+            # Vérifier si bot en pause via UI
+            if session.ui_controller:
+                while not session.ui_controller.is_bot_running(session.driver):
+                    time.sleep(0.5)  # Attendre que le bot soit relancé
+                    # Vérifier restart pendant la pause
+                    if session.ui_controller.is_restart_requested(session.driver):
+                        print("[BOT] Restart demandé pendant pause, nouvelle partie...")
+                        restart_game(session)
+                        session.game_id = None
+                        break
+                    # Vérifier redémarrage manuel pendant la pause
+                    if session.ui_controller.is_manual_restart_requested(session.driver):
+                        print("[BOT] Redémarrage manuel détecté pendant pause!")
+                        # Redémarrer complètement la partie
+                        restart_game(session)
+                        session.game_id = None
+                        break  # Sortir de la boucle de pause et d'itérations
+            
             iterations += 1
             print(f"\n{'='*80}")
             print(f"ITÉRATION {i+1}")
-            print(f"{'='*80}\n")
+            print(f"{'='*80}")
+            
             result = run_iteration(session, iteration=i, export_ctx=export_ctx)
             total_actions += result.actions_executed
             
@@ -269,21 +348,45 @@ def run_game(
         
         print(f"[GAME] {iterations} itérations, {total_actions} actions")
         
-        # Demander si on relance une partie via le bouton restart
-        restart_answer = input("Relancer une partie ? (y/N): ").strip().lower()
-        restart_requested = restart_answer == "y"
-
-        if not restart_requested:
-            return {
-                "iterations": iterations,
-                "total_actions": total_actions,
-                "success": True,
-                "export_root": str(export_ctx.export_root) if export_ctx else None,
-                "restart": False,
-            }
-
-        # Relancer la partie sans recréer la session / navigateur
-        restart_game(session)
-        session.game_id = None  # forcer un nouvel export_root/itérations visuelles
-        # Reboucler pour une nouvelle partie dans la même session (itérations remises à zéro)
+        # Fin de partie : mettre le bot en pause et attendre l'utilisateur
+        if session.ui_controller:
+            print("[BOT] Partie terminée. Bot en pause - utilisez les boutons de l'overlay pour continuer")
+            session.ui_controller.set_bot_running(session.driver, False)
+            print("[BOT] ⚡ Partie prête ! Appuyez sur Start (F5) pour commencer")
+            
+            # Attendre que l'utilisateur relance via l'overlay
+            waiting_for_restart = True
+            while waiting_for_restart:
+                time.sleep(0.5)
+                
+                # Vérifier si auto-restart demandé (bouton "Start New Game" F6)
+                if session.ui_controller.is_auto_restart_requested(session.driver):
+                    print("[BOT] Auto-restart demandé via UI")
+                    restart_game(session)
+                    session.game_id = None
+                    waiting_for_restart = False
+                    break
+                
+                # Vérifier si redémarrage manuel détecté
+                if session.ui_controller.is_manual_restart_requested(session.driver):
+                    print("[BOT] Redémarrage manuel détecté")
+                    restart_game(session)
+                    session.game_id = None
+                    waiting_for_restart = False
+                    break
+        else:
+            # Pas d'UI controller : fallback sur input terminal
+            restart_answer = input("Relancer une partie ? (y/N): ").strip().lower()
+            if restart_answer != "y":
+                return {
+                    "iterations": iterations,
+                    "total_actions": total_actions,
+                    "success": True,
+                    "export_root": str(export_ctx.export_root) if export_ctx else None,
+                    "restart": False,
+                }
+            restart_game(session)
+            session.game_id = None
+        
+        # Reboucler pour nouvelle partie
         continue

@@ -13,6 +13,7 @@ from src.lib.s0_browser import BrowserConfig, BrowserHandle, start_browser, stop
 from src.lib.s0_browser.game_info import GameInfoExtractor
 from src.lib.s0_coordinates import CoordinateConverter, ViewportMapper, CanvasLocator
 from src.lib.s3_storage import StorageController
+from src.lib.s0_interface.s07_overlay import get_ui_controller, UIController
 from src.config import DIFFICULTY_CONFIG
 
 
@@ -25,6 +26,7 @@ class Session:
     viewport: ViewportMapper
     canvas_locator: CanvasLocator
     extractor: GameInfoExtractor
+    ui_controller: Optional[UIController] = None
     game_id: Optional[str] = None
     difficulty: Optional[str] = None
     is_exploring: bool = False
@@ -94,6 +96,8 @@ def create_session(
     extractor = GameInfoExtractor(driver=browser.driver)
     
     # 4. Créer la session
+    ui_ctrl = get_ui_controller()
+    
     session = Session(
         browser=browser,
         storage=storage,
@@ -101,8 +105,13 @@ def create_session(
         viewport=viewport,
         canvas_locator=canvas_locator,
         extractor=extractor,
+        ui_controller=ui_ctrl,
         difficulty=difficulty,
     )
+    
+    # 5. Injecter l'UI temps réel
+    if ui_ctrl.inject(browser.driver):
+        print("[SESSION] UI temps réel injectée")
     
     _current_session = session
     print(f"[SESSION] Session créée pour difficulté: {difficulty}")

@@ -98,6 +98,10 @@ class StorageController:
     def get_to_visualize(self) -> Set[Coord]:
         """Retourne les coordonnées à re-capturer."""
         return self._store.get_to_visualize()
+    
+    def reset(self) -> None:
+        """Réinitialise complètement le storage (vide toutes les cellules)."""
+        self._store = GridStore()
 
     def update_from_vision(self, vision_result: "VisionResult") -> Dict[str, int]:
         """Met à jour le storage depuis les résultats vision (boîte noire).
