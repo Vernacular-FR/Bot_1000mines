@@ -5,7 +5,7 @@
  * API exposée via window.BotUI
  */
 
-(function() {
+(function () {
   'use strict';
 
   // === CONFIGURATION ===
@@ -22,24 +22,24 @@
   // === COULEURS ===
   const COLORS = {
     // Solver Status (très transparent pour s'intégrer avec le fond)
-    UNREVEALED: 'rgba(200, 200, 200, 0.05)',
+    UNREVEALED: 'rgba(0, 0, 0, 0)',
     ACTIVE: 'rgba(0, 120, 255, 0.25)',
     FRONTIER: 'rgba(255, 165, 0, 0.25)',
-    SOLVED: 'rgba(0, 200, 0, 0.15)',
+    SOLVED: 'rgba(0, 255, 0, 0.3)',
     MINE: 'rgba(255, 0, 0, 0.4)',
-    TO_VISUALIZE: 'rgba(0, 255, 150, 0.3)',
-    
+    TO_VISUALIZE: 'rgba(0, 0, 0, 0,15)',
+
     // Actions
     SAFE: 'rgba(0, 255, 0, 0.9)',
     FLAG: 'rgba(255, 50, 50, 0.9)',
     GUESS: 'rgba(255, 255, 0, 0.9)',
-    
+
     // Focus Levels
     TO_PROCESS: 'rgba(255, 165, 0, 0.5)',
     PROCESSED: 'rgba(255, 200, 100, 0.25)',
     TO_REDUCE: 'rgba(0, 150, 255, 0.5)',
     REDUCED: 'rgba(100, 180, 255, 0.25)',
-    
+
     // UI
     MENU_BG: 'rgba(20, 20, 30, 0.95)',
     MENU_BORDER: 'rgba(100, 100, 120, 0.5)',
@@ -53,21 +53,21 @@
     currentOverlay: 'off',
     botRunning: false,
     menuCollapsed: false,
-    
+
     // Données overlay
     data: {
       status: null,    // Statuts des cellules (ACTIVE, FRONTIER, etc.)
       actions: null,   // Actions planifiées (SAFE, FLAG, GUESS)
       probabilities: null, // Probabilités CSP
     },
-    
+
     // Éléments DOM
     anchorElement: null,
     container: null,
     canvas: null,
     ctx: null,
     menuElement: null,
-    
+
     // Animation
     animationFrame: null,
     lastAnchorRect: null,
@@ -81,7 +81,7 @@
     }
 
     console.log('[BotUI] Initialisation...');
-    
+
     // Trouver l'anchor
     state.anchorElement = document.getElementById('anchor');
     if (!state.anchorElement) {
@@ -91,13 +91,13 @@
 
     // Créer la structure UI
     createUIStructure();
-    
+
     // Démarrer la boucle de rendu
     startRenderLoop();
-    
+
     // Écouter les touches clavier
     setupKeyboardShortcuts();
-    
+
     state.initialized = true;
     showToast('Bot UI activée', 'success');
     console.log('[BotUI] Initialisé avec succès');
@@ -273,7 +273,7 @@
         transition: all 0.15s ease;
         opacity: ${btn.disabled ? 0.5 : 1};
       `;
-      
+
       if (!btn.disabled) {
         button.onmouseenter = () => {
           if (!button.classList.contains('active')) {
@@ -287,7 +287,7 @@
         };
         button.onclick = btn.action;
       }
-      
+
       if (btn.active) button.classList.add('active');
       section.appendChild(button);
     });
@@ -299,7 +299,7 @@
     state.menuCollapsed = !state.menuCollapsed;
     const content = document.getElementById('bot-ui-menu-content');
     const collapse = document.getElementById('bot-ui-collapse');
-    
+
     if (state.menuCollapsed) {
       content.style.display = 'none';
       collapse.textContent = '▶';
@@ -313,7 +313,7 @@
   function setOverlay(overlayId) {
     console.log(`[BotUI] Overlay: ${overlayId}`);
     state.currentOverlay = overlayId;
-    
+
     // Mettre à jour les boutons
     document.querySelectorAll('[id^="overlay-"]').forEach(btn => {
       const isActive = btn.id === `overlay-${overlayId}`;
@@ -349,25 +349,25 @@
 
   function syncWithAnchor() {
     console.log('[BotUI] syncWithAnchor called');
-    
+
     if (!state.anchorElement || !state.canvas) {
       console.log('[BotUI] syncWithAnchor early return - anchor:', !!state.anchorElement, 'canvas:', !!state.canvas);
       return;
     }
 
     const rect = state.anchorElement.getBoundingClientRect();
-    
+
     // Chercher l'élément controller pour les dimensions (id="control")
     const controller = document.getElementById('control');
-    
+
     if (!controller) {
       console.error('[BotUI] Controller #control non trouvé!');
       return;
     }
-    
+
     const controllerRect = controller.getBoundingClientRect();
     console.log(`[BotUI] Controller trouvé: ${controller.tagName}#${controller.id}, taille: ${controllerRect.width}x${controllerRect.height}`);
-    
+
     // Vérifier si la position a changé
     const changed = !state.lastAnchorRect ||
       rect.left !== state.lastAnchorRect.left ||
@@ -380,40 +380,40 @@
     if (changed || !state.lastControllerRect) {  // Forcer la première fois
       state.lastAnchorRect = { ...rect };
       state.lastControllerRect = { ...controllerRect };
-      
+
       // FORCER les dimensions du canvas selon controller
       const newWidth = Math.round(controllerRect.width);
       const newHeight = Math.round(controllerRect.height);
-      
+
       console.log(`[BotUI] Mise à jour canvas: ${state.canvas.width}x${state.canvas.height} -> ${newWidth}x${newHeight}`);
-      
+
       // IMPORTANT: Canvas interne = taille du controller
       state.canvas.width = newWidth;
       state.canvas.height = newHeight;
-      
+
       // CSS: taille identique (pas de transformation)
       state.canvas.style.width = `${newWidth}px`;
       state.canvas.style.height = `${newHeight}px`;
-      
+
       // Positionner le canvas exactement sur le controller
       state.canvas.style.left = `${Math.round(controllerRect.left)}px`;
       state.canvas.style.top = `${Math.round(controllerRect.top)}px`;
-      
+
       // Calculer le STRIDE réel dynamiquement basé sur l'anchor
       const realStride = rect.width / 24; // STRIDE = CELL_SIZE + CELL_BORDER
-      
+
       // Mettre à jour CONFIG avec les valeurs réelles
       CONFIG.REAL_STRIDE = realStride;
       CONFIG.REAL_CELL_SIZE = 24;
-      
+
       // Stocker l'offset de l'anchor pour le dessin
       CONFIG.ANCHOR_OFFSET_X = rect.left - controllerRect.left;
       CONFIG.ANCHOR_OFFSET_Y = rect.top - controllerRect.top;
-      
+
       console.log(`[BotUI] Canvas: ${state.canvas.width}x${state.canvas.height}`);
       console.log(`[BotUI] Anchor offset: (${CONFIG.ANCHOR_OFFSET_X}, ${CONFIG.ANCHOR_OFFSET_Y})`);
       console.log(`[BotUI] Cellules réelles: stride=${realStride.toFixed(2)}px, cell=${CONFIG.REAL_CELL_SIZE}px`);
-      
+
       render(); // Re-render après resize
     }
   }
@@ -446,30 +446,31 @@
     if (!data || !data.cells) return;
 
     const ctx = state.ctx;
-    
+
     data.cells.forEach(cell => {
       // Utiliser le STRIDE réel calculé dynamiquement
       const stride = CONFIG.REAL_STRIDE || CONFIG.STRIDE;
       const cellSize = CONFIG.REAL_CELL_SIZE || CONFIG.CELL_SIZE;
-      
+
       // Calculer position avec offset de l'anchor
       const x = cell.col * stride + CONFIG.ANCHOR_OFFSET_X;
       const y = cell.row * stride + CONFIG.ANCHOR_OFFSET_Y;
-      
+
       // Skip si hors du viewport
-      if (x + stride < 0 || y + stride < 0 || 
-          x > state.canvas.width || y > state.canvas.height) {
+      if (x + stride < 0 || y + stride < 0 ||
+        x > state.canvas.width || y > state.canvas.height) {
         return;
       }
-      
+
       // Couleur selon le statut
+      if (cell.status === 'UNREVEALED') return;
       let color = COLORS[cell.status] || 'rgba(128,128,128,0.1)';
-      
+
       ctx.fillStyle = color;
       ctx.fillRect(x, y, cellSize, cellSize);
-      
+
       // Dessiner uniquement la bordure droite et bas (rectangles 1px, sans débordement)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0,01)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.01)';
       // Bordure droite : x + cellSize (24) sur hauteur stride (25)
       ctx.fillRect(x + cellSize, y, 1, stride);
       // Bordure bas : y + cellSize (24) sur largeur stride (25)
@@ -482,24 +483,24 @@
     if (!data || !data.actions) return;
 
     const ctx = state.ctx;
-    
+
     data.actions.forEach(action => {
       // Utiliser le STRIDE réel calculé dynamiquement
       const stride = CONFIG.REAL_STRIDE || CONFIG.STRIDE;
       const cellSize = CONFIG.REAL_CELL_SIZE || CONFIG.CELL_SIZE;
-      
+
       // Calculer position avec offset de l'anchor
       const cx = action.col * stride + cellSize / 2 + CONFIG.ANCHOR_OFFSET_X;
       const cy = action.row * stride + cellSize / 2 + CONFIG.ANCHOR_OFFSET_Y;
-      
+
       // Skip si hors du viewport (avec marge pour les formes)
-      if (cx + 20 < 0 || cy + 20 < 0 || 
-          cx - 20 > state.canvas.width || cy - 20 > state.canvas.height) {
+      if (cx + 20 < 0 || cy + 20 < 0 ||
+        cx - 20 > state.canvas.width || cy - 20 > state.canvas.height) {
         return;
       }
-      
+
       ctx.save();
-      
+
       switch (action.type) {
         case 'SAFE':
           ctx.beginPath();
@@ -510,7 +511,7 @@
           ctx.lineWidth = 2;
           ctx.stroke();
           break;
-          
+
         case 'FLAG':
           ctx.strokeStyle = COLORS.FLAG;
           ctx.lineWidth = 3;
@@ -522,7 +523,7 @@
           ctx.lineTo(cx - 6, cy + 6);
           ctx.stroke();
           break;
-          
+
         case 'GUESS':
           ctx.font = 'bold 14px sans-serif';
           ctx.textAlign = 'center';
@@ -534,7 +535,7 @@
           ctx.fillText('?', cx, cy);
           break;
       }
-      
+
       ctx.restore();
     });
   }
@@ -544,32 +545,32 @@
     if (!data || !data.cells) return;
 
     const ctx = state.ctx;
-    
+
     data.cells.forEach(cell => {
       // Utiliser le STRIDE réel calculé dynamiquement
       const stride = CONFIG.REAL_STRIDE || CONFIG.STRIDE;
       const cellSize = CONFIG.REAL_CELL_SIZE || CONFIG.CELL_SIZE;
-      
+
       // Calculer position avec offset de l'anchor
       const x = cell.col * stride + CONFIG.ANCHOR_OFFSET_X;
       const y = cell.row * stride + CONFIG.ANCHOR_OFFSET_Y;
-      
+
       // Skip si hors du viewport
-      if (x + stride < 0 || y + stride < 0 || 
-          x > state.canvas.width || y > state.canvas.height) {
+      if (x + stride < 0 || y + stride < 0 ||
+        x > state.canvas.width || y > state.canvas.height) {
         return;
       }
-      
+
       const prob = cell.probability;
-      
+
       // Gradient rouge (100% mine) -> vert (0% mine)
       const r = Math.round(255 * prob);
       const g = Math.round(255 * (1 - prob));
       const color = `rgba(${r}, ${g}, 0, 0.6)`;
-      
+
       ctx.fillStyle = color;
       ctx.fillRect(x, y, cellSize, cellSize);
-      
+
       // Afficher le % si > 0 et < 100
       if (prob > 0.01 && prob < 0.99) {
         ctx.font = 'bold 9px sans-serif';
@@ -585,11 +586,11 @@
   function toggleBot() {
     state.botRunning = !state.botRunning;
     updateBotButtons();
-    
+
     const message = state.botRunning ? 'Bot démarré' : 'Bot en pause';
     const type = state.botRunning ? 'success' : 'warning';
     showToast(message, type);
-    
+
     // Émettre un événement custom pour Python
     const event = state.botRunning ? 'botui:start' : 'botui:pause';
     window.dispatchEvent(new CustomEvent(event));
@@ -597,23 +598,23 @@
 
   function restartGame() {
     showToast('Redémarrage de la partie...', 'info');
-    
+
     // Flag pour que Python puisse le détecter
     window.__botui_restart_requested = true;
     window.__botui_auto_restart = true;  // Indique qu'il faut auto-relancer comme 'y'
-    
+
     // Émettre un événement custom pour Python
     window.dispatchEvent(new CustomEvent('botui:restart'));
   }
 
   function updateBotButtons() {
     const toggleBtn = document.getElementById('bot-toggle');
-    
+
     if (toggleBtn) {
       const label = state.botRunning ? '⏸ Pause' : '▶ Start';
       const span = toggleBtn.querySelector('span:first-child');
       if (span) span.textContent = label;
-      
+
       toggleBtn.style.background = state.botRunning ? COLORS.BUTTON_ACTIVE : 'transparent';
     }
   }
@@ -632,7 +633,7 @@
     document.addEventListener('keydown', (e) => {
       // Ignorer si focus sur un input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      
+
       switch (e.key) {
         case 'F5':
           e.preventDefault();
@@ -691,7 +692,7 @@
       pointer-events: auto;
     `;
     toast.textContent = message;
-    
+
     // Animation CSS
     const style = document.createElement('style');
     style.textContent = `
@@ -718,13 +719,13 @@
   // === DESTRUCTION ===
   function destroy() {
     console.log('[BotUI] Destruction...');
-    
+
     stopRenderLoop();
-    
+
     if (state.container) {
       state.container.remove();
     }
-    
+
     state.initialized = false;
     state.container = null;
     state.canvas = null;

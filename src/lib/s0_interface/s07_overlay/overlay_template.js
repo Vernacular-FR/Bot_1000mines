@@ -5,7 +5,7 @@
  * API exposée via window.BotOverlay
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Configuration
@@ -24,13 +24,13 @@
     PROCESSED: 'rgba(255, 255, 0, 0.3)',       // Jaune transparent
     TO_REDUCE: 'rgba(0, 120, 255, 0.4)',       // Bleu
     REDUCED: 'rgba(0, 180, 255, 0.3)',         // Bleu clair transparent
-    
+
     // Statuts
     ACTIVE: 'rgba(0, 120, 255, 0.4)',
     FRONTIER: 'rgba(255, 165, 0, 0.4)',
     SOLVED: 'rgba(0, 255, 0, 0.2)',
     MINE: 'rgba(255, 0, 0, 0.4)',
-    
+
     // Actions
     SAFE: 'rgba(0, 255, 0, 0.8)',
     FLAG: 'rgba(255, 0, 0, 0.8)',
@@ -57,7 +57,7 @@
    */
   function init() {
     console.log('[BotOverlay] Initialisation...');
-    
+
     // Trouver l'élément anchor
     state.anchorElement = document.getElementById('anchor');
     if (!state.anchorElement) {
@@ -67,10 +67,10 @@
 
     // Créer la structure HTML
     createOverlayStructure();
-    
+
     // Démarrer la synchronisation
     startSyncLoop();
-    
+
     console.log('[BotOverlay] Initialisé avec succès');
     return true;
   }
@@ -207,14 +207,14 @@
    */
   function setOverlay(overlayId) {
     console.log(`[BotOverlay] Changement vers: ${overlayId}`);
-    
+
     state.currentOverlay = overlayId;
-    
+
     // Mettre à jour l'apparence des boutons
     document.querySelectorAll('[data-overlay]').forEach(btn => {
       const isActive = btn.dataset.overlay === overlayId;
-      btn.style.background = isActive 
-        ? 'rgba(255, 255, 255, 0.15)' 
+      btn.style.background = isActive
+        ? 'rgba(255, 255, 255, 0.15)'
         : 'transparent';
       btn.style.borderColor = isActive
         ? 'rgba(255, 255, 255, 0.4)'
@@ -230,7 +230,7 @@
    */
   function updateData(overlayType, data) {
     state.data[overlayType] = data;
-    
+
     // Rafraîchir si c'est l'overlay actif
     if (state.currentOverlay === overlayType) {
       render();
@@ -250,7 +250,7 @@
     // Appliquer la transformation
     state.svgElement.style.transform = transform;
     state.svgElement.style.transformOrigin = 'top left';
-    
+
     // Ajuster la position pour tenir compte du viewport offset
     state.svgElement.style.left = `${bounds.left}px`;
     state.svgElement.style.top = `${bounds.top}px`;
@@ -317,19 +317,19 @@
     if (!data || !data.cells) return;
 
     const container = document.getElementById('overlay-zones');
-    
+
     data.cells.forEach(cell => {
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      
+
       // Calcul position écran
       const x = cell.col * CONFIG.CELL_SIZE;
       const y = cell.row * CONFIG.CELL_SIZE;
-      
+
       // Couleur selon focus level
-      const color = cell.focus_level === 'TO_PROCESS' 
-        ? COLORS.TO_PROCESS 
+      const color = cell.focus_level === 'TO_PROCESS'
+        ? COLORS.TO_PROCESS
         : COLORS.PROCESSED;
-      
+
       rect.setAttribute('x', x);
       rect.setAttribute('y', y);
       rect.setAttribute('width', CONFIG.CELL_SIZE);
@@ -337,7 +337,7 @@
       rect.setAttribute('fill', color);
       rect.setAttribute('stroke', 'rgba(255, 165, 0, 0.8)');
       rect.setAttribute('stroke-width', '1');
-      
+
       container.appendChild(rect);
     });
   }
@@ -350,11 +350,11 @@
     if (!data || !data.actions) return;
 
     const container = document.getElementById('overlay-actions');
-    
+
     data.actions.forEach(action => {
       const x = action.col * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
       const y = action.row * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
-      
+
       // Symbole selon type d'action
       switch (action.type) {
         case 'SAFE':
@@ -378,16 +378,17 @@
     if (!data || !data.cells) return;
 
     const container = document.getElementById('overlay-zones');
-    
+
     data.cells.forEach(cell => {
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      
+
       const x = cell.col * CONFIG.CELL_SIZE;
       const y = cell.row * CONFIG.CELL_SIZE;
-      
+
       // Couleur selon statut
-      const color = COLORS[cell.status] || 'rgba(128, 128, 128, 0.2)';
-      
+      if (cell.status === 'UNREVEALED') return;
+      const color = COLORS[cell.status] || 'rgba(0, 0, 0, 0)';
+
       rect.setAttribute('x', x);
       rect.setAttribute('y', y);
       rect.setAttribute('width', CONFIG.CELL_SIZE);
@@ -395,7 +396,7 @@
       rect.setAttribute('fill', color);
       rect.setAttribute('stroke', 'rgba(255, 255, 255, 0.3)');
       rect.setAttribute('stroke-width', '0.5');
-      
+
       container.appendChild(rect);
     });
   }
@@ -426,7 +427,7 @@
     line1.setAttribute('stroke', color);
     line1.setAttribute('stroke-width', '3');
     line1.setAttribute('stroke-linecap', 'round');
-    
+
     const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line2.setAttribute('x1', cx + size);
     line2.setAttribute('y1', cy - size);
@@ -435,7 +436,7 @@
     line2.setAttribute('stroke', color);
     line2.setAttribute('stroke-width', '3');
     line2.setAttribute('stroke-linecap', 'round');
-    
+
     container.appendChild(line1);
     container.appendChild(line2);
   }
@@ -463,13 +464,13 @@
    */
   function destroy() {
     console.log('[BotOverlay] Destruction...');
-    
+
     stopSyncLoop();
-    
+
     if (state.overlayContainer) {
       state.overlayContainer.remove();
     }
-    
+
     // Reset state
     Object.keys(state).forEach(key => {
       state[key] = null;
