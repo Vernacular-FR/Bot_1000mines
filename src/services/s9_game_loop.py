@@ -157,6 +157,7 @@ def run_iteration(
                 metadata={"game_over": True}
             )
 
+        print(f"[DEBUG] Calling planner with iteration={iteration}")
         execution_plan = plan(
             input=PlannerInput(
                 actions=solver_output.actions,

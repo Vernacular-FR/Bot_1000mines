@@ -73,6 +73,7 @@ def plan(
     
     current_lives = input.game_info.lives if input.game_info else 3
     iteration = input.iteration
+    print(f"[DEBUG] Planner received iteration={iteration}")
     
     # SCENARIO 1: PRUDENT (Début de partie)
     # On ne joue que les coups sûrs. Pas de guess du solver. Exploration lointaine si bloqué.
@@ -131,7 +132,16 @@ def plan(
     # On explore si on est bloqué (is_exploring) OU si on a forcé l'exploration
     # MAIS on n'explore PAS si on a déjà exécuté des actions (sauf si force_exploration est True)
     has_acted = len(planned_actions) > 0
-    should_explore = (input.is_exploring and not has_acted) or input.force_exploration
+    
+    # [NOUVEAU] Chance de 1/3 d'exploration proactive en mode AGGRESSIVE
+    import random
+    proactive_exploration = False
+    if scenario == "AGGRESSIVE" and current_lives > 1:
+        if random.random() < 0.33:
+            print(f"[PLANNER] AGGRESSIVE: Proactive exploration triggered (1/3 chance, lives={current_lives})")
+            proactive_exploration = True
+
+    should_explore = (input.is_exploring and not has_acted) or input.force_exploration or proactive_exploration
     
     if should_explore and input.snapshot:
         from .exploration import find_exploration_candidates, select_exploration_action
