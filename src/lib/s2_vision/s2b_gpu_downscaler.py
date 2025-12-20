@@ -145,32 +145,46 @@ class GPUDownscaler:
         """
         Downscale CPU pre-screening (fallback optimisé).
         
-        Stratégie : Échantillonnage 1 pixel par cellule (centre)
-        Détecte cellules blanches uniformes rapidement
+        Stratégie : Échantillonnage multi-points par cellule (centre + bords)
+        Détecte cellules blanches UNIFORMES - rejette les mines (centre blanc, bords noirs)
         """
         start_x, start_y = grid_top_left
         cols, rows = grid_size
         unrevealed_cells = set()
 
-        # Échantillonner seulement le centre de chaque cellule (12, 12)
-        center_x, center_y = 12, 12
+        # Points d'échantillonnage : centre + 4 bords (évite les coins qui ont des bordures)
+        sample_points = [
+            (12, 12),  # Centre
+            (6, 12),   # Gauche
+            (18, 12),  # Droite
+            (12, 6),   # Haut
+            (12, 18),  # Bas
+        ]
 
-        # Vectoriser l'accès aux pixels
         for row in range(rows):
             for col in range(cols):
-                x0 = start_x + col * stride + center_x
-                y0 = start_y + row * stride + center_y
+                # Vérifier tous les points d'échantillonnage
+                all_white = True
+                for offset_x, offset_y in sample_points:
+                    x0 = start_x + col * stride + offset_x
+                    y0 = start_y + row * stride + offset_y
 
-                # Vérifier si cellule hors limites
-                if y0 >= image_np.shape[0] or x0 >= image_np.shape[1]:
-                    continue
+                    # Vérifier si pixel hors limites
+                    if y0 >= image_np.shape[0] or x0 >= image_np.shape[1]:
+                        all_white = False
+                        break
 
-                # Échantillonner 1 pixel (centre)
-                pixel = image_np[y0, x0]
-                mean_val = pixel.mean()  # Moyenne RGB
+                    # Échantillonner le pixel
+                    pixel = image_np[y0, x0]
+                    mean_val = pixel.mean()  # Moyenne RGB
 
-                # Si très blanc → UNREVEALED probable
-                if mean_val >= 230.0:
+                    # Si pas blanc (< 230) → pas unrevealed
+                    if mean_val < 230.0:
+                        all_white = False
+                        break
+
+                # Seulement si TOUS les points sont blancs → UNREVEALED
+                if all_white:
                     unrevealed_cells.add((row, col))
 
         return unrevealed_cells

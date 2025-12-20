@@ -84,18 +84,18 @@ def plan(
         exploration_max_dist = 10
         
     # SCENARIO 3: DESPERATE (Fin de partie / 1 vie restante)
-    # On joue tout ce qu'on a. Guesses du solver acceptés. Exploration proche.
+    # On joue tout ce qu'on a. GUESS désactivés (exploration contrôlée à la place). Exploration proche.
     elif current_lives <= 1:
         scenario = "DESPERATE"
-        allow_solver_guesses = True
+        allow_solver_guesses = False
         exploration_min_dist = 0
         exploration_max_dist = 5
         
     # SCENARIO 2: AGGRESSIVE (Milieu de partie)
-    # On a des vies, on avance. Guesses du solver acceptés. Exploration moyenne.
+    # On a des vies, on avance. GUESS désactivés (exploration contrôlée à la place). Exploration moyenne.
     else:
         scenario = "AGGRESSIVE"
-        allow_solver_guesses = True
+        allow_solver_guesses = False
         exploration_min_dist = 2
         exploration_max_dist = 8
 
@@ -142,6 +142,20 @@ def plan(
             proactive_exploration = True
 
     should_explore = (input.is_exploring and not has_acted) or input.force_exploration or proactive_exploration
+    
+    # Check auto_exploration flag - si False, on ne fait JAMAIS d'exploration
+    if not input.auto_exploration:
+        if should_explore:
+            print("[PLANNER] Auto-exploration désactivée - exploration bloquée")
+        if not has_acted:
+            print("[PLANNER] Auto-exploration désactivée - pas d'actions safe disponibles - pause requise")
+            return ExecutionPlan(actions=[], estimated_time=0.0, post_delay=0.0)
+        # On retourne les actions déjà exécutées (flags/safes) sans exploration
+        return ExecutionPlan(
+            actions=planned_actions,
+            estimated_time=len(planned_actions) * 0.5,
+            post_delay=0.0
+        )
     
     if should_explore and input.snapshot:
         from .exploration import find_exploration_candidates, select_exploration_action

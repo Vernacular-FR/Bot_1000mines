@@ -117,3 +117,14 @@ oui parce que il y avait déjà eu une versio..une.. bon qu'on va pas... hin, ju
 
 
 j'ai des apels dans tous les sens, avec chque fonction qui change des status de ci de status de là ... donc on rassemble tout dans un petit module avec sont propre controller en focntion de la situaiont et ... et ça m'a pris deux jours j'ai presque tout refait, c'étati horrible. 
+
+
+
+
+j'y ait passé 3 semines, j'ai réécrit l'entiereté du code 4 fois, je me rend compt à la fin queje n'ai encore pas bien géré la certaines points fondementeaux, 
+je ne maitrise évdement encore pas la syntaxe python si ce n'es tpour changer des variables de sci de là ou manipuler des sets et arrays, mais je ne'arrive pas bien à gérer quand aller chercher les ressources, et quand certains appelel en écrase d'autres pourtant arrivant après. 
+
+dépendre d'un outil exterieur à soi est assez aviliscent et mon interet pour le code c'est justement de reprendre la main suir mes outils et de les améliorer... mzais il ne fu tpas dépendre de technologies aussi gourmandes et exterieur... dont on sais tres bien quelle sont purement spéculative, on va vite subir une shitification, comme pour les conducteurs uber ou pour la majorité des services one take all...  le service tourne à perte et bulle les milliards pendant des années et pui sun jour, faut rembourser et tout ceux qui on t accepté la premeire dose gratuite ont misé desus et sont à présent accros son dans la merde. 
+
+
++ je ne pensais passer tant de temps et pensais pouvoir commencer l'exploration de obsidian assez vite. 

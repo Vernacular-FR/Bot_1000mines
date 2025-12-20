@@ -187,7 +187,21 @@ class StatusAnalyzer:
         
         Reclasse uniquement les cellules ayant le status target_status.
         Préserve les statuts et focus_level des cellules déjà classées.
+        EXCEPTION: Les CONFIRMED_MINE sont TOUJOURS promues en MINE.
         """
+        updated_cells: Dict[Coord, GridCell] = {}
+        
+        # Pré-traitement : promouvoir TOUTES les CONFIRMED_MINE en solver_status=MINE
+        # Cela inclut les mines explosées des itérations précédentes
+        for coord, cell in cells.items():
+            if cell.logical_state == LogicalCellState.CONFIRMED_MINE and cell.solver_status != SolverStatus.MINE:
+                updated_cells[coord] = replace(
+                    cell,
+                    solver_status=SolverStatus.MINE,
+                    focus_level_active=None,
+                    focus_level_frontier=None
+                )
+        
         # Filtrer : reclasser uniquement les cellules cibles
         target_coords = [
             coord for coord, cell in cells.items()
@@ -195,13 +209,11 @@ class StatusAnalyzer:
         ]
         
         if not target_coords:
-            return StorageUpsert(cells={}, to_visualize=set())
+            return StorageUpsert(cells=updated_cells, to_visualize=set())
 
         # Classifier en utilisant TOUT le grid pour le contexte
         classifier = FrontierClassifier(cells)
         classification = classifier.classify(target_coords=target_coords)
-
-        updated_cells: Dict[Coord, GridCell] = {}
 
         # Promouvoir les cellules ACTIVE
         for coord in classification.active:

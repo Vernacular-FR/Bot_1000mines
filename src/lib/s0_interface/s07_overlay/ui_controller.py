@@ -26,6 +26,7 @@ class StatusCellData:
     col: int
     row: int
     status: str  # UNREVEALED, ACTIVE, FRONTIER, SOLVED, MINE, TO_VISUALIZE
+    focus_level: Optional[str] = None  # TO_REDUCE, REDUCED, TO_PROCESS, PROCESSED
 
 
 @dataclass
@@ -43,6 +44,14 @@ class ProbabilityCellData:
     col: int
     row: int
     probability: float  # 0.0 (safe) à 1.0 (mine)
+
+
+@dataclass
+class ControlState:
+    """État de contrôle du bot."""
+    bot_running: bool = False
+    auto_exploration: bool = True
+
 
 
 class UIController:
@@ -194,11 +203,15 @@ class UIController:
         """Met à jour les données de l'overlay status."""
         if not self.ensure_injected(driver):
             return False
-        
         try:
             data = {
                 'cells': [
-                    {'col': c.col, 'row': c.row, 'status': c.status}
+                    {
+                        'col': c.col, 
+                        'row': c.row, 
+                        'status': c.status,
+                        'focus_level': c.focus_level
+                    }
                     for c in cells
                 ]
             }
@@ -225,6 +238,23 @@ class UIController:
         except Exception as e:
             print(f"[UI] Erreur update_actions: {e}")
             return False
+    
+    def get_control_state(self, driver: WebDriver) -> ControlState:
+        """Récupère l'état de contrôle depuis l'UI JavaScript."""
+        if not self.ensure_injected(driver):
+            return ControlState()
+        
+        try:
+            result = driver.execute_script("return window.BotUI.getControlState();")
+            if result:
+                return ControlState(
+                    bot_running=result.get('botRunning', False),
+                    auto_exploration=result.get('autoExploration', True)
+                )
+        except Exception as e:
+            print(f"[UI] Erreur get_control_state: {e}")
+        
+        return ControlState()
     
     def update_probabilities(self, driver: WebDriver, cells: List[ProbabilityCellData]) -> bool:
         """Met à jour les données de l'overlay probabilités."""

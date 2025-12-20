@@ -1,6 +1,6 @@
 # Journal de Développement
 
-## 20 Décembre 2025 - Session Overlay UI
+## 20 Décembre 2025 - Session Overlay UI & Mines Explosées
 
 ### Objectif
 Finaliser le système d'overlay UI pour un affichage temps réel des informations du bot sur la grille de jeu.
@@ -37,6 +37,15 @@ Finaliser le système d'overlay UI pour un affichage temps réel des information
 - ✅ Couverture de toute la zone de jeu (2561×1261px)
 - ✅ Performance fluide sans décalage
 - ✅ Support des zooms et résolutions variées
+
+### Investigation : Mines explosées re-flaggées
+- Observation : Des FLAG générés sur des mines déjà explosées (itération précédente)
+- Analyse : Vision correct ↔ mais explosion hors viewport => cellule reste UNREVEALED dans le storage, le solver la re-traite
+- Décision : Documenté dans `SPECS/EXPLODED_MINES.md`
+  - Vision → CONFIRMED_MINE quand capturé
+  - Storage/Status : CONFIRMED_MINE exclu des frontiers
+  - CSP ne traite que UNREVEALED
+  - Contre-mesures : capture élargie, invalidation d’actions post-explosion, marquage manuel côté planner
 
 ### Métriques
 - Temps de développement : ~2 heures

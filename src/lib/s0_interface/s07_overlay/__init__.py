@@ -2,7 +2,6 @@
 Overlay UI pour le bot 1000mines.
 """
 
-from .overlay_injector import OverlayInjector, create_overlay_injector
 from .types import OverlayType, OverlayData, CellOverlayData, ActionOverlayData
 
 # Nouveau système UI temps réel
@@ -16,7 +15,6 @@ from .ui_controller import (
 )
 
 __all__ = [
-    'OverlayInjector',
     'OverlayType',
     'OverlayData',
     'CellOverlayData',
@@ -27,5 +25,4 @@ __all__ = [
     'ActionCellData',
     'ProbabilityCellData',
     'get_ui_controller',
-    'create_overlay_injector',
 ]

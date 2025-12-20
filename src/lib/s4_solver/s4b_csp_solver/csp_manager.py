@@ -183,6 +183,7 @@ class CspManager:
             coord for coord in frontier
             if coord in self.cells
             and self.cells[coord].logical_state == LogicalCellState.UNREVEALED
+            # and self.cells[coord].solver_status not in (SolverStatus.MINE, SolverStatus.SOLVED)
             and coord not in self.safe_cells
             and coord not in self.flag_cells
         }

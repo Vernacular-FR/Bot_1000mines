@@ -17,6 +17,16 @@ class IterativePropagator:
         self.simulated_states: Dict[Coord, LogicalCellState] = {}
         self._precompute_neighbors()
 
+        '''
+        # Pré-charger les mines déjà confirmées dans les états simulés
+        preloaded_mines = 0
+        for coord, cell in cells.items():
+            if cell.logical_state == LogicalCellState.CONFIRMED_MINE:
+                self.simulated_states[coord] = LogicalCellState.CONFIRMED_MINE
+                preloaded_mines += 1
+        print(f"[REDUCER] Pré-chargé {preloaded_mines} mines confirmées dans simulated_states")
+        '''
+
     def _precompute_neighbors(self) -> None:
         """Précalcule les voisins pour toutes les cellules."""
         for coord in self.cells:

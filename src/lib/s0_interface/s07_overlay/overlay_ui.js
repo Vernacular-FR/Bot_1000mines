@@ -23,9 +23,9 @@
   const COLORS = {
     // Solver Status (très transparent pour s'intégrer avec le fond)
     UNREVEALED: 'rgba(0, 0, 0, 0)',
-    ACTIVE: 'rgba(0, 120, 255, 0.25)',
-    FRONTIER: 'rgba(255, 165, 0, 0.25)',
-    SOLVED: 'rgba(0, 255, 0, 0.3)',
+    ACTIVE: 'rgba(8, 106, 218, 0.2)',
+    FRONTIER: 'rgba(255, 251, 0, 0.15)',
+    SOLVED: 'rgba(21, 214, 53, 0.10)',
     MINE: 'rgba(255, 0, 0, 0.4)',
     TO_VISUALIZE: 'rgba(0, 0, 0, 0,15)',
 
@@ -53,6 +53,7 @@
     currentOverlay: 'off',
     botRunning: false,
     menuCollapsed: false,
+    autoExploration: false,
 
     // Données overlay
     data: {
@@ -202,6 +203,12 @@
       { id: 'bot-restart', label: '🔄 Restart Game', shortcut: 'F6', action: () => restartGame() },
     ]));
 
+    // Checkbox: Auto-Exploration
+    content.appendChild(createCheckbox('auto-exploration', '🔍 Auto-Exploration', false, (checked) => {
+      state.autoExploration = checked;
+      syncControlState();
+    }));
+
     // Section: Overlays
     content.appendChild(createSection('Overlays', [
       { id: 'overlay-off', label: '○ Off', shortcut: '1', action: () => setOverlay('off'), active: true },
@@ -294,6 +301,51 @@
 
     return section;
   }
+
+  function createCheckbox(id, label, defaultChecked, onChange) {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      margin: 4px 0;
+      background: rgba(0,0,0,0.05);
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    `;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = id;
+    checkbox.checked = defaultChecked;
+    checkbox.style.cssText = `
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      cursor: pointer;
+    `;
+
+    const labelEl = document.createElement('label');
+    labelEl.htmlFor = id;
+    labelEl.textContent = label;
+    labelEl.style.cssText = `
+      font-size: 12px;
+      cursor: pointer;
+      flex: 1;
+    `;
+
+    checkbox.addEventListener('change', () => onChange(checkbox.checked));
+    container.onclick = () => {
+      checkbox.checked = !checkbox.checked;
+      onChange(checkbox.checked);
+    };
+
+    container.appendChild(checkbox);
+    container.appendChild(labelEl);
+    return container;
+  }
+
 
   function toggleMenuCollapse() {
     state.menuCollapsed = !state.menuCollapsed;
@@ -462,9 +514,9 @@
         return;
       }
 
-      // Couleur selon le statut
+      // Couleur selon le statut ou le focus level
       if (cell.status === 'UNREVEALED') return;
-      let color = COLORS[cell.status] || 'rgba(128,128,128,0.1)';
+      let color = COLORS[cell.focus_level] || COLORS[cell.status] || 'rgba(128,128,128,0.1)';
 
       ctx.fillStyle = color;
       ctx.fillRect(x, y, cellSize, cellSize);
@@ -734,6 +786,20 @@
     state.data = { status: null, actions: null, probabilities: null };
   }
 
+  // === CONTROL STATE ===
+  function getControlState() {
+    return {
+      botRunning: state.botRunning,
+      autoExploration: state.autoExploration,
+    };
+  }
+
+  function syncControlState() {
+    // Called when control state changes - Python reads via getControlState()
+    console.log('[BotUI] Control state synced:', getControlState());
+  }
+
+
   // === API PUBLIQUE ===
   window.BotUI = {
     init,
@@ -746,6 +812,7 @@
     showToast,
     getState: () => ({ ...state }),
     isRunning: () => state.botRunning,
+    getControlState,
   };
 
   console.log('[BotUI] Module chargé - Appeler BotUI.init() pour activer');

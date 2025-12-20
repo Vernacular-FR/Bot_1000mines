@@ -42,11 +42,19 @@ def _update_ui_overlay(session: Session, bounds, solver_output) -> None:
         status_cells = []
         for (col, row), cell in snapshot.items():
             status = cell.solver_status.name if hasattr(cell.solver_status, 'name') else str(cell.solver_status)
-            if status in ('ACTIVE', 'FRONTIER', 'TO_VISUALIZE', 'JUST_VISUALIZED', 'MINE'):
+            if status in ('ACTIVE', 'FRONTIER', 'TO_VISUALIZE', 'JUST_VISUALIZED', 'MINE', 'SOLVED'):
+                # Déterminer le focus_level à envoyer
+                focus_level = None
+                if status == 'ACTIVE':
+                    focus_level = cell.focus_level_active.name if hasattr(cell.focus_level_active, 'name') else str(cell.focus_level_active)
+                elif status == 'FRONTIER':
+                    focus_level = cell.focus_level_frontier.name if hasattr(cell.focus_level_frontier, 'name') else str(cell.focus_level_frontier)
+                
                 status_cells.append(StatusCellData(
                     col=col,  # Coordonnée absolue
                     row=row,  # Coordonnée absolue
                     status=status.replace('JUST_VISUALIZED', 'TO_VISUALIZE'),
+                    focus_level=focus_level
                 ))
         
         # Convertir actions en ActionCellData
@@ -202,6 +210,15 @@ def run_iteration(
                 metadata={"game_over": True}
             )
 
+        # 5.3 Lecture de l'état de contrôle UI
+        auto_exploration = False  # Valeur par défaut : désactivé
+        if session.ui_controller:
+            try:
+                control_state = session.ui_controller.get_control_state(session.driver)
+                auto_exploration = control_state.auto_exploration
+            except Exception as e:
+                print(f"[UI] Erreur lecture control state: {e}")
+
         execution_plan = plan(
             input=PlannerInput(
                 actions=solver_output.actions,
@@ -209,6 +226,7 @@ def run_iteration(
                 snapshot=session.storage.get_snapshot(),
                 is_exploring=session.is_exploring,
                 force_exploration=force_exploration,
+                auto_exploration=auto_exploration,
                 iteration=iteration
             ),
             converter=session.converter,
@@ -236,6 +254,26 @@ def run_iteration(
             upsert = mapper.map_actions(session.storage.get_snapshot(), solver_guesses)
             session.storage.apply_upsert(upsert)
             print(f"[STORAGE] {len(exploration_actions)} actions d'exploration ajoutées à To_visualize")
+
+        # Check if planner returned empty plan due to disabled exploration
+        if execution_plan.action_count == 0 and not auto_exploration:
+            print("[GAME] Pas d'actions - Exploration auto désactivée. Bot en pause.")
+            session.bot_running = False
+            if session.ui_controller:
+                try:
+                    session.ui_controller.show_toast(
+                        session.driver, 
+                        "⏸️ Pas d'actions safe - Exploration auto désactivée", 
+                        "warning"
+                    )
+                except Exception:
+                    pass
+            return IterationResult(
+                success=True,
+                actions_executed=0,
+                duration=time.time() - start_time,
+                metadata={"paused": True, "reason": "auto_exploration_disabled"}
+            )
 
         # Affichage du score final de l'itération
         print(f"[ITERATION {iteration+1}] Final Score: {game_info.score}")
