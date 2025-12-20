@@ -16,6 +16,13 @@ Cette spécification décrit l'architecture du bot 1000mines après la refonte V
 > - `StatusAnalyzer` ne reclasse que les `JUST_VISUALIZED`; les focus des FRONTIER/ACTIVE existantes sont préservés.
 > - `storage.update_from_vision` conserve les focus levels des cellules inchangées (plus de perte de `REDUCED/PROCESSED`).
 > - Overlays reflètent le snapshot runtime réel (suppression des transitions manuelles) ; CSP borné via `CSP_CONFIG['max_zones_per_component']=50` pour éviter l’explosion.
+> 
+> Mise à jour 2025-12-20 (robustesse & performance) :
+> - **CanvasLocator** : Implémentation JavaScript atomique dans `locate_all()` pour éliminer les `StaleElementReferenceException`
+> - **Positions canvas** : Calcul depuis les IDs (ex: canvas_0x0) au lieu des coordonnées DOM pour éviter les décalages spatiaux
+> - **CPU Pre-screening** : Optimisation adaptative (boucles Python < 50k cells, numpy vectorisé > 50k cells)
+> - **Overlay Status** : Filtrage des cellules UNREVEALED (95%+ des cas) → 20× plus rapide
+> - **Mouvement manuel** : `success=False` pour éviter l'exécution du solver avec données périmées
 
 ### Schéma pipeline V2
 

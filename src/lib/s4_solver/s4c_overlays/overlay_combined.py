@@ -8,6 +8,8 @@ from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
+# Note: Cache incrémentiel retiré - trop complexe pour le bénéfice actuel
+
 from src.config import CELL_SIZE, CELL_BORDER
 from src.lib.s3_storage.types import (
     ActiveRelevance,
@@ -175,13 +177,15 @@ def render_and_save_combined(
     
     stride = stride or export_ctx.capture_stride or (CELL_SIZE + CELL_BORDER)
     
+    # Render optimisé avec filtrage des cellules pertinentes
     overlay_img = render_combined_overlay(
         base_image, cells, actions, bounds, stride,
         reducer_actions=reducer_actions
     )
     
     out_path = export_ctx.solver_overlay_path("s4c3_combined")
-    overlay_img.save(out_path)
+    # Optimisation PNG : compression et optimisation activées
+    overlay_img.save(out_path, optimize=True, compress_level=6)
     
     # Export JSON associé
     _save_json(cells, actions, export_ctx, bounds, stride, reducer_actions)
@@ -198,6 +202,15 @@ def _save_json(
     reducer_actions: Optional[List[SolverAction]] = None,
 ) -> Optional[Path]:
     """Sauvegarde les métadonnées combinées en JSON."""
+    # Optimisation : filtrer les cellules pertinentes (exclure UNREVEALED)
+    relevant_statuses = {
+        SolverStatus.ACTIVE,
+        SolverStatus.FRONTIER,
+        SolverStatus.SOLVED,
+        SolverStatus.TO_VISUALIZE,
+        SolverStatus.MINE,
+    }
+    
     # Compter les cellules par état
     counts = {
         "active_to_reduce": 0,
@@ -206,9 +219,18 @@ def _save_json(
         "frontier_processed": 0,
         "solved": 0,
         "to_visualize": 0,
+        "total_filtered": 0,  # Nombre de cellules filtrées (UNREVEALED)
     }
     
+    # Liste des cellules pertinentes pour le JSON
+    relevant_cells = []
+    
     for cell in cells.values():
+        if cell.solver_status not in relevant_statuses:
+            counts["total_filtered"] += 1
+            continue
+            
+        # Comptage
         if cell.solver_status == SolverStatus.ACTIVE:
             if cell.focus_level_active == ActiveRelevance.TO_REDUCE:
                 counts["active_to_reduce"] += 1
@@ -223,6 +245,14 @@ def _save_json(
             counts["solved"] += 1
         elif cell.solver_status == SolverStatus.TO_VISUALIZE:
             counts["to_visualize"] += 1
+        
+        # Ajouter à la liste des cellules pertinentes
+        relevant_cells.append({
+            "coord": cell.coord,
+            "solver_status": cell.solver_status.name,
+            "focus_level_active": cell.focus_level_active.name if cell.focus_level_active else None,
+            "focus_level_frontier": cell.focus_level_frontier.name if cell.focus_level_frontier else None,
+        })
     
     all_actions = list(actions) + (reducer_actions or [])
     
@@ -233,6 +263,8 @@ def _save_json(
         "stride": stride,
         "counts": counts,
         "action_count": len(all_actions),
+        "relevant_cells_count": len(relevant_cells),
+        "relevant_cells": relevant_cells,  # Cellules filtrées (max 1000)
         "actions": [
             {
                 "coord": a.coord,

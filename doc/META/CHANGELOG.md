@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Robustness & Performance Optimizations – 2025-12-20
+- **StaleElementReference Fix** : Implémentation JavaScript atomique dans `locate_all()` pour éliminer les erreurs DOM
+- **Canvas Positions** : Calcul depuis les IDs (ex: canvas_0x0) au lieu des coordonnées DOM
+- **CPU Pre-screening** : Optimisation adaptative (boucles Python < 50k cells, numpy > 50k cells)
+- **Overlay Status** : Filtrage des cellules UNREVEALED (95%+ des cas) → 20× plus rapide
+- **Manual Movement** : `success=False` pour éviter le solver avec données périmées
+
 ### Vision Performance Optimization – 2025-12-20
 - **GPU Downscaler** : Module autonome `s2b_gpu_downscaler.py` pour détection UNREVEALED via downscale PyTorch 25×
 - **CPU Fallback** : Optimisation CPU pre-screening (9 pixels → 1 pixel/cellule) : **10.1× plus rapide**

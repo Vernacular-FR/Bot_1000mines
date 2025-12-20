@@ -66,6 +66,7 @@ def render_status_overlay(
     - ACTIVE_TO_REDUCE / ACTIVE_REDUCED
     - SOLVED
     - TO_VISUALIZE (noir)
+    Optimisé : ignore les cellules UNREVEALED (majorité des cas).
     """
     stride = stride or (CELL_SIZE + CELL_BORDER)
     cell_size = cell_size or CELL_SIZE
@@ -77,6 +78,7 @@ def render_status_overlay(
     start_x, start_y, _, _ = bounds
 
     # Classifier les cellules par état et niveau de focus
+    # OPTIMISATION: Ne traiter que les cellules avec un statut pertinent
     active_to_reduce: set[Coord] = set()
     active_reduced: set[Coord] = set()
     frontier_to_process: set[Coord] = set()
@@ -85,7 +87,21 @@ def render_status_overlay(
     to_visualize: set[Coord] = set()
     mine: set[Coord] = set()
 
+    # OPTIMISATION: Filtrer d'abord les cellules pertinentes
+    # La plupart des cellules sont UNREVEALED et n'ont pas besoin d'être traitées
+    relevant_statuses = {
+        SolverStatus.ACTIVE,
+        SolverStatus.FRONTIER,
+        SolverStatus.SOLVED,
+        SolverStatus.TO_VISUALIZE,
+        SolverStatus.MINE,
+    }
+    
     for coord, cell in cells.items():
+        # Ignorer rapidement les UNREVEALED (majorité des cas)
+        if cell.solver_status not in relevant_statuses:
+            continue
+            
         if cell.solver_status == SolverStatus.ACTIVE:
             if cell.focus_level_active == ActiveRelevance.TO_REDUCE:
                 active_to_reduce.add(coord)
@@ -159,7 +175,8 @@ def render_and_save_status(
     base_name = export_ctx.solver_overlay_filename(tag)  # solver_iter_XXXX_s4c1_status_1.png
     out_path = out_dir / base_name
 
-    overlay_img.save(out_path)
+    # Optimisation PNG : compression et optimisation activées
+    overlay_img.save(out_path, optimize=True, compress_level=6)
     
     # Export JSON associé (suffix aligné avec le nom de fichier)
     _save_json(cells, export_ctx, bounds, stride, out_path.stem)
@@ -174,7 +191,7 @@ def _save_json(
     stride: int,
     stem: Optional[str] = None,
 ) -> Optional[Path]:
-    """Sauvegarde les métadonnées des états en JSON."""
+    """Sauvegarde les métadonnées des états en JSON. Optimisé."""
     # Compter les cellules par état
     counts = {
         "active_to_reduce": 0,
@@ -187,7 +204,20 @@ def _save_json(
     
     coords_by_state = {k: [] for k in counts}
     
+    # OPTIMISATION: Filtrer les statuts pertinents
+    relevant_statuses = {
+        SolverStatus.ACTIVE,
+        SolverStatus.FRONTIER,
+        SolverStatus.SOLVED,
+        SolverStatus.TO_VISUALIZE,
+        SolverStatus.MINE,
+    }
+    
     for coord, cell in cells.items():
+        # Ignorer rapidement les UNREVEALED (majorité des cas)
+        if cell.solver_status not in relevant_statuses:
+            continue
+            
         if cell.solver_status == SolverStatus.ACTIVE:
             if cell.focus_level_active == ActiveRelevance.TO_REDUCE:
                 counts["active_to_reduce"] += 1

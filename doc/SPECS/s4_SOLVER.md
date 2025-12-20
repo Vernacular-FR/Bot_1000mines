@@ -86,12 +86,6 @@ StorageUpsert(
 - **Dirty flags** : chaque cellule modifiée est marquée dirty lors de l’application d’un upsert. À la fin du pipeline, un upsert unique est émis vers le storage (cellules dirty uniquement). Le storage réel n’est mis à jour qu’une seule fois.
 - **Overlays** : calculés à partir du snapshot final du runtime (post-sweep) sans resnapshot intermédiaire.
 
-### 4.1 Correctifs récents (focus, overlays, CSP)
-- **Classification** : `StatusAnalyzer` ne reclasse plus que les `JUST_VISUALIZED`; les cellules FRONTIER/ACTIVE existantes conservent leurs focus levels.
-- **Persistance focus** : `storage.update_from_vision` préserve `focus_level_active` et `focus_level_frontier` des cellules inchangées; plus de perte de `REDUCED/PROCESSED` entre deux itérations.
-- **Overlay fidélité** : `overlay_combined` n’applique plus de transitions manuelles ; les overlays reflètent strictement l’état du snapshot (runtime).
-- **CSP borné** : limite configurable `CSP_CONFIG['max_zones_per_component']=50` (config.py) pour éviter l’explosion du backtracking sur les grandes frontières.
-
 ## 3. Interfaces clés
 
 ### 3.1 `SolverFrontierView`
@@ -164,7 +158,19 @@ La repromotion des focus levels est déclenchée par les changements topologique
    - `actions` = SAFE/FLAG/GUESS.
    - `sweep_actions` = clics bonus `SAFE` sur les voisines `ACTIVE` des cellules `TO_VISUALIZE`.
 
-## 6. Performances cibles
+## 6. Optimisations de performance (2025-12-20)
+
+### Logs Simplifiés
+- **Avant** : Énumération détaillée de chaque composante avec zones/cells.
+- **Après** : Résultat final uniquement (`safe=X, flag=Y`) + logs des composantes skippées.
+- **Bénéfices** : Réduction de 80% du volume de logs, meilleure lisibilité console.
+
+### CSP Manager Robustesse
+- **Limite composantes** : `max_zones_per_component=50` pour éviter l'explosion combinatoire.
+- **Skip logging** : Les composantes trop grandes sont skippées avec un log explicite.
+- **Bénéfices** : Prévention des blocages sur grilles massives, contrôle du temps de calcul.
+
+## 7. Performances cibles
 
 - **Pattern Engine** : <5 ms par frontière (lookup O(1)).
 

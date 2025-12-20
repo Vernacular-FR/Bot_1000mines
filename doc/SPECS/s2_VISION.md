@@ -165,12 +165,27 @@ class MatchResult:
   - Inspecter `temp/games/{id}/s2_vision/full_grid_*_overlay.png`.
   - Vérifier les logs `[VISION]` dans `bot_1000mines.py`.
 
-## 8. Roadmap / Extensions
+## 8. Optimisations de performance (2025-12-20)
+
+### CPU Pre-screening Adaptatif
+- **Module** : `s2b_gpu_downscaler.py` avec fallback CPU optimisé.
+- **Stratégie** : Sélection automatique selon la taille de la grille :
+  - **< 50k cellules** : Boucles Python optimisées (3 points d'échantillonnage)
+  - **≥ 50k cellules** : Vectorisation NumPy (1 point par cellule)
+- **Performance** : 10× plus rapide pour les grandes grilles (3534ms → 349ms pour 103918 cellules)
+- **Logs** : `[VISION_PERF]` affiche les temps par phase (GPU/CPU/cellule)
+
+### Overlay Status Optimisé
+- **Problème** : L'overlay itérait sur 100k+ cellules dont 95%+ étaient UNREVEALED.
+- **Solution** : Filtrage préalable des statuts pertinents (ACTIVE/FRONTIER/SOLVED/MINE/TO_VISUALIZE).
+- **Gain** : ~20× plus rapide pour la génération d'overlay sur grandes grilles.
+
+## 9. Roadmap / Extensions
 
 - **Anneau exploded amélioré** : heuristique couleur 6–8 px autour du centre (pré-filtre).
 - **Overlay JSON** : export des distances pour chaque symbole (à destination du solver).
-- **CNN local (optionnel)** : module annexe pour cas bruités, branché derrière l’API actuelle.
-- **Migration extension** : `VisionController` restera inchangé si l’image provient d’un content-script; seul `VisionRequest` changera sa source.
+- **CNN local (optionnel)** : module annexe pour cas bruités, branché derrière l'API actuelle.
+- **Migration extension** : `VisionController` restera inchangé si l'image provient d'un content-script; seul `VisionRequest` changera sa source.
 
 ---
 

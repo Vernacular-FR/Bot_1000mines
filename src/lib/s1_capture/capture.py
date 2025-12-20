@@ -116,30 +116,51 @@ def _compose_aligned_grid(
     """
     Assemble les tuiles canvas en un composite aligné sur les cellules Minesweeper,
     et calcule les bornes de grille couvertes.
+    Utilise les IDs des canvas pour calculer les positions exactes (pas de coordonnées DOM).
     """
     if save and save_dir:
         save_dir.mkdir(parents=True, exist_ok=True)
 
-    min_left = min(item.metadata["canvas_info"].relative_left for item in captures)
-    min_top = min(item.metadata["canvas_info"].relative_top for item in captures)
-    max_right = max(
-        item.metadata["canvas_info"].relative_left + item.metadata["canvas_info"].width
-        for item in captures
-    )
-    max_bottom = max(
-        item.metadata["canvas_info"].relative_top + item.metadata["canvas_info"].height
-        for item in captures
-    )
+    # Extraire les coordonnées des canvas depuis leurs IDs
+    canvas_coords = []
+    for item in captures:
+        canvas_id = item.metadata["canvas_info"].id
+        # Parser l'ID du canvas (ex: "canvas_0x0" -> x=0, y=0)
+        import re
+        match = re.search(r'(?P<x>-?\d+)x(?P<y>-?\d+)', canvas_id)
+        if match:
+            x = int(match.group('x'))
+            y = int(match.group('y'))
+            canvas_coords.append((x, y))
+    
+    # Calculer les bornes en pixels à partir des IDs (chaque canvas fait 512x512)
+    min_x = min(x for x, y in canvas_coords)
+    min_y = min(y for x, y in canvas_coords)
+    max_x = max(x for x, y in canvas_coords)
+    max_y = max(y for x, y in canvas_coords)
+    
+    # Convertir en positions pixels
+    CANVAS_SIZE = 512
+    min_left = min_x * CANVAS_SIZE
+    min_top = min_y * CANVAS_SIZE
+    max_right = (max_x + 1) * CANVAS_SIZE
+    max_bottom = (max_y + 1) * CANVAS_SIZE
 
     width = int(math.ceil(max_right - min_left))
     height = int(math.ceil(max_bottom - min_top))
     composite = Image.new("RGB", (width, height), "white")
 
     for item in captures:
-        desc = item.metadata["canvas_info"]
-        offset_x = int(round(desc.relative_left - min_left))
-        offset_y = int(round(desc.relative_top - min_top))
-        composite.paste(item.image, (offset_x, offset_y))
+        # Calculer la position depuis l'ID du canvas
+        canvas_id = item.metadata["canvas_info"].id
+        match = re.search(r'(?P<x>-?\d+)x(?P<y>-?\d+)', canvas_id)
+        if match:
+            canvas_x = int(match.group('x'))
+            canvas_y = int(match.group('y'))
+            # Position dans le composite basée sur l'ID
+            offset_x = (canvas_x - min_x) * CANVAS_SIZE
+            offset_y = (canvas_y - min_y) * CANVAS_SIZE
+            composite.paste(item.image, (offset_x, offset_y))
 
     ref_x, ref_y = grid_reference
     cell_ref_x = ref_x + 1

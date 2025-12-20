@@ -4,15 +4,7 @@ description: Vue d’ensemble du pipeline V2 (s0 → s6)
 
 # PIPELINE – Vue d’ensemble (V2)
 
-> Mise à jour 2025-12-21 (solver/runtime) :
-> - Snapshot runtime unique (mutable + dirty flags) ; écrit dans le storage seulement en fin de pipeline.
-> - Reclassement limité aux `JUST_VISUALIZED` pour préserver les focus existants.
-> - Focus levels conservés lors des mises à jour vision ; overlays fidèles au snapshot (plus de transitions manuelles).
-> - CSP borné (`CSP_CONFIG['max_zones_per_component']=50`) pour éviter l’explosion sur grandes composantes.
-
 Ce document décrit le pipeline d’exécution du bot, sous une forme alignée sur les plans modules (Mission → Architecture → API → Flux → Plan → KPIs → Références).
-
-Le bot suit une chaîne séquentielle s0→s6. Chaque couche consomme les artefacts de la précédente et produit les siens :
 
 ## 1. Mission
 

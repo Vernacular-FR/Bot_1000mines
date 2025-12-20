@@ -1,6 +1,7 @@
 """Localisation des canvas (512×512) autour de #anchor."""
 
 import re
+import time
 from typing import List, Tuple, Optional, Dict
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -104,13 +105,80 @@ class CanvasLocator:
         """Retourne la liste de tous les canvas présents sous #anchor (cached)."""
         self._require_driver()
         if self._descriptors_cache is None:
-            anchor_rect = self._get_anchor_rect()
-            canvases = self.driver.find_elements(
-                By.CSS_SELECTOR, f"{self.anchor_selector} {self.canvas_selector}"
-            )
-            self._descriptors_cache = [
-                self._build_canvas_info(canvas, anchor_rect) for canvas in canvases
-            ]
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    # Utiliser JavaScript pour récupérer toutes les infos en un seul appel atomique
+                    script = f"""
+                    var anchor = document.querySelector("{self.anchor_selector}");
+                    if (!anchor) return null;
+                    
+                    var canvases = anchor.querySelectorAll("{self.canvas_selector}");
+                    var results = [];
+                    
+                    for (var i = 0; i < canvases.length; i++) {{
+                        var canvas = canvases[i];
+                        var rect = canvas.getBoundingClientRect();
+                        var anchorRect = anchor.getBoundingClientRect();
+                        
+                        results.push({{
+                            id: canvas.id,
+                            relative_left: rect.left - anchorRect.left,
+                            relative_top: rect.top - anchorRect.top,
+                            width: rect.width,
+                            height: rect.height
+                        }});
+                    }}
+                    
+                    return results;
+                    """
+                    
+                    # Exécuter le script JavaScript
+                    canvas_data = self.driver.execute_script(script)
+                    
+                    if canvas_data is None:
+                        raise RuntimeError("Anchor element not found")
+                    
+                    # Convertir les données en CanvasInfo
+                    self._descriptors_cache = []
+                    for data in canvas_data:
+                        # Parser les coordonnées tile depuis l'ID du canvas
+                        match = self.TILE_ID_PATTERN.search(data['id'])
+                        if match:
+                            tile_x = int(match.group('x'))
+                            tile_y = int(match.group('y'))
+                            tile = (tile_x, tile_y)
+                        else:
+                            tile = (None, None)
+                        
+                        # Calculer screen_left/top en utilisant l'anchor
+                        anchor_rect = self._get_anchor_rect()
+                        screen_left = anchor_rect['left'] + data['relative_left']
+                        screen_top = anchor_rect['top'] + data['relative_top']
+                        
+                        canvas_info = CanvasInfo(
+                            id=data['id'],
+                            tile=tile,
+                            screen_left=screen_left,
+                            screen_top=screen_top,
+                            width=data['width'],
+                            height=data['height'],
+                            relative_left=data['relative_left'],
+                            relative_top=data['relative_top']
+                        )
+                        self._descriptors_cache.append(canvas_info)
+                    
+                    return self._descriptors_cache
+                    
+                except Exception as e:
+                    if "stale element" in str(e).lower() and attempt < max_retries - 1:
+                        print(f"[CANVAS] StaleElementReference, retry {attempt + 1}/{max_retries}")
+                        # Rafraîchir le cache et réessayer
+                        self._anchor_rect_cache = None
+                        time.sleep(0.1)  # Petit délai pour laisser le DOM se stabiliser
+                        continue
+                    else:
+                        raise
         return self._descriptors_cache
 
     def find_canvas_for_point(self, relative_x: float, relative_y: float) -> Optional[CanvasInfo]:

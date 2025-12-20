@@ -13,7 +13,7 @@
     CELL_SIZE: 24,
     CELL_BORDER: 1,
     STRIDE: 25, // CELL_SIZE + CELL_BORDER (doit matcher avec config.py)
-    UPDATE_INTERVAL: 16, // ~60 FPS
+    UPDATE_INTERVAL: 33, // ~30 FPS (optimisation performance)
     Z_INDEX_OVERLAY: 9998,
     Z_INDEX_MENU: 9999,
     Z_INDEX_TOAST: 10000,
@@ -385,8 +385,15 @@
 
   // === RENDU ===
   function startRenderLoop() {
-    function loop() {
-      syncWithAnchor();
+    let lastTime = 0;
+    function loop(timestamp) {
+      // Optimisation : limiter à 30 FPS et ne tourner que si overlay actif
+      if (state.currentOverlay !== 'off') {
+        if (timestamp - lastTime >= CONFIG.UPDATE_INTERVAL) {
+          syncWithAnchor();
+          lastTime = timestamp;
+        }
+      }
       state.animationFrame = requestAnimationFrame(loop);
     }
     loop();
@@ -473,8 +480,11 @@
   function render() {
     if (!state.ctx || !state.canvas.width) return;
 
-    // Clear
+    // Clear le canvas (même si off pour effacer l'overlay)
     state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+    
+    // Early return si overlay désactivé
+    if (state.currentOverlay === 'off') return;
 
     // Render selon l'overlay actif
     switch (state.currentOverlay) {

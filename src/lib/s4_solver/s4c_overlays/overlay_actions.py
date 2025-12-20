@@ -202,7 +202,8 @@ def render_and_save_actions(
     )
     
     out_path = export_ctx.solver_overlay_path("s4c2_actions")
-    overlay_img.save(out_path)
+    # Optimisation PNG : compression et optimisation activées
+    overlay_img.save(out_path, optimize=True, compress_level=6)
     
     # Export JSON associé
     _save_json(actions, export_ctx, bounds, stride, reducer_actions)

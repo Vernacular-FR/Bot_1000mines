@@ -312,14 +312,7 @@ def run_iteration(
             },
         )
 
-    except StaleElementReferenceException:
-        print("[WARNING] Viewport instable (mouvement manuel ?), capture ignorée.")
-        return IterationResult(
-            success=True, # On considère ça comme un succès vide pour ne pas arrêter la boucle
-            actions_executed=0,
-            duration=time.time() - start_time,
-            metadata={"warning": "stale_element_reference"},
-        )
+
 
     except Exception as e:
         import traceback

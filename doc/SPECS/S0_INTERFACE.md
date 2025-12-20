@@ -70,8 +70,20 @@ InterfaceController (façade s0)
 2) s1_capture réalise la capture canvas alignée (via les méthodes `capture_*` exposées par s0).
 3) Les couches supérieures consomment l’image (s2_vision), puis gèrent storage/solver/planner.
 
-## 6. Invariants (règles à respecter)
+## 6. Optimisations de robustesse (2025-12-20)
 
-- **Façade unique** : aucune couche supérieure n’instancie directement les composants internes (BrowserManager, NavigationController, …).
+### CanvasLocator JavaScript Atomique
+- **Problème** : Les `StaleElementReferenceException` survenaient lors des zooms/dézooms car les éléments DOM devenaient invalides entre `find_elements()` et l'accès individuel.
+- **Solution** : Implémentation JavaScript atomique dans `locate_all()` qui récupère toutes les infos en un seul appel `execute_script()`.
+- **Bénéfices** : Immunité totale aux changements DOM, performance améliorée (1 appel vs N appels).
+
+### Positions Canvas depuis IDs
+- **Problème** : Les coordonnées DOM des canvas causaient des décalages spatiaux dans le composite.
+- **Solution** : Calcul des positions depuis les IDs (ex: `canvas_0x0` → position (0,0) × 512px).
+- **Bénéfices** : Alignement parfait indépendant du viewport, cohérence spatiale garantie.
+
+## 7. Invariants (règles à respecter)
+
+- **Façade unique** : aucune couche supérieure n'instancie directement les composants internes (BrowserManager, NavigationController, …).
 - **Pas de logique métier** : aucune notion de `ACTIVE`, `FRONTIER`, `FocusLevel` dans s0.
-- **Découplage** : s0 pilote le navigateur; s1 gère l’image; s2 classifie; s3 stocke; s4 décide.
+- **Découplage** : s0 pilote le navigateur; s1 gère l'image; s2 classifie; s3 stocke; s4 décide.

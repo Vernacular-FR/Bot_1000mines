@@ -1,79 +1,111 @@
 ---
-description: Spécification technique de la couche s5_actionplanner (planification et exécution d'actions)
+description: Spécification technique de la couche s5_actionplanner (planification minimale d'actions)
 ---
 
 # S05 ACTIONPLANNER – Spécification technique
 
 ## 1. Mission (ce que fait s5)
 
-s5_actionplanner transforme une liste d’actions solver (`SolverAction`) en un plan d’exécution et **l'exécute en temps-réel** via le driver Selenium.
+s5_actionplanner transforme une liste d’actions solver (`SolverAction`) en un plan d’exécution simple (`PathfinderPlan`) consommable par s6_action.
 
-Dans la version actuelle, s5 est devenu l'agent actif du bot :
-- il **ordonne** et **convertit** des actions.
-- il **calcule les coordonnées relatives** à l'anchor.
-- il **exécute** les clics via JavaScript.
-- il **surveille les vies** et gère les délais de stabilisation (2s) après une explosion.
-- il ne fait **aucun déplacement viewport** (pour l'instant).
+Dans la version actuelle, s5 est volontairement minimal :
+- il **ordonne** et **convertit** des actions
+- il ne fait **aucun raisonnement** sur l’état du jeu
+- il ne fait **aucun déplacement viewport**
 
-Justification : Centraliser l'exécution dans le planner permet une réactivité maximale (clic immédiat après déduction) et simplifie la boucle de jeu qui n'a plus à gérer les états d'explosion.
+Il consomme également `TO_VISUALIZE` (écrit par le solver) pour cadrer la re-capture.
+
+Justification : le solver doit rester un moteur de déduction (SAFE/FLAG/GUESS). Toute logique “d’exécution astucieuse” (double-clic, clics opportunistes) est concentrée ici pour éviter de dupliquer de la logique et pour garder s4 déterministe.
 
 ## 2. Contrat (entrées / sorties)
 
 ### 2.1 Entrée : `SolverAction`
 
-Type défini dans `src/lib/s4_solver/types.py` :
-- `coord: (col, row)`
-- `action: ActionType` (`FLAG`, `SAFE`, `GUESS`)
+Type défini dans `src/lib/s4_solver/facade.py` :
+- `cell: (x, y)`
+- `type: SolverActionType` (`FLAG`, `CLICK`, `GUESS`)
 - `confidence: float`
 - `reasoning: str`
 
-### 2.2 Sortie : `PlannedAction`
+### 2.2 Sortie : `PathfinderPlan`
 
-Type défini dans `src/lib/s5_planner/types.py` :
-- `coord: (col, row)`
-- `action: ActionType`
-- `screen_point: ScreenPoint` (Coordonnées relatives à l'anchor)
-- `priority: int`
+Type défini dans `src/lib/s5_actionplanner/facade.py` :
+- `actions: List[PathfinderAction]`
+- `overlay_path: Optional[str] = None`
+
+`PathfinderAction` :
+- `type: str` ("click" | "flag" | "guess")
+- `cell: (x, y)`
 - `confidence: float`
 - `reasoning: str`
 
 ### 2.3 API
 
-- `plan(input: PlannerInput, driver: WebDriver, extractor: GameInfoExtractor) -> List[PlannedAction]`
+- `ActionPlannerController.plan(actions: List[SolverAction]) -> PathfinderPlan`
 
-## 3. Règles d'exécution
+## 3. Règles actuelles (implémentation minimale)
 
-### 3.1 Ordre d’exécution (Priorités)
+### 3.1 Ordre d’exécution
 
-1. `FLAG` (Priorité 1)
-2. `SAFE` (Priorité 2)
-3. `GUESS` (Priorité 3)
+L’implémentation actuelle (`MinimalPathfinder`) applique un tri stable, et **consomme deux listes** :
+- `actions` (SAFE/FLAG/GUESS) issues du solver
+- `cleanup_actions` (bonus) issues du module cleanup
 
-### 3.2 Coordonnées Robustes (Anchor-Relative)
+Ordre d’exécution :
+1. `FLAG`
+2. `CLICK` (non-cleanup) → convertis en **double-clic**
+3. `CLICK` de cleanup (raisoning contient “cleanup”) → **simple clic**
+4. `GUESS` en dernier
 
-Les coordonnées sont calculées **relativement à l'élément `#anchor`** :
-- `rel_x = canvas_x + cell_center_offset`
-- `rel_y = canvas_y + cell_center_offset`
+Le tri est stable : l’ordre relatif d’entrée est conservé à l’intérieur de chaque catégorie.
 
-Le script JavaScript d'exécution (`actions.py`) utilise `getBoundingClientRect()` sur l'anchor au moment du clic pour retrouver la position absolue. Cela garantit la précision même si le viewport bouge pendant la rafale de clics.
+### 3.2 Conversion
 
-### 3.3 Exécution Temps-Réel et Vie
+Chaque `SolverAction` est convertie en `PathfinderAction` en conservant :
+- `cell`
+- `confidence`
+- `reasoning`
 
-Si un `driver` et un `extractor` sont fournis :
-1. Chaque action est exécutée immédiatement après sa planification.
-2. Le nombre de vies est vérifié via `extractor.get_game_info().lives`.
-3. Si une vie est perdue (explosion), le bot marque une pause de **2 secondes** pour laisser les animations se stabiliser avant de continuer ou de rendre la main.
+## 4. Invariants (ce que s5 ne doit pas faire)
 
-## 4. Invariants
+- s5 ne modifie pas la sémantique des actions : il ne fait que réordonner / convertir.
+- s5 ne crée jamais de coordonnées nouvelles.
+- s5 ne lit pas la grille : la vérité jeu (topologie, focus, etc.) vit dans s3_storage (cf `doc/SPECS/s3_STORAGE.md`).
 
-- s5 ne modifie pas la sémantique des actions : il ne fait que réordonner / convertir / exécuter.
-- s5 ne crée jamais de coordonnées nouvelles (il utilise le `converter` pour transformer la grille en relatif).
-- s5 ne lit pas la grille : la vérité jeu (topologie, focus, etc.) vit dans s3_storage.
+## 5. Intégration avec s6_action
 
-## 5. Intégration Technique
+s6 exécute les actions navigateur à partir de `PathfinderPlan.actions`.
 
-Le planner utilise directement les fonctions de `src.lib.s0_browser.actions` :
-- `click_left(driver, rel_x, rel_y)`
-- `click_right(driver, rel_x, rel_y)`
+Convention minimale :
+- `type == "flag"` déclenche un clic droit
+- sinon un clic gauche (click/guess)
 
-Il n'y a plus de module `s6_executor` séparé.
+## 6. Évolutions prévues (décisions récentes)
+
+Ces points sont des décisions de design, mais ne sont pas tous implémentés dans `MinimalPathfinder` :
+
+- **Double-clic SAFE** : traduire les `CLICK` solver en double action côté exécution (déjà implémenté).
+- **Séparation cleanup** : exécuter les `cleanup_actions` (bonus) en simple clic, hors métriques solver/CSP.
+- **Ménage local (optionnel)** : après avoir cliqué un `SAFE`, ajouter éventuellement quelques clics opportunistes sur des `ACTIVE` adjacentes pour déclencher une résolution plus loin, sans que s4 ne contienne de logique dédiée.
+- **Overlay plan** : produire un `overlay_path` (audit des actions planifiées).
+- **Options solver** : `allow_guess` et `enable_cleanup` sont pilotés en s4 ; s5 consomme simplement les deux listes d’actions (solver + cleanup) fournies.
+
+Clarification : le planner est agnostique du mode solver (réduction vs CSP). Il ne fait qu’ordonner/exécuter les actions qui lui sont données (flags, safes, cleanup), sans heuristique de priorité “SAFE-first”.
+
+## 7. Optimisations de performance (2025-12-20)
+
+### Logs Simplifiés
+- **Avant** : Log individuel de chaque action FLAG/SAFE.
+- **Après** : Log agrégé "X flags + Y safes executed".
+- **Bénéfices** : Réduction significative du volume de logs, meilleure lisibilité console.
+
+### Gestion des Mouvements Manuels
+- **Problème** : Quand l'utilisateur bougeait manuellement, le bot continuait avec des données périmées.
+- **Solution** : Le planner retourne `success=False` pour empêcher l'exécution du solver.
+- **Bénéfices** : Robustesse accrue face aux interactions utilisateur.
+
+## 8. Référence – Dumb Solver Loop
+
+La stratégie actuelle (réduction de frontière systématique, bypass CSP si assez d'actions, sinon CSP sur `TO_PROCESS`) est décrite ici :
+
+`doc/FOLLOW_PLAN/s44_dumb_solver_loop.md`

@@ -53,8 +53,20 @@ Ces appels transitent par la façade s0 (`InterfaceController`) :
 4) s1 retourne `CaptureResult` (image brute) aux services.
 5) s2_vision consomme `CaptureResult` et produit `matches` + overlay (si activé).
 
-## 6. Invariants
+## 6. Optimisations de performance (2025-12-20)
 
-- Toujours capturer via `InterfaceController` (pas d’accès direct aux composants internes depuis les couches supérieures).
-- Pas d’overlay ici : s1 renvoie des pixels; les overlays sont produits par s2/debug.
-- Pas de logique “grid” ici : s1 ne connaît pas `ACTIVE`, `frontier_set`, etc.
+### Composite Aligné depuis IDs Canvas
+- **Problème** : Les décalages spatiaux dans le composite étaient causés par l'utilisation des coordonnées DOM des canvas.
+- **Solution** : Le composite `_compose_aligned_grid()` calcule maintenant les positions depuis les IDs (ex: `canvas_0x0` → position (0,0) × 512px).
+- **Bénéfices** : Alignement parfait indépendant du viewport, cohérence spatiale garantie même après zoom/dézoom.
+
+### Gestion des Mouvements Manuels
+- **Problème** : Quand l'utilisateur bougeait manuellement, le bot continuait avec des données périmées.
+- **Solution** : En cas de capture ignorée (mouvement détecté), `success=False` est retourné pour empêcher l'exécution du solver.
+- **Bénéfices** : Robustesse accrue face aux interactions utilisateur, évite les actions basées sur des données obsolètes.
+
+## 7. Invariants
+
+- Toujours capturer via `InterfaceController` (pas d'accès direct aux composants internes depuis les couches supérieures).
+- Pas d'overlay ici : s1 renvoie des pixels; les overlays sont produits par s2/debug.
+- Pas de logique "grid" ici : s1 ne connaît pas `ACTIVE`, `frontier_set`, etc.
