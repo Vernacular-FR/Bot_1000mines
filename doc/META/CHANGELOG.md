@@ -7,12 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Vision Performance Optimization – 2025-12-20
+- **GPU Downscaler** : Module autonome `s2b_gpu_downscaler.py` pour détection UNREVEALED via downscale PyTorch 25×
+- **CPU Fallback** : Optimisation CPU pre-screening (9 pixels → 1 pixel/cellule) : **10.1× plus rapide**
+- **Performance Monitoring** : Logs détaillés GPU/CPU downscale + template matching (ms/cell)
+- **Résultats mesurés** : CPU pre-screening 3534ms → 349ms (103918 cells)
+- **Logs Simplifiés** : Suppression énumérations exhaustives (CSP composantes, PLANNER actions, STORAGE symboles)
+
 ### Architecture Refactoring & Robust Clicks – 2025-12-20
+
+#### Real-time Execution
 - **Exécution temps-réel** : Le `planner` (`s5`) devient l'agent actif. Il exécute les actions au fur et à mesure de la planification si le driver est fourni.
 - **Gestion des explosions** : Le `planner` vérifie les vies après chaque clic et applique un délai de stabilisation de 2s en cas d'explosion.
-- **Clics Robustes (Anchor-Relative)** : Les clics sont désormais calculés par rapport à l'élément `#anchor` en JavaScript au moment précis de l'exécution. Immunité totale aux mouvements du viewport pendant l'exécution.
+- **Actions JS** : Logique de clic basée JavaScript déplacée de `s6_executor` vers `src/lib/s0_browser/actions.py`
 - **Simplification Game Loop** : Suppression du module `s6_executor` et de la logique de délai réactif dans `s9_game_loop.py`.
+
+#### Robust Clicks (Anchor-Relative Positioning)
+- **Planification relative** : Le `planner` calcule les coordonnées relatives à l'élément `#anchor` (via `grid_to_canvas` + offset cellule)
+- **Calcul JS temps-réel** : Les fonctions `click_left` et `click_right` reçoivent les coordonnées relatives
+- **Positionnement précis** : Juste avant dispatch des événements souris, le script JS appelle `getBoundingClientRect()` sur `#anchor` pour obtenir sa position absolue actuelle
+- **Stabilité parfaite** : Immunité totale aux mouvements du viewport pendant l'exécution (même avec 100 clics consécutifs)
 - **Stabilité Viewport** : Appel systématique à `refresh_anchor()` à chaque itération pour garantir la cohérence vision/coordonnées.
+
+#### Exploration Scenarios (Adaptive Strategy)
+- **PRUDENT (Iter 1-5)** : Exécute seulement les coups sûrs (Flag/Safe). Ignore les guess du solver. Exploration lointaine si bloqué (distance 10-20).
+- **AGGRESSIVE (Iter > 5, Lives > 1)** : Exécute coups sûrs + guess du solver. Exploration moyenne si bloqué (distance 2-10).
+- **DESPERATE (Lives <= 1)** : Mode "all in". Accepte tous les guess. Exploration proche si bloqué (distance 0-5), priorité frontière.
 
 ### Solver – focus, overlays, CSP borné – 2025-12-19
 - **Classification** : `StatusAnalyzer` ne reclasse plus que les `JUST_VISUALIZED`, préservant les focus des FRONTIER/ACTIVE existantes.

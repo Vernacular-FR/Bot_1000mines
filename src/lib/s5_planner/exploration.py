@@ -1,7 +1,7 @@
 """Logique d'exploration risquée pour le planner."""
 
 import random
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 from src.lib.s3_storage.types import Coord, GridCell, LogicalCellState, SolverStatus
 from src.lib.s4_solver.types import SolverAction, ActionType
 from src.config import EXPLORATION_CONFIG
@@ -46,7 +46,7 @@ def find_exploration_candidates(
             
     return candidates
 
-def select_exploration_action(candidates: List[Coord]) -> Optional[SolverAction]:
+def select_exploration_action(candidates: List[Coord], strategy_name: str = "Standard") -> Optional[SolverAction]:
     """Choisit une action d'exploration parmi les candidats."""
     if not candidates:
         return None
@@ -57,5 +57,5 @@ def select_exploration_action(candidates: List[Coord]) -> Optional[SolverAction]
         coord=target,
         action=ActionType.GUESS,
         confidence=0.5,
-        reasoning=f"Exploration risquée (distance > 10 de la frontière)"
+        reasoning=f"Exploration {strategy_name} (distance > 10 de la frontière)"
     )

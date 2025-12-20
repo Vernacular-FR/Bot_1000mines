@@ -32,8 +32,10 @@ def analyze(input: VisionInput) -> VisionResult:
     
     matches: List[CellMatch] = []
     errors: List[str] = []
+    canvas_count = len(input.images)
     
-    for canvas_id, image_bytes in input.images.items():
+    for idx, (canvas_id, image_bytes) in enumerate(input.images.items(), 1):
+        canvas_start = time.time()
         try:
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             
@@ -41,14 +43,10 @@ def analyze(input: VisionInput) -> VisionResult:
             if input.bounds:
                 cols = input.bounds.max_col - input.bounds.min_col + 1
                 rows = input.bounds.max_row - input.bounds.min_row + 1
-                print(f"[VISION] Utilisation des bounds pour la taille: {cols}x{rows}")
-                print(f"[VISION] Image dimensions: {image.width}x{image.height}, cell_size={input.cell_size}")
-                print(f"[VISION] Expected size based on image: {image.width//input.cell_size}x{image.height//input.cell_size}")
             else:
                 # Calculer la taille de grille basée sur l'image
                 cols = image.width // input.cell_size
                 rows = image.height // input.cell_size
-                print(f"[VISION] Utilisation des dimensions image: {cols}x{rows}")
             
             # Classification de la grille
             grid_results = matcher.classify_grid(
@@ -72,17 +70,24 @@ def analyze(input: VisionInput) -> VisionResult:
                     distance=result.distance,
                     threshold=result.threshold,
                 ))
+            
+            canvas_elapsed = time.time() - canvas_start
+            total_cells = rows * cols
+            print(f"[VISION_PERF] Canvas {idx}/{canvas_count}: {canvas_elapsed*1000:.2f}ms | {total_cells} cells | {canvas_elapsed*1000/total_cells:.3f}ms/cell")
                 
         except Exception as e:
             errors.append(f"Erreur canvas {canvas_id}: {e}")
+    
+    total_duration = time.time() - start_time
+    print(f"[VISION_PERF] Total iteration: {total_duration*1000:.2f}ms | {canvas_count} canvas | {total_duration*1000/canvas_count:.2f}ms/canvas")
     
     return VisionResult(
         matches=matches,
         timestamp=time.time(),
         errors=errors,
         metadata={
-            "duration": time.time() - start_time,
-            "canvas_count": len(input.images),
+            "duration": total_duration,
+            "canvas_count": canvas_count,
         },
     )
 

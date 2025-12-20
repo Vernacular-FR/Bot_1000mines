@@ -1,29 +1,32 @@
+# S05 ACTION PLANNER — Vulgarisation V3
 
+## Le Planner : Le Bras Armé du Bot
 
-## Implémentation actuelle
+Dans cette version V3 "compartimentée", le Planner n'est plus un simple "secrétaire" qui fait des listes d'actions. Il est devenu l'agent actif qui exécute les décisions du solver.
 
-L’implémentation en place est assumée :
+### 1. Ordonnancement Intelligent
+Il trie toujours les actions pour garantir un flux logique :
+- **Drapeaux d'abord** : On sécurise les mines connues.
+- **Ouvertures (Safes)** : On ouvre les cases sûres.
+- **Paris (Guesses)** : En dernier recours.
 
-- Façade : `ActionPlannerController.plan(actions)`
-- Moteur minimal : `MinimalPathfinder.plan_actions(actions)`
+### 2. Exécution Directe et Temps-Réel
+Le Planner possède maintenant le contrôle du navigateur. Dès qu'une action est planifiée, elle est exécutée. Cela rend le bot beaucoup plus réactif.
 
-Le moteur groupe les actions par type (FLAG / CLICK / GUESS), conserve l’ordre d’arrivée **à l’intérieur** de chaque groupe, puis concatène.
+### 3. Surveillance et "Intelligence Émotionnelle"
+Le Planner surveille le compteur de vies en permanence :
+- S'il clique sur une mine par erreur (explosion), il le détecte immédiatement.
+- Il marque alors une pause de **2 secondes** pour laisser les animations de fumée se dissiper et la grille se stabiliser.
+- Cela évite au bot de s'affoler et de cliquer n'importe où pendant une explosion.
 
-`PathfinderPlan.overlay_path` existe, mais n’est pas utilisé dans cette version (valeur `None`).
+### 4. Précision Chirurgicale (Clics Aimantés)
+Grâce au nouveau système de coordonnées relatives :
+- Le bot ne clique plus à des positions fixes sur l'écran.
+- Il vise des positions **relatives à la grille**.
+- Un script JavaScript recalcule la position exacte au millième de seconde près juste avant le clic.
+- **Résultat** : Vous pouvez bouger la fenêtre dans tous les sens, le bot ne ratera jamais sa cible.
 
 ---
 
-## Implémentation V3 (Agent Actif)
-
-Le planner n'est plus un simple "secrétaire" qui fait des listes. C'est le **bras armé** du bot :
-
-1.  **Ordonnancement** : Il trie toujours les actions (Drapeaux d'abord, puis Safes).
-2.  **Exécution Directe** : Il possède le driver Selenium et clique lui-même sur les cases.
-3.  **Surveillance** : Il regarde le score et les vies. S'il y a une explosion, il gère la pause de 2s tout seul.
-4.  **Précision Chirurgicale** : Il utilise des coordonnées relatives à l'anchor, ce qui le rend insensible aux mouvements du viewport.
-
----
-
-## Conclusion V3
-
+## Conclusion
 La couche s5 est maintenant le centre névralgique de l'interaction. Elle garantit que les décisions du solver sont appliquées avec une fiabilité maximale, peu importe les conditions de navigation.

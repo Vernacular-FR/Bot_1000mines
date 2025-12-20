@@ -3,7 +3,6 @@
 Ce journal correspond à la **V3 “compartimentée”** : même pipeline, mais documentation découpée par briques (interface/capture/vision/storage/solver/planner + efficacité).
 
 L’idée n’est pas de réécrire l’histoire :
-
 - je conserve les décisions fondatrices prises pendant la V2 (à partir du 10 décembre 2025),
 - puis je documente les bascules V3 (refactorisation + stabilisation),
 - et surtout je renvoie vers des journaux dédiés par composant pour éviter le “fourre‑tout”.
@@ -11,7 +10,6 @@ L’idée n’est pas de réécrire l’histoire :
 ## À lire en V3 (journaux par brique)
 
 Dans cette V3, l’architecture est volontairement “compartimentée” :
-
 - `S0_INTERFACE_vulga.md` : contrat navigateur/coords/clics
 - `S1_CAPTURE_vulga.md` : capture canvas + composite aligné
 - `s2_VISION_vulga.md` : reconnaissance déterministe (template matching)
@@ -25,75 +23,35 @@ Dans cette V3, l’architecture est volontairement “compartimentée” :
 Après 3 semaines de développement intensif, le codebase avait accumulé de la complexité technique. J'ai lancé une opération de nettoyage et refactoring en deux phases pour assurer la maintenabilité à long terme.
 
 ### Phase 1 – Nettoyage Drastique
-
-**Suppressions (7 éléments)**
-- Overlays debug : `s49_overlays/` (34KB de visualisations)
-- Tests dispersés : `test_unitaire/` dans chaque module
-- Code mort : `s49_cleanup.py`, `s6_action/facade.py` (0 bytes)
-- Services doublons : `s3_storage_solver_service.py`
-
-**Nettoyages de code**
-- Imports overlay supprimés dans 4 fichiers du solver
-- Méthodes `emit_overlays()`, `emit_states_overlay()` éliminées
-- Enums `CellSource` et `ActionStatus.LOOKUP` purgés
-- Doublons unifiés : `ViewportState`, `CanvasDescriptor`, `ScreenshotManager`
+- Suppression de 7 éléments (overlays debug, tests dispersés, code mort).
+- Nettoyage des imports et méthodes obsolètes.
 
 ### Phase 2 – Refactoring Architectural
+- Unification du `StatusClassifier`.
+- Division de `GameLoopService` en `SingleIterationService` et `GameLoopService`.
 
-**Unification StateManager**
-```python
-# AVANT : 2 classes dupliquées
-class StateManager:        # Gestion ACTIVE/SOLVED
-class FrontierClassifier:  # Détection frontières
+## 19 décembre 2025 — Stabilisation du pipeline minimal
 
-# APRÈS : 1 classe unifiée
-class StatusClassifier:    # Gestion complète des états
-```
+- **Init session propre** : sélection du mode Infinite + difficulté fiabilisée.
+- **Repères corrects** : vision sur composite aligné avec GridBounds absolus.
+- **Invariants storage** : formalisation de la validation des sets.
 
-**Division GameLoopService**
-```python
-# AVANT : Service monolithique (400 lignes)
-class GameLoopService:
-    # Capture + Vision + Storage + Solver + Action + Loop
+## 20 décembre 2025 — Stabilisation V3 (Exécution temps-réel & Clics robustes)
 
-# APRÈS : 2 services spécialisés
-class SingleIterationService:  # 1 passe complète (200 lignes)
-class GameLoopService:         # Orchestrateur simple (100 lignes)
-```
+Cette étape marque la fin de la "passivité" du planner. Le bot devient beaucoup plus réactif et résistant aux manipulations de l'utilisateur.
 
-### Résultats
+### 1. Le Planner devient l'Exécuteur
+Le module `s6_executor` a été supprimé. C'est maintenant le **Planner (s5)** qui prend la main sur la souris :
+- **Réactivité** : Dès qu'une case est déduite comme sûre, elle est cliquée.
+- **Intelligence émotionnelle** : Le planner surveille le compteur de vies. S'il fait sauter une mine, il s'arrête 2 secondes pour laisser les animations se finir.
 
-- **Bot 100% fonctionnel** : Pipeline complet opérationnel, 112 actions exécutées
-- **Codebase optimisé** : -8 fichiers supprimés, +3 fichiers modulaires
-- **Architecture propre** : Faible couplage, haute cohésion, zéro doublons
+### 2. Clics "Aimantés" (Anchor-Relative)
+Le bot ne clique plus à côté si on bouge la fenêtre.
+- **Le secret** : On utilise des coordonnées relatives à la grille.
+- **JavaScript à la rescousse** : Au moment précis du clic, un script JS recalcule la position réelle de la grille via `getBoundingClientRect()`.
 
-### Leçons apprises
+### 3. Simplification de la Boucle
+La boucle de jeu (`s9_game_loop.py`) est maintenant ultra-légère. Elle orchestre les briques sans gérer les délais d'explosion.
 
-1. **Purger tôt** : Le code mort s'accumule vite et coûte cher à maintenir
-2. **Unifier les doublons** : 2 classes similaires = 1 bug garanti à terme
-3. **Séparer les responsabilités** : Services monolithiques = difficile à tester
-4. **Documenter les décisions** : `PHASE1_DECISIONS.md` a guidé le refactoring
-
-## 19 décembre 2025 — Stabilisation du pipeline minimal (retour au concret)
-
-À ce stade, la V2 avait une vision très stable, mais un symptôme bloquant :
-la boucle “voyait” parfaitement la grille… et pourtant le solver n’arrivait pas à se mettre en mouvement (frontier/active vides).
-
-Le correctif n’était pas “améliorer la vision”. C’était de remettre une étape oubliée au bon endroit :
- 
-- **La vision observe** et marque les cellules vues comme “fraîches”.
-- **Le solver dérive la topologie** (ACTIVE/FRONTIER/SOLVED) à partir de ces observations.
-
-Concrètement, on a verrouillé 3 points :
-
-- **Init session propre** : sélection du mode **Infinite** + difficulté via les mêmes gestes que le legacy (attente explicite + clic direct).
-- **Repères corrects** : la vision travaille sur un composite aligné dont les `GridBounds` sont absolus (donc des coordonnées négatives sont normales si l’origine n’est pas visible).
-
-Résultat attendu :
-
-- **Tests centralisés** : `tests/` (pas de dispersion)
-
-La V3 est maintenant prête pour les prochaines étapes :
-- **V3-PERFORMANCES** : Optimisations algorithmiques
-- **V4-FEATURES** : Nouvelles fonctionnalités
-- **V5-TESTS** : Suite de tests automatisée
+## État actuel (fin 2025)
+Le refactoring architectural a transformé le projet en une base solide, prête pour les optimisations de performance (V3-PERFORMANCES) et les nouvelles fonctionnalités (V4-FEATURES).

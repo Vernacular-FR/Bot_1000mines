@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple, Any
@@ -11,6 +12,7 @@ import numpy as np
 from PIL import Image
 
 from src.config import CELL_SIZE
+from .s2b_gpu_downscaler import GPUDownscaler
 
 
 def _default_manifest_path() -> Path:
@@ -68,6 +70,7 @@ class CenterTemplateMatcher:
             raise FileNotFoundError(f"Manifest introuvable: {self.manifest_path}")
         self.margin: int = 7
         self.templates: Dict[str, TemplateData] = {}
+        self.gpu_downscaler = GPUDownscaler()
         self._load_manifest()
 
     def _load_manifest(self) -> None:
@@ -135,7 +138,8 @@ class CenterTemplateMatcher:
         known_set: Optional[set[Tuple[int, int]]] = None,
         bounds_offset: Optional[Tuple[int, int]] = None,
     ) -> Dict[Tuple[int, int], MatchResult]:
-        """Classifie une grille entière."""
+        """Classifie une grille entière avec optimisation GPU pour UNREVEALED."""
+        grid_start = time.time()
         start_x, start_y = grid_top_left
         cols, rows = grid_size
         image_np = np.array(image.convert("RGB"))
@@ -143,6 +147,14 @@ class CenterTemplateMatcher:
 
         offset_x, offset_y = bounds_offset if bounds_offset else (0, 0)
 
+        # 🚀 GPU FAST PATH : Détecter UNREVEALED via downscale
+        unrevealed_cells = self.gpu_downscaler.detect_unrevealed(
+            image_np, grid_top_left, grid_size, stride
+        )
+
+        template_count = 0
+        template_time = 0.0
+        
         for row in range(rows):
             for col in range(cols):
                 abs_x = offset_x + col
@@ -150,15 +162,40 @@ class CenterTemplateMatcher:
                 
                 if known_set is not None and (abs_x, abs_y) in known_set:
                     continue
+
+                # Si cellule détectée comme UNREVEALED par GPU/CPU fast path
+                if (row, col) in unrevealed_cells:
+                    results[(row, col)] = MatchResult(
+                        symbol="unrevealed",
+                        distance=0.0,
+                        threshold=100.0,
+                        confidence=1.0
+                    )
+                    continue
                     
                 x0 = start_x + col * stride
                 y0 = start_y + row * stride
                 cell = image_np[y0 : y0 + CELL_SIZE, x0 : x0 + CELL_SIZE]
                 if cell.shape[0] != CELL_SIZE or cell.shape[1] != CELL_SIZE:
                     continue
+                
+                # Tracker template matching
+                cell_start = time.time()
                 result = self.classify_cell(cell)
+                template_time += time.time() - cell_start
+                template_count += 1
+                
                 results[(row, col)] = result
 
+        # Logs de performance
+        grid_elapsed = time.time() - grid_start
+        total_cells = rows * cols
+        unrevealed_count = len(unrevealed_cells)
+        revealed_count = total_cells - unrevealed_count
+        
+        print(f"[VISION_PERF] Template matching: {template_time*1000:.2f}ms | {template_count} cells | {template_time*1000/max(template_count, 1):.3f}ms/cell")
+        print(f"[VISION_PERF] Grid summary: {grid_elapsed*1000:.2f}ms total | {unrevealed_count} unrevealed (fast) | {revealed_count} revealed (template)")
+        
         return results
 
     def _extract_zone(self, cell_rgb: np.ndarray) -> np.ndarray:

@@ -31,6 +31,7 @@ class PlannerInput:
     grid_bounds: Optional[GridBounds] = None
     is_exploring: bool = False
     force_exploration: bool = False
+    iteration: int = 0
 
 
 @dataclass

@@ -61,7 +61,7 @@ def run_iteration(
         )
         print(f"[CAPTURE] {capture_result.canvas_count} canvas")
 
-        # 2. VISION (boîte noire)
+        # --- 2. VISION ---
         bounds = capture_result.metadata.get("grid_bounds") or capture_result.grid_bounds
         known_set = session.storage.get_known()
         
@@ -92,11 +92,13 @@ def run_iteration(
                 stride=stride,
             )
 
-        # 3. STORAGE (boîte noire)
+        # --- 3. STORAGE ---
         symbol_counts = session.storage.update_from_vision(vision_result)
-        print(f"[STORAGE] {symbol_counts}")
+        unrevealed = symbol_counts.get('unrevealed', 0)
+        revealed = sum(v for k, v in symbol_counts.items() if k != 'unrevealed')
+        print(f"[STORAGE] unrevealed={unrevealed}, revealed={revealed}")
 
-        # 4. SOLVER (boîte noire)
+        # --- 4. SOLVER ---
         solver_output = solve(
             session.storage,
             overlay_ctx=export_ctx,
@@ -104,7 +106,7 @@ def run_iteration(
         )
         print(f"[SOLVER] {len(solver_output.actions)} actions")
 
-        # 5. PLANNER (boîte noire)
+        # --- 5. PLANNER ---
         # 5.1 Extraction des infos de jeu (score, vies) pour la boucle
         game_info = session.extractor.get_game_info()
         print(f"[GAME INFO] Score: {game_info.score}, Lives: {game_info.lives}")
@@ -161,7 +163,8 @@ def run_iteration(
                 game_info=game_info,
                 snapshot=session.storage.get_snapshot(),
                 is_exploring=session.is_exploring,
-                force_exploration=force_exploration
+                force_exploration=force_exploration,
+                iteration=iteration
             ),
             converter=session.converter,
             driver=session.driver,
@@ -243,6 +246,9 @@ def run_game(
         
         for i in range(max_iterations):
             iterations += 1
+            print(f"\n{'='*80}")
+            print(f"ITÉRATION {i+1}")
+            print(f"{'='*80}\n")
             result = run_iteration(session, iteration=i, export_ctx=export_ctx)
             total_actions += result.actions_executed
             

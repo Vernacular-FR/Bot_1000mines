@@ -138,14 +138,12 @@ class CspManager:
         for idx, component in enumerate(self.segmentation.components):
             num_zones = len(component.zones)
             total_cells = sum(len(z.cells) for z in component.zones)
-            print(f"[CSP] Composante {idx+1}/{len(self.segmentation.components)} : zones={num_zones}, cells={total_cells}")
             
             if num_zones > max_zones:
                 print(f"[CSP] SKIP composante {idx+1} : trop grande ({num_zones} zones > {max_zones})")
                 continue
             
             solutions = csp.solve_component(component)
-            print(f"[CSP] Composante {idx+1} : {len(solutions)} solutions")
             if not solutions:
                 continue
 
