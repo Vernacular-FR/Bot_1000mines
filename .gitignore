@@ -70,3 +70,4 @@ Thumbs.db
 src/**/__pycache__/
 src/**/.venv311/
 src/lib/s2_recognition/s22_Neural_engine/cnn/data/
+doc/VULGA

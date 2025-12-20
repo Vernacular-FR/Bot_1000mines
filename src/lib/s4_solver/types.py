@@ -44,6 +44,10 @@ class SolverOutput:
     reducer_actions: List[SolverAction] | None = None
     upsert: Optional[StorageUpsert] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # Snapshots pour progression UI (3 étapes du solver)
+    snapshot_pre_solver: Optional[Dict[Coord, GridCell]] = None  # Avant pipeline1 (état brut storage)
+    snapshot_post_pipeline1: Optional[Dict[Coord, GridCell]] = None  # Après StatusAnalyzer, avant CSP
+    snapshot_post_solver: Optional[Dict[Coord, GridCell]] = None  # Après CSP + ActionMapper (état final)
     
     @property
     def safe_count(self) -> int:

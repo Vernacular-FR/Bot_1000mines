@@ -139,12 +139,21 @@ class CspManager:
             num_zones = len(component.zones)
             total_cells = sum(len(z.cells) for z in component.zones)
             
+            # Debug: afficher les coordonnées moyennes de la composante
+            all_cells = [c for z in component.zones for c in z.cells]
+            if all_cells:
+                avg_x = sum(c[0] for c in all_cells) / len(all_cells)
+                avg_y = sum(c[1] for c in all_cells) / len(all_cells)
+            else:
+                avg_x, avg_y = 0, 0
+            
             if num_zones > max_zones:
-                print(f"[CSP] SKIP composante {idx+1} : trop grande ({num_zones} zones > {max_zones})")
+                print(f"[CSP] SKIP composante {idx+1} @ ({avg_x:.0f},{avg_y:.0f}) : trop grande ({num_zones} zones > {max_zones}, {total_cells} cells)")
                 continue
             
             solutions = csp.solve_component(component)
             if not solutions:
+                print(f"[CSP] Composante {idx+1} @ ({avg_x:.0f},{avg_y:.0f}) : {num_zones} zones, AUCUNE solution")
                 continue
 
             self.solutions_by_component[component.id] = solutions
@@ -160,6 +169,8 @@ class CspManager:
             if total_weight <= 0:
                 continue
 
+            comp_safes = 0
+            comp_flags = 0
             for zone in component.zones:
                 if not zone.cells:
                     continue
@@ -168,8 +179,19 @@ class CspManager:
 
                 if prob < 1e-6:
                     self.safe_cells.update(zone.cells)
+                    comp_safes += len(zone.cells)
                 elif prob > 1 - 1e-6:
                     self.flag_cells.update(zone.cells)
+                    comp_flags += len(zone.cells)
+            
+            # Log toutes les composantes traitées pour diagnostic
+            if comp_safes > 0 or comp_flags > 0:
+                print(f"[CSP] Composante {idx+1} @ ({avg_x:.0f},{avg_y:.0f}) : {num_zones} zones, {len(solutions)} solutions -> {comp_safes} safes, {comp_flags} flags")
+            else:
+                # Log aussi les composantes sans déductions (probabilités intermédiaires)
+                min_prob = min((zone_weighted_mines[z.id] / total_weight) / len(z.cells) for z in component.zones if z.cells) if component.zones else 1
+                max_prob = max((zone_weighted_mines[z.id] / total_weight) / len(z.cells) for z in component.zones if z.cells) if component.zones else 0
+                print(f"[CSP] Composante {idx+1} @ ({avg_x:.0f},{avg_y:.0f}) : {num_zones} zones, {len(solutions)} solutions, probs=[{min_prob:.2f}-{max_prob:.2f}] (pas de déduction certaine)")
 
         print(f"[CSP] Résultat final : safe={len(self.safe_cells)}, flag={len(self.flag_cells)}")
         # Marquer les zones traitées comme PROCESSED

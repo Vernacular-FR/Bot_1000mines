@@ -68,6 +68,9 @@ def solve(
     runtime = SolverRuntime(initial_snapshot)
     status_manager = StatusManager()
     
+    # === SNAPSHOT PRE-SOLVER (pour overlay UI) ===
+    snapshot_pre_solver = initial_snapshot.copy()
+    
     # === PIPELINE 1 : POST-VISION ===
     # Classification topologique + FocusActualizer
     print("[SOLVER] Pipeline 1 : post-vision...")
@@ -82,9 +85,12 @@ def solve(
     runtime.clear_dirty()
     print(f"[SOLVER] Pipeline 1 : {len(pipeline1_upsert.cells)} cellules mises à jour")
     
+    # === SNAPSHOT POST-PIPELINE1 (pour overlay UI) ===
+    snapshot_post_pipeline1 = runtime.get_snapshot()
+    
     # === PIPELINE 2 : CSP INFERENCE ===
     # Compute sets from runtime snapshot (reflects Pipeline 1 updates)
-    snapshot = runtime.get_snapshot()
+    snapshot = snapshot_post_pipeline1
     frontier = {
         coord for coord, cell in snapshot.items()
         if cell.solver_status == SolverStatus.FRONTIER
@@ -167,5 +173,13 @@ def solve(
                 bounds=bounds,
                 stride=stride,
             )
+    
+    # === SNAPSHOT POST-SOLVER (pour overlay UI) ===
+    snapshot_post_solver = runtime.get_snapshot()
+    
+    # Attacher les 3 snapshots pour l'overlay UI temps réel (progression 3 étapes)
+    solver_output.snapshot_pre_solver = snapshot_pre_solver
+    solver_output.snapshot_post_pipeline1 = snapshot_post_pipeline1
+    solver_output.snapshot_post_solver = snapshot_post_solver
 
     return solver_output

@@ -29,13 +29,23 @@ from src.config import CELL_SIZE, CELL_BORDER
 from .s0_session_service import Session
 
 
-def _update_ui_overlay(session: Session, bounds, solver_output) -> None:
-    """Met à jour les overlays UI temps réel avec les données du solver."""
+def _update_ui_overlay(session: Session, bounds, solver_output, snapshot_override=None) -> None:
+    """Met à jour les overlays UI temps réel avec les données du solver.
+    
+    Args:
+        snapshot_override: Si fourni, utilise ce snapshot au lieu de celui dans solver_output
+    """
     if not session.ui_controller:
         return
     
     try:
-        snapshot = session.storage.get_snapshot()
+        # Utiliser le snapshot fourni, sinon fallback sur post-pipeline1
+        if snapshot_override is not None:
+            snapshot = snapshot_override
+        elif solver_output.snapshot_post_pipeline1:
+            snapshot = solver_output.snapshot_post_pipeline1
+        else:
+            snapshot = session.storage.get_snapshot()  # Fallback si pas disponible
         
         # Convertir snapshot en StatusCellData (filtrer seulement ACTIVE/FRONTIER/TO_VISUALIZE)
         # Les coordonnées doivent être ABSOLUES (grille globale) car le canvas est ancré sur #anchor
@@ -155,9 +165,23 @@ def run_iteration(
         )
         print(f"[SOLVER] {len(solver_output.actions)} actions")
         
-        # --- 4.5. UI OVERLAY (temps réel) ---
+        # --- 4.5. UI OVERLAY (temps réel - progression 3 étapes) ---
         if session.ui_controller:
-            _update_ui_overlay(session, bounds, solver_output)
+            # Étape 1: État brut avant solver (status_1.png)
+            if solver_output.snapshot_pre_solver:
+                _update_ui_overlay(session, bounds, solver_output, snapshot_override=solver_output.snapshot_pre_solver)
+                time.sleep(0.15)  # Délai pour visualiser
+            
+            # Étape 2: Après StatusAnalyzer, avant CSP (status_2.png)
+            if solver_output.snapshot_post_pipeline1:
+                _update_ui_overlay(session, bounds, solver_output, snapshot_override=solver_output.snapshot_post_pipeline1)
+                time.sleep(0.15)  # Délai pour visualiser
+            
+            # Étape 3: Après CSP, état final (status_3.png)
+            if solver_output.snapshot_post_solver:
+                _update_ui_overlay(session, bounds, solver_output, snapshot_override=solver_output.snapshot_post_solver)
+            else:
+                _update_ui_overlay(session, bounds, solver_output)  # Fallback classique
 
         # --- 5. PLANNER ---
         # 5.1 Extraction des infos de jeu (score, vies) pour la boucle

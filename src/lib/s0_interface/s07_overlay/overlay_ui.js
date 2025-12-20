@@ -25,7 +25,7 @@
     UNREVEALED: 'rgba(0, 0, 0, 0)',
     ACTIVE: 'rgba(8, 106, 218, 0.2)',
     FRONTIER: 'rgba(255, 251, 0, 0.15)',
-    SOLVED: 'rgba(21, 214, 53, 0.10)',
+    SOLVED: 'rgba(21, 214, 53, 0.2)',
     MINE: 'rgba(255, 0, 0, 0.4)',
     TO_VISUALIZE: 'rgba(0, 0, 0, 0,15)',
 
@@ -35,10 +35,10 @@
     GUESS: 'rgba(255, 255, 0, 0.9)',
 
     // Focus Levels
-    TO_PROCESS: 'rgba(255, 165, 0, 0.5)',
-    PROCESSED: 'rgba(255, 200, 100, 0.25)',
-    TO_REDUCE: 'rgba(0, 150, 255, 0.5)',
-    REDUCED: 'rgba(100, 180, 255, 0.25)',
+    TO_PROCESS: 'rgba(255, 200, 0, 0.6)',
+    PROCESSED: 'rgba(255, 200, 0, 0.2)',
+    TO_REDUCE: 'rgba(26, 128, 223, 0.5)',
+    REDUCED: 'rgba(26, 128, 223, 0.2)',
 
     // UI
     MENU_BG: 'rgba(20, 20, 30, 0.95)',

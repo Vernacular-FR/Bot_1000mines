@@ -70,7 +70,7 @@ DIFFICULTY_CONFIG = {
 DEFAULT_DIFFICULTY = 'impossible'
 
 # Paramètres du solver CSP
-CSP_CONFIG = {'max_zones_per_component':30} # Limite de zones par composante pour éviter explosion backtracking
+CSP_CONFIG = {'max_zones_per_component': 50}  # Limite de zones par composante (50 = frontière de ~50 cases)
 
 # Configuration de l'exploration
 EXPLORATION_CONFIG = {
