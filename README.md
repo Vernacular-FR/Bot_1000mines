@@ -18,26 +18,71 @@ Les services orchestrent l'ensemble, la logique bas niveau vit dans `src/lib/`.
 ## 🚀 Installation Rapide
 
 ### Prérequis
-- Python 3.8+
-- Google Chrome
-- Git
+- **Python 3.11** (pas )
+  - Téléchargement direct : https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+  - Cocher "Add Python to PATH" pendant l'installation
+- **Google Chrome** (dernière version)
+- **Git**
 
-### Installation en 30 secondes
+### Installation 
 ```powershell
-# Cloner
-git clone <URL_REPO>
+# 1. Cloner le dépôt
+git clone https://github.com/Vernacular-FR/Bot_1000mines
 cd bot-1000mines
 
 # Créer l'environnement
-py -3.11 -m venv .venv311
-.\.venv311\Scripts\activate
+py -3.11 -m venv .venv
+.\.venv\Scripts\activate
+
+# Vérifier la version dans le venv
+python --version
+# Doit afficher: Python 3.11.9
 
 # Installer les dépendances (CPU ou GPU)
 pip install -r requirements.txt
 
-# Lancer
+# Lancer le bot
 python main.py
 ```
+
+#### Résolution de Problèmes Courants
+
+**Erreur: "pip n'est pas reconnu"**
+```powershell
+# Utiliser python -m pip au lieu de pip
+python -m pip install -r doc/requirements_minimal.txt
+```
+
+**Erreur: "l'exécution de scripts est désactivée"**
+```powershell
+# Ouvrir PowerShell en Administrateur et exécuter:
+Set-ExecutionPolicy RemoteSigned
+# Puis réessayer l'activation: .\.venv\Scripts\activate
+```
+
+**Vérifier l'installation**
+```powershell
+# Vérifier Python
+python --version  # Doit afficher 3.11.x ou 3.12.x
+
+# Vérifier les packages installés
+pip list
+```
+
+---
+
+## 📦 Dépendances
+
+### Packages Essentiels (Toujours requis)
+- **selenium** - Automation du navigateur Chrome
+- **webdriver-manager** - Gestion automatique du ChromeDriver
+- **numpy** - Traitement d'images et calculs matriciels
+- **Pillow** - Manipulation d'images (capture, overlays)
+
+### Packages Optionnels
+- **torch** - Accélération GPU (25× plus rapide pour le downscaling)
+  - Nécessite: GPU NVIDIA + CUDA
+  - Fallback CPU automatique si absent
 
 ---
 
@@ -45,13 +90,6 @@ python main.py
 
 ### Scénarios rapides
 ```bash
-# Scénario 3 : une passe capture → analyse → solve → actions
-python scenario3.py
-
-# Scénario 4 : boucle complète
-python scenario4.py
-
-# Interface menu historique
 python main.py
 ```
 
@@ -66,26 +104,59 @@ Pipeline d'exécution :
 
 ## 📁 Structure du Projet
 
+### Architecture Modulaire V2
+
 ```
 bot-1000mines/
+├── main.py                # Point d'entrée unique
 ├── src/
-│   ├── app/              # Points d’entrée (CLI / scripts)
-│   ├── services/         # Orchestrateurs (session, capture, boucle…)
-│   └── lib/
-│       ├── s0_viewport/  # DOM + coordonnées (réutilise lib/s0_navigation)
-│       ├── s1_capture/   # canvas.toDataURL / CDP
-│       ├── s2_vision/    # PixelSampler + debug overlays
-│       ├── s3_storage/   # Archive + frontière compacte
-│       ├── s4_solver/    # Motifs + solveur local (debug inclus)
-│       ├── s5_actionplanner/# Heatmap + trajets multi-étapes
-│       └── s6_action/    # Exécution multi-clics
-├── tests/                # Tests unitaires
-├── doc/                  # Synthèses (pipeline, README)
-├── doc/SPECS/            # Référence technique (architecture, roadmap…)
-├── temp/                 # Artefacts de parties (généré automatiquement)
-├── main.py               # Stub lançant src.main.run()
-└── README.md             # Ce guide
+│   ├── services/          # Orchestrateurs métier
+│   │   ├── s0_session_service.py  # Gestion session navigateur
+│   │   └── s9_game_loop.py        # Boucle de jeu principale
+│   └── lib/               # Bibliothèques spécialisées (pipeline)
+│       ├── s0_browser/    # Pilote navigateur (Selenium, WebDriver)
+│       ├── s0_coordinates/# Conversion grille↔écran, viewport
+│       ├── s0_interface/  # Overlay UI (canvas HTML5, injection JS)
+│       ├── s1_capture/    # Capture canvas (toDataURL, composition)
+│       ├── s2_vision/     # Template matching, GPU downscaling
+│       ├── s3_storage/    # Grille sparse + sets (frontier, active...)
+│       ├── s4_solver/     # State analyzer, CSP, propagation
+│       └── s5_planner/    # Ordonnancement et exécution actions
+├── tests/                 # Tests unitaires organisés
+├── doc/
+│   └── SPECS/             # Documentation technique de référence
+├── temp/                  # Artefacts de parties (auto-généré)
+└── README.md              # Ce guide
 ```
+
+### Pipeline de Traitement
+
+```
+┌─────────────┐
+│ s0_browser  │ ← Selenium + ChromeDriver
+├─────────────┤
+│ s1_capture  │ ← Canvas → Image brute (512×512 tiles)
+├─────────────┤
+│ s2_vision   │ ← Template matching → Grille reconnue
+├─────────────┤
+│ s3_storage  │ ← Grid sparse + Sets (frontier/active/known)
+├─────────────┤
+│ s4_solver   │ ← State analyzer + CSP → Actions (SAFE/FLAG)
+├─────────────┤
+│ s5_planner  │ ← Ordonnancement + Exécution temps-réel
+└─────────────┘
+```
+
+**Flux:** `capture → vision → storage → solver → planner → recapture`
+
+### Modules Clés
+
+- **s0_browser** - Automation navigateur, gestion ChromeDriver
+- **s1_capture** - Capture multi-canvas, composition alignée
+- **s2_vision** - CenterTemplateMatcher, GPU/CPU downscaling
+- **s3_storage** - GridStore + SetManager (invariants, cohérence)
+- **s4_solver** - StateAnalyzer, FocusActualizer, CSP borné
+- **s5_planner** - Agent actif d'exécution, gestion vies/délais
 
 ---
 
@@ -125,20 +196,6 @@ python src/main.py --difficulty impossible --overlay --verbose
 
 ---
 
-## 🤝 Contribuer
+## Licence
 
-Pour approfondir :
-- `SPECS/ARCHITECTURE.md` : blueprint complet
-- `SPECS/DEVELOPMENT_JOURNAL.md` : journal de bord
-- `SRC_REFACTOR_PLAN.md` : état de la migration vers `src/`
-- `docs/specs/` (INDEX, architecture) : responsabilités détaillées
-
----
-
-## 📄 Licence
-
-MIT License - Fait avec ❤️
-
----
-
-**Simple, efficace, intelligent** 🎯
+MIT License
